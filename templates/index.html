@@ -1,0 +1,1043 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Round" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Sharp" rel="stylesheet">
+
+    <title>Interface</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #ffffff;
+        }
+        .container {
+            max-width: 1600px;
+            margin: 0 auto;
+        }
+        .horizontal-container {
+            display: flex;
+            margin: 0 auto;
+            background-color: #802f56;
+        }
+        .header {
+            background-color: #c9cfff;
+            color: black;
+            padding: 15px;
+            border-radius: 5px 5px 0 0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        #sidebar {
+            width: 20%;
+            background: #f6f6ff;
+            padding: 10px;
+            border-right: 2px solid #ccc;
+            position: relative;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            overflow-y: auto;
+            z-index: 10;
+        }
+        #mainbar {
+            width : 80%;
+            background: #f6f6ff;
+            padding: 10px;
+            position: relative;
+            left: 0;
+            top: 0;
+            bottom: 0;
+            overflow-y: auto;
+            z-index: 10;
+        }
+        #sidebar h3 {
+            color: #333;
+            font-size: 18px;
+            margin-top: 0;
+            padding: 5px;
+        }
+        .sidebar-item {
+            padding: 8px;
+            cursor: pointer;
+            display: flex;
+            justify-content: space-between;
+            background: #fff;
+            margin-bottom: 5px;
+            border: 1px solid #ccc;
+        }
+        .sidebar-item:hover {
+            background: #fdfdfd;
+        }
+        .canvas-container {
+            background-color: white;
+            border: 1px solid #ddd;
+            border-radius: 0 0 5px 5px;
+            overflow: hidden;
+            height: 500px;
+            position: relative;
+            background-image: 
+                linear-gradient(to right, rgba(0, 0, 0, 0.05) 1px, transparent 1px),
+                linear-gradient(to bottom, rgba(0, 0, 0, 0.05) 1px, transparent 1px);
+            background-size: 20px 20px;
+        }
+        #circuit-canvas {
+            width: 100%;
+            height: 100%;
+            cursor: grab;
+        }
+        #circuit-json {
+            width: 95%;
+        }
+        .toolbar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 10px;
+            padding: 10px;
+            background-color: #eee;
+            border-radius: 5px;
+        }
+        button {
+            padding: 8px 12px;
+            background-color: #e9ebff;
+            color: rgb(0, 0, 0);
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+        button:hover {
+            background-color: #ffffff;
+        }
+        .node {
+            position: absolute;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            user-select: none;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 10;
+        }
+        .input-node {
+            background-color: #b6e2ff;
+            color: black;
+        }
+        .output-node {
+            background-color: #ffaba1;
+            color: black;
+        }
+        .gate-node {
+            background-color: #f39c12;
+            color: white;
+        }
+        .node-label {
+            position: absolute;
+            bottom: -20px;
+            width: 100%;
+            text-align: center;
+            font-size: 12px;
+            white-space: nowrap;
+        }
+        .edge {
+            position: absolute;
+            stroke: #555;
+            stroke-width: 2px;
+            z-index: 5;
+        }
+        .port {
+            position: absolute;
+            width: 8px;
+            height: 8px;
+            background-color: #000;
+            border-radius: 50%;
+            z-index: 11;
+        }
+        .input-port {
+            background-color: #000;
+        }
+        .output-port {
+            background-color: #000;
+        }
+        .controls {
+            margin-top: 20px;
+            padding: 10px;
+            background-color: #eee;
+            border-radius: 5px;
+        }
+        textarea {
+            width: 100%;
+            height: 150px;
+            margin-top: 10px;
+            font-family: monospace;
+            padding: 10px;
+            border-radius: 4px;
+            border: 1px solid #ddd;
+        }
+        .temp-edge {
+            position: absolute;
+            stroke: #777;
+            stroke-width: 2px;
+            stroke-dasharray: 5;
+            z-index: 9;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>Interface</h1>
+        <div>
+            <button id="spread-btn"><span class="material-icons">transform</span></button>
+            <button id="save-btn"><span class="material-icons">save</span></button>
+            <button id="load-btn"><span class="material-icons">refresh</span></button>
+        </div>
+    </div>
+
+    <pre id="testResults"></pre>
+
+    <div class="horizontal-container">
+        <div id="sidebar">
+            <h3>List of Implemented Circuits</h3>
+            <button onclick="runTests()"><span class="material-icons">play_arrow</span></button>
+        </div>
+
+        <div id="mainbar">
+            
+            <div class="toolbar">
+                <button id="add-input">INPUT</button>
+                <button id="add-and">AND</button>
+                <button id="add-or">OR</button>
+                <button id="add-not">NOT</button>
+                <button id="add-xor">XOR</button>
+                <button id="add-output">OUTPUT</button>
+                <button id="delete"><span class="material-icons">delete</span></button>
+            </div>
+            
+            <div class="canvas-container">
+                <div id="circuit-canvas"></div>
+                <svg id="edges-layer" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 5;"></svg>
+                <svg id="temp-edge-layer" style="position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: 9;"></svg>
+            </div>
+            
+            <div class="controls">
+                <h3>Circuit JSON</h3>
+                <textarea id="circuit-json" placeholder="Load or save circuit JSON here"></textarea>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let circuit = {
+            nodes: [],
+            edges: []
+        };
+        
+        const canvas = document.getElementById('circuit-canvas');
+        const edgesLayer = document.getElementById('edges-layer');
+        const tempEdgeLayer = document.getElementById('temp-edge-layer');
+        const jsonTextarea = document.getElementById('circuit-json');
+        
+        let activeNodeId = null;
+        let isMoving = false;
+        let activePortId = null;
+        let isDeleteMode = false;
+        let nextNodeId = 1;
+        let nextPortId = 1;
+        let tempEdge = null;
+        let offsetX, offsetY;
+        
+        function init() {
+            document.getElementById('add-input').addEventListener('click', () => addNode('input'));
+            document.getElementById('add-and').addEventListener('click', () => addNode('and'));
+            document.getElementById('add-or').addEventListener('click', () => addNode('or'));
+            document.getElementById('add-not').addEventListener('click', () => addNode('not'));
+            document.getElementById('add-xor').addEventListener('click', () => addNode('xor'));
+            document.getElementById('add-output').addEventListener('click', () => addNode('output'));
+            document.getElementById('delete').addEventListener('click', toggleDeleteMode);
+            document.getElementById('spread-btn').addEventListener('click', spreadCircuit);
+            document.getElementById('save-btn').addEventListener('click', saveCircuit);
+            document.getElementById('load-btn').addEventListener('click', loadCircuit);
+            
+            setupSampleCircuit();
+            renderCircuit();
+            loadCircuits();
+        }
+
+        async function loadCircuits() {
+            const response = await fetch("/get-circuits");
+            const data = await response.json();
+
+            const listContainer = document.getElementById("circuit-list");
+            const sidebar = document.getElementById("sidebar");
+
+            data.circuits.forEach(circuit => {
+                const item = document.createElement("div");
+                item.className = "sidebar-item";
+                item.innerText = circuit;    
+                const loadBtn = document.createElement("button");
+                
+                const icon = document.createElement("span");
+                icon.className = "material-icons";
+                icon.innerText = "visibility";
+                loadBtn.appendChild(icon);
+
+                loadBtn.addEventListener("click", (e) => {
+                    fetchCircuit(circuit);
+                });
+                item.appendChild(loadBtn);
+                sidebar.appendChild(item);
+            })
+        }
+
+        async function fetchCircuit(circuitName) {
+            try {
+                const response = await fetch("/get-circuit", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json"},
+                    body: JSON.stringify({ circuit: circuitName })
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Server error: ${response.status} - ${errorText}`);
+                }
+
+                const data = await response.json();
+
+                if (data && data.nodes && data.edges) {
+                    circuit = data;
+
+                    if (circuit.nodes.length > 0) {
+                        nextNodeId = Math.max(...circuit.nodes.map(node => parseInt(node.id))) + 1;
+
+                        let maxPortId = 0;
+                        for (const node of circuit.nodes) {
+                            if (node.ports && node.ports.length) {
+                                const nodeMaxPortId = Math.max(...node.ports.map(port => parseInt(port.id)));
+                                maxPortId = Math.max(maxPortId, nodeMaxPortId);
+                            }
+                        }
+                        nextPortId = maxPortId + 1;
+                    } else {
+                        nextNodeId = 1;
+                        nextPortId = 1;
+                    }
+
+                    renderCircuit();
+                    
+                    if (jsonTextarea) {
+                        jsonTextarea.value = JSON.stringify(circuit, null, 2);
+                    }
+                } else {
+                    alert("Invalid circuit data received.");
+                    console.error("Invalid data structure:", data);
+                }
+            } catch (error) {
+                alert("Failed to load circuit: " + error.message);
+                console.error(error);
+            }
+        }
+
+        function updateSidebar() {
+            const sidebar = document.getElementById("sidebar");
+
+            const item = document.createElement("div");
+            item.className = "sidebar-item";
+            item.innerText = "dummy";
+            const loadBtn = document.createElement("button");
+            loadBtn.innerText = "LOAD";
+            loadBtn.addEventListener("click", (e) => {
+                
+            });
+            item.appendChild(loadBtn);
+            sidebar.appendChild(item);
+        }
+        
+        function addNode(type) {
+            isDeleteMode = false;
+            resetDeleteButtonStyle();
+            
+            const x = 100 + Math.random() * (canvas.clientWidth - 200);
+            const y = 100 + Math.random() * (canvas.clientHeight - 200);
+            
+            const node = {
+                id: nextNodeId++,
+                type: type,
+                x: x,
+                y: y,
+                value: type === 'input' ? 0 : null,
+                label: getDefaultLabel(type, nextNodeId - 1),
+                ports: []
+            };
+            
+            if (type === 'input') {
+                addPort(node, 'output', 40, 20);
+            } else if (type === 'output') {
+                addPort(node, 'input', 0, 20);
+            } else if (type === 'not') {
+                addPort(node, 'input', 0, 20);
+                addPort(node, 'output', 40, 20);
+            } else {
+                addPort(node, 'input', 0, 10);
+                addPort(node, 'input', 0, 30);
+                addPort(node, 'output', 40, 20);
+            }
+            
+            circuit.nodes.push(node);
+            renderCircuit();
+        }
+        
+        function addPort(node, type, x, y) {
+            const port = {
+                id: nextPortId++,
+                type: type,
+                x: x,
+                y: y,
+                nodeId: node.id
+            };
+            
+            node.ports.push(port);
+            return port;
+        }
+        
+        function getDefaultLabel(type, id) {
+            switch(type) {
+                case 'input': return `Input ${id}`;
+                case 'output': return `Output ${id}`;
+                case 'and': return 'AND';
+                case 'or': return 'OR';
+                case 'not': return 'NOT';
+                case 'xor': return 'XOR';
+                default: return `Node ${id}`;
+            }
+        }
+        
+        function toggleDeleteMode() {
+            isDeleteMode = !isDeleteMode;
+            
+            if (isDeleteMode) {
+                document.getElementById('delete').style.backgroundColor = '#f44336';
+            } else {
+                resetDeleteButtonStyle();
+            }
+        }
+        
+        function resetDeleteButtonStyle() {
+            document.getElementById('delete').style.backgroundColor = '#4CAF50';
+        }
+        
+        function deleteNode(nodeId) {
+            const node = circuit.nodes.find(n => n.id === nodeId);
+            
+            if (node) {
+                const portIds = node.ports.map(port => port.id);
+                
+                circuit.edges = circuit.edges.filter(edge => 
+                    !portIds.includes(edge.sourcePortId) && !portIds.includes(edge.targetPortId));
+                
+                circuit.nodes = circuit.nodes.filter(n => n.id !== nodeId);
+                
+                renderCircuit();
+            }
+        }
+        
+        function deleteEdge(edge) {
+            circuit.edges = circuit.edges.filter(e => 
+                !(e.sourcePortId === edge.sourcePortId && e.targetPortId === edge.targetPortId));
+            
+            renderCircuit();
+        }
+        
+        function renderCircuit() {
+            canvas.innerHTML = '';
+            edgesLayer.innerHTML = '';
+            circuit.nodes.forEach(node => {
+                renderNode(node);
+            });
+            circuit.edges.forEach(edge => {
+                renderEdge(edge);
+            });
+        }
+        
+        function renderNode(node) {
+            const nodeElement = document.createElement('div');
+            nodeElement.className = `node ${node.type}-node`;
+            nodeElement.style.left = `${node.x}px`;
+            nodeElement.style.top = `${node.y}px`;
+            nodeElement.style.width = '40px';
+            nodeElement.style.height = '40px';
+            nodeElement.dataset.id = node.id;
+            if (node.type === 'input' || node.type === 'output') {
+                nodeElement.innerText = node.value !== null ? node.value : '?';
+            } else {
+                switch(node.type) {
+                    case 'and': nodeElement.innerText = '&'; break;
+                    case 'or': nodeElement.innerText = '≥1'; break;
+                    case 'not': nodeElement.innerText = '!'; break;
+                    case 'xor': nodeElement.innerText = '⊕'; break;
+                }
+            }
+            const labelElement = document.createElement('div');
+            labelElement.className = 'node-label';
+            labelElement.innerText = node.label;
+            nodeElement.appendChild(labelElement);
+            
+            nodeElement.addEventListener('mousedown', (e) => {
+                if (isDeleteMode) {
+                    deleteNode(parseInt(nodeElement.dataset.id));
+                    return;
+                }
+
+                const nodeId = parseInt(nodeElement.dataset.id);
+                let isDragging = false;
+                let moved = false;
+
+                const rect = nodeElement.getBoundingClientRect();
+                offsetX = e.clientX - rect.left;
+                offsetY = e.clientY - rect.top;
+                const initialLeft = nodeElement.offsetLeft;
+                const initialTop = nodeElement.offsetTop;
+
+                const onMouseMove = (moveEvent) => {
+                    const dx = Math.abs(moveEvent.clientX - e.clientX);
+                    const dy = Math.abs(moveEvent.clientY - e.clientY);
+
+                    if (!moved && (dx > 3 || dy > 3)) {
+                        moved = true;
+                        isDragging = true;
+                        isMoving = true;
+                        activeNodeId = nodeId;
+
+                        nodeElement.style.position = 'absolute';
+                        nodeElement.style.left = `${initialLeft}px`;
+                        nodeElement.style.top = `${initialTop}px`;
+                        nodeElement.style.pointerEvents = 'none';
+                    }
+
+                    if (moved) {
+                        requestAnimationFrame(() => {
+                            nodeElement.style.left = `${moveEvent.clientX - offsetX}px`;
+                            nodeElement.style.top = `${moveEvent.clientY - offsetY}px`;
+                        });
+                    }
+                };
+                const onMouseUp = () => {
+                    document.removeEventListener('mousemove', onMouseMove);
+                    document.removeEventListener('mouseup', onMouseUp);
+
+                    if (moved) {
+                        nodeElement.style.pointerEvents = 'auto';
+                    }
+
+                    if (!isDragging) {
+                        node.value = node.value === 0 ? 1 : 0;
+                        nodeElement.innerText = node.value;
+                        runSimulation();
+                    }
+                };
+                document.addEventListener('mousemove', onMouseMove);
+                document.addEventListener('mouseup', onMouseUp);
+
+                e.preventDefault();
+            });
+
+            canvas.appendChild(nodeElement);
+            
+            node.ports.forEach(port => {
+                renderPort(port);
+            });
+        }
+        
+        function renderPort(port) {
+            const portElement = document.createElement('div');
+            portElement.className = `port ${port.type}-port`;
+            
+            const node = circuit.nodes.find(n => n.id === port.nodeId);
+            
+            portElement.style.left = `${node.x + port.x - 4}px`;
+            portElement.style.top = `${node.y + port.y - 4}px`;
+            portElement.dataset.id = port.id;
+            portElement.dataset.type = port.type;
+            
+            portElement.addEventListener('mousedown', (e) => {
+                if (isDeleteMode) {
+                    const connectedEdges = circuit.edges.filter(edge => 
+                        edge.sourcePortId === port.id || edge.targetPortId === port.id);
+                    
+                    connectedEdges.forEach(edge => {
+                        deleteEdge(edge);
+                    });
+                    
+                    return;
+                }
+                activePortId = port.id;
+    
+                const portRect = portElement.getBoundingClientRect();
+                const canvasRect = canvas.getBoundingClientRect();
+                
+                const x1 = portRect.left + portRect.width/2 - canvasRect.left;
+                const y1 = portRect.top + portRect.height/2 - canvasRect.top;
+                
+                tempEdge = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                tempEdge.setAttribute('x1', x1);
+                tempEdge.setAttribute('y1', y1);
+                tempEdge.setAttribute('x2', x1);
+                tempEdge.setAttribute('y2', y1);
+                tempEdge.setAttribute('stroke', '#777');
+                tempEdge.setAttribute('stroke-width', '2');
+                tempEdge.setAttribute('stroke-dasharray', '5');
+                
+                tempEdgeLayer.appendChild(tempEdge);
+                
+                e.preventDefault();
+                e.stopPropagation();
+            });
+            
+            portElement.addEventListener('mouseup', (e) => {
+                if (activePortId && activePortId !== port.id) {
+                    const sourcePort = getPortById(activePortId);
+                    const targetPort = port;
+                    
+                    if (sourcePort.type !== targetPort.type) {
+                        let sourcePortId, targetPortId;
+                        
+                        if (sourcePort.type === 'output' && targetPort.type === 'input') {
+                            sourcePortId = sourcePort.id;
+                            targetPortId = targetPort.id;
+                        } else {
+                            sourcePortId = targetPort.id;
+                            targetPortId = sourcePort.id;
+                        }
+                        
+                        createEdge(sourcePortId, targetPortId);
+                    }
+                }
+                
+                if (tempEdge) {
+                    tempEdgeLayer.removeChild(tempEdge);
+                    tempEdge = null;
+                }
+                
+                activePortId = null;
+                
+                e.preventDefault();
+                e.stopPropagation();
+            });
+            
+            canvas.appendChild(portElement);
+        }
+
+        function getEdgeColor(sourceNodeValue) {
+            if (sourceNodeValue === 1) {
+                return '#00ffcc';
+            } else if (sourceNodeValue === 0) {
+                return '#000000';
+            } else {
+                return '#555555';
+            }
+        }
+        
+        function renderEdge(edge) {
+            const sourcePort = getPortById(edge.sourcePortId);
+            const targetPort = getPortById(edge.targetPortId);
+            
+            if (!sourcePort || !targetPort) return;
+            
+            const sourceNode = circuit.nodes.find(n => n.id === sourcePort.nodeId);
+            const targetNode = circuit.nodes.find(n => n.id === targetPort.nodeId);
+            
+            if (!sourceNode || !targetNode) return;
+            
+            const x1 = sourceNode.x + sourcePort.x;
+            const y1 = sourceNode.y + sourcePort.y;
+            const x2 = targetNode.x + targetPort.x;
+            const y2 = targetNode.y + targetPort.y;
+            
+            const edgePath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            
+            const dx = Math.abs(x2 - x1) / 2;
+            const pathData = `M ${x1} ${y1} C ${x1 + dx} ${y1}, ${x2 - dx} ${y2}, ${x2} ${y2}`;
+            
+            edgePath.setAttribute('d', pathData);
+            edgePath.setAttribute('fill', 'none');
+            edgePath.setAttribute('stroke', getEdgeColor(sourceNode.value));
+            //edgePath.setAttribute('stroke', '#555');
+            if (sourceNode.value === 1) {
+                edgePath.setAttribute('stroke-width', '3');    
+            } else {
+                edgePath.setAttribute('stroke-width', '2');
+            }
+            
+            edgePath.dataset.sourcePortId = edge.sourcePortId;
+            edgePath.dataset.targetPortId = edge.targetPortId;
+            
+            edgePath.addEventListener('click', (e) => {
+                if (isDeleteMode) {
+                    deleteEdge(edge);
+                }
+            });
+            
+            edgesLayer.appendChild(edgePath);
+        }
+        
+        function getPortById(portId) {
+            for (const node of circuit.nodes) {
+                const port = node.ports.find(p => p.id === portId);
+                if (port) return port;
+            }
+            return null;
+        }
+        
+        function createEdge(sourcePortId, targetPortId) {
+            const exists = circuit.edges.some(edge => 
+                edge.sourcePortId === sourcePortId && edge.targetPortId === targetPortId);
+                
+            if (!exists) {
+                circuit.edges.push({
+                    sourcePortId: sourcePortId,
+                    targetPortId: targetPortId
+                });
+                
+                renderCircuit();
+            }
+        }
+        
+        document.addEventListener('mousemove', (e) => {
+            const canvasRect = canvas.getBoundingClientRect();
+            
+            if (activePortId && tempEdge) {
+                const x = e.clientX - canvasRect.left;
+                const y = e.clientY - canvasRect.top;
+                
+                tempEdge.setAttribute('x2', x);
+                tempEdge.setAttribute('y2', y);
+            }
+            
+            if (isMoving && activeNodeId !== null) {
+                const node = circuit.nodes.find(n => n.id === activeNodeId);
+                
+                if (node) {
+                    node.x = e.clientX - canvasRect.left - offsetX;
+                    node.y = e.clientY - canvasRect.top - offsetY;
+                    
+                    node.x = Math.max(0, Math.min(canvas.clientWidth - 40, node.x));
+                    node.y = Math.max(0, Math.min(canvas.clientHeight - 40, node.y));
+                    
+                    renderCircuit();
+                }
+            }
+        });
+        
+        document.addEventListener('mouseup', (e) => {
+            if (activePortId && tempEdge) {
+                tempEdgeLayer.removeChild(tempEdge);
+                tempEdge = null;
+                activePortId = null;
+            }
+            
+            isMoving = false;
+            activeNodeId = null;
+        });
+        
+        function runSimulation() {
+            circuit.nodes.forEach(node => {
+                if (node.type !== 'input') {
+                    node.value = null;
+                }
+            });
+            
+            let changed = true;
+            const MAX_ITERATIONS = 10;
+            let iterations = 0;
+            
+            while (changed && iterations < MAX_ITERATIONS) {
+                changed = false;
+                iterations++;
+                
+                for (const node of circuit.nodes) {
+                    if (node.type === 'input' || node.value !== null) continue;
+                    
+                    const inputPorts = node.ports.filter(p => p.type === 'input');
+                    
+                    const inputValues = [];
+                    let allInputsHaveValues = true;
+                    
+                    for (const inputPort of inputPorts) {
+                        const edge = circuit.edges.find(e => e.targetPortId === inputPort.id);
+                        
+                        if (edge) {
+                            const sourcePort = getPortById(edge.sourcePortId);
+                            if (sourcePort) {
+                                const sourceNode = circuit.nodes.find(n => n.id === sourcePort.nodeId);
+                                
+                                if (sourceNode && sourceNode.value !== null) {
+                                    inputValues.push(sourceNode.value);
+                                } else {
+                                    allInputsHaveValues = false;
+                                    break;
+                                }
+                            }
+                        } else {
+                            allInputsHaveValues = false;
+                            break;
+                        }
+                    }
+                    
+                    if (allInputsHaveValues && inputValues.length > 0) {
+                        const oldValue = node.value;
+                        evaluateGate(node, inputValues);
+                        
+                        if (oldValue !== node.value) {
+                            changed = true;
+                        }
+                    }
+                }
+            }
+            
+            renderCircuit();
+        }
+        
+        function evaluateGate(node, inputValues) {
+            switch(node.type) {
+                case 'and':
+                    node.value = inputValues.every(val => val === 1) ? 1 : 0;
+                    break;
+                case 'or':
+                    node.value = inputValues.some(val => val === 1) ? 1 : 0;
+                    break;
+                case 'not':
+                    node.value = inputValues[0] === 0 ? 1 : 0;
+                    break;
+                case 'xor':
+                    const onesCount = inputValues.filter(val => val === 1).length;
+                    node.value = onesCount % 2 === 1 ? 1 : 0;
+                    break;
+                case 'output':
+                    node.value = inputValues[0];
+                    break;
+            }
+        }
+
+        function spreadCircuit() {
+            const layers = calculateLayers();
+
+            const canvasWidth = canvas.clientWidth;
+            const canvasHeight = canvas.clientHeight;
+
+            const horizontalSpacing = layers.length > 1 ? (canvasWidth - 200) / (layers.length - 1) : 0;
+
+            for (let layerIndex = 0; layerIndex < layers.length; layerIndex++) {
+                const layerNodes = layers[layerIndex];
+
+                const verticalSpacing = layerNodes.length > 1 ?
+                    (canvasHeight - 100) / (layerNodes.length - 1) : 0;
+
+                for (let nodeIndex = 0; nodeIndex < layerNodes.length; nodeIndex++) {
+                    const node = layerNodes[nodeIndex];
+
+                    node.x = 100 + layerIndex * horizontalSpacing;
+                    node.y = layerNodes.length > 1 ?
+                        50 + nodeIndex * verticalSpacing :
+                        canvasHeight / 2 - 20;
+                }
+            }
+
+            renderCircuit();
+        }
+
+        function calculateLayers() {
+            const inputNodes = circuit.nodes.filter(node => node.type === 'input');
+            const outputNodes = circuit.nodes.filter(node => node.type === 'output');
+            const gateNodes = circuit.nodes.filter(node => node.type !== 'input' && node.type !== 'output');
+
+            const layers = [inputNodes];
+
+            const processedNodes = new Set(inputNodes.map(node => node.id));
+            let remainingNodes = [...gateNodes, ...outputNodes];
+
+            while (remainingNodes.length > 0) {
+                const nextLayerNodes = [];
+
+                for (let i = remainingNodes.length - 1; i >= 0; i--) {
+                    const node = remainingNodes[i];
+                    const inputPorts = node.ports.filter(port => port.type === 'input');
+
+                    let canAddToLayer = true;
+
+                    for (const port of inputPorts) {
+                        const incomingEdges = circuit.edges.filter(edge => edge.targetPortId === port.id);
+                        
+                        for (const edge of incomingEdges) {
+                            const sourcePort = getPortById(edge.sourcePortId);
+                            if (sourcePort && !processedNodes.has(sourcePort.nodeId)) {
+                                canAddToLayer = false;
+                                break;
+                            }
+                        }
+
+                        if (!canAddToLayer) break;
+                    }
+
+                    if (canAddToLayer) {
+                        nextLayerNodes.push(node);
+                        processedNodes.add(node.id);
+                        remainingNodes.splice(i, 1);
+                    }
+                }
+
+                if (nextLayerNodes.length === 0 && remainingNodes.length > 0) {
+                    layers.push(remainingNodes);
+                    break;
+                }
+
+                if (nextLayerNodes.length > 0) {
+                    layers.push(nextLayerNodes);
+                }
+            }
+
+            const lastLayer = layers[layers.length - 1];
+            const outputsInLastLayer = lastLayer.filter(node => node.type === 'output');
+
+            if (outputsInLastLayer.length !== outputNodes.length) {
+                for (let i = 0; i < layers.length - 1; i++) {
+                    layers[i] = layers[i].filter(node => node.type !== 'output');
+                }
+
+                lastLayer.push(...outputNodes.filter(
+                    node => !lastLayer.some(n => n.id === node.id)
+                ));
+            }
+
+            console.log(layers);
+            return layers;
+        }
+        
+        function saveCircuit() {
+            jsonTextarea.value = JSON.stringify(circuit, null, 2);
+        }
+        
+        function loadCircuit() {
+            try {
+                const data = JSON.parse(jsonTextarea.value);
+                
+                if (data && data.nodes && data.edges) {
+                    circuit = data;
+                    
+                    if (circuit.nodes.length > 0) {
+                        nextNodeId = Math.max(...circuit.nodes.map(node => node.id)) + 1;
+                        
+                        let maxPortId = 0;
+                        for (const node of circuit.nodes) {
+                            if (node.ports && node.ports.length) {
+                                const nodeMaxPortId = Math.max(...node.ports.map(port => port.id));
+                                maxPortId = Math.max(maxPortId, nodeMaxPortId);
+                            }
+                        }
+                        nextPortId = maxPortId + 1;
+                    } else {
+                        nextNodeId = 1;
+                        nextPortId = 1;
+                    }
+                    renderCircuit();
+                }
+            } catch (error) {
+                alert('Invalid JSON format. Please check your input.');
+                console.error(error);
+            }
+        }
+        
+        function setupSampleCircuit() {
+            circuit = {
+                nodes: [
+                    {
+                        id: 1,
+                        type: 'input',
+                        x: 100,
+                        y: 100,
+                        value: 0,
+                        label: 'Input A',
+                        ports: [
+                            { id: 1, type: 'output', x: 40, y: 20, nodeId: 1 }
+                        ]
+                    },
+                    {
+                        id: 2,
+                        type: 'input',
+                        x: 100,
+                        y: 200,
+                        value: 0,
+                        label: 'Input B',
+                        ports: [
+                            { id: 2, type: 'output', x: 40, y: 20, nodeId: 2 }
+                        ]
+                    },
+                    {
+                        id: 3,
+                        type: 'and',
+                        x: 250,
+                        y: 150,
+                        value: null,
+                        label: 'AND',
+                        ports: [
+                            { id: 3, type: 'input', x: 0, y: 10, nodeId: 3 },
+                            { id: 4, type: 'input', x: 0, y: 30, nodeId: 3 },
+                            { id: 5, type: 'output', x: 40, y: 20, nodeId: 3 }
+                        ]
+                    },
+                    {
+                        id: 4,
+                        type: 'output',
+                        x: 400,
+                        y: 150,
+                        value: null,
+                        label: 'Output',
+                        ports: [
+                            { id: 6, type: 'input', x: 0, y: 20, nodeId: 4 }
+                        ]
+                    }
+                ],
+                edges: [
+                    { sourcePortId: 1, targetPortId: 3 },
+                    { sourcePortId: 2, targetPortId: 4 },
+                    { sourcePortId: 5, targetPortId: 6 }
+                ]
+            };
+            
+            nextNodeId = 5;
+            nextPortId = 7;
+        }
+
+        /*function runTests() {
+            fetch("/run-tests")
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById("testResults").textContent =
+                data.wasSuccessful ? "All tests passed!": "Tests failed:\n" + data;
+            })
+        }*/
+
+        function runTests() {
+        fetch("/run-tests")
+            .then(res => res.json())
+            .then(data => {
+                const formatted = JSON.stringify(data, null, 2); // pretty print JSON
+                document.getElementById("testResults").textContent = formatted;
+            })
+            .catch(err => {
+                document.getElementById("testResults").textContent = "Error running tests:\n" + err;
+            });
+        }
+
+        
+        window.addEventListener('load', init);
+    </script>
+</body>
+</html>

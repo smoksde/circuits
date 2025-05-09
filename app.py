@@ -2,6 +2,7 @@ from flask import Flask, render_template, jsonify, request
 import json
 
 import circuit
+import graph
 from test import run_tests
 
 app = Flask(__name__)
@@ -25,7 +26,7 @@ def get_circuit():
     circuit_name = data.get('circuit')
     if circuit_name not in circuit.CIRCUIT_FUNCTIONS:
         return jsonify({"error": "Invalid circuit name"}), 400
-    cg = circuit.CircuitGraph()
+    cg = graph.CircuitGraph()
     circuit_func = circuit.CIRCUIT_FUNCTIONS.get(circuit_name)
     if circuit_func:
         circuit_func(cg)

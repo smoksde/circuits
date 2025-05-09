@@ -1,122 +1,5 @@
-from node import Node
-from port import Port
-from edge import Edge
-
-class CircuitGraph:
-    def __init__(self):
-        self.nodes = {}
-        self.edges = []
-        self.node_count = 0
-        self.node_values = {}
-        self.port_count = 0
-
-    def add_node(self, node_type, label, inputs=[]):
-        node_id = self.node_count
-        self.node_count += 1
-        node = Node(node_id, node_type, label)
-        
-        if node_type in ["xor", "and", "or"]:
-            input_port_1 = node.add_port(Port(self.port_count, "input", node_id, 0, 10))
-            self.port_count += 1
-            input_port_2 = node.add_port(Port(self.port_count, "input", node_id, 0, 30))
-            self.port_count += 1
-            _ = node.add_port(Port(self.port_count, "output", node_id, 40, 20))
-            self.port_count += 1
-            if len(inputs) == 2:
-                self.add_edge(inputs[0], input_port_1)
-                self.add_edge(inputs[1], input_port_2)
-        elif node_type == "not":
-            input_port = node.add_port(Port(self.port_count, "input", node_id, 0, 20))
-            self.port_count += 1
-            _ = node.add_port(Port(self.port_count, "output", node_id, 40, 20))
-            self.port_count += 1
-            if len(inputs) == 1:
-                self.add_edge(inputs[0], input_port)
-        elif node_type == "input":
-            _ = node.add_port(Port(self.port_count, "output", node_id, 40, 20))
-            self.port_count += 1
-        elif node_type == "output":
-            input_port_1 = node.add_port(Port(self.port_count, "input", node_id, 0, 20))
-            self.port_count += 1
-            if len(inputs) == 1:
-                self.add_edge(inputs[0], input_port_1)
-        else:
-            print("Unknown node type!")
-            exit()
-
-        self.nodes[str(node_id)] = node
-        self.node_values[str(node_id)] = 0
-        return node
-    
-    def add_edge(self, source_port, target_port):
-        edge = Edge(source_port.id, target_port.id)
-        self.edges.append(edge)
-        return edge
-
-    def to_json(self):
-        nodes = [node.to_dict() for node in self.nodes.values()]
-        edges = [edge.to_dict() for edge in self.edges]       
-        return {"nodes": nodes, "edges": edges, "values": self.node_values}
-    
-    def simulate(self):
-        port_values = {}
-        port_sources = {}
-        
-        for edge in self.edges:
-            port_sources[edge.target_port_id] = edge.source_port_id
-        
-        for node_id, node in self.nodes.items():
-            if node.type == "input":
-                val = self.node_values[node_id]
-                output_port = node.ports[0]
-                port_values[output_port.id] = val
-
-        remaining = set(self.nodes.keys()) - {nid for nid, n in self.nodes.items() if n.type == "input"}
-        resolved = set()
-
-        while remaining:
-            progress = False
-            for node_id in list(remaining):
-                node = self.nodes[node_id]
-
-                input_ports = [p for p in node.ports if p.type == "input"]
-                try:
-                    inputs = [port_values[port_sources[p.id]] for p in input_ports]
-                except KeyError:
-                    continue  # not all inputs are ready
-
-                output_val = None
-                if node.type == "and":
-                    output_val = inputs[0] & inputs[1]
-                elif node.type == "or":
-                    output_val = inputs[0] | inputs[1]
-                elif node.type == "xor":
-                    output_val = inputs[0] ^ inputs[1]
-                elif node.type == "not":
-                    output_val = 0 if inputs[0] else 1
-                elif node.type == "output":
-                    # For output nodes, we don’t compute anything; just store value
-                    port_values[node.ports[0].id] = inputs[0]
-                    resolved.add(node_id)
-                    remaining.remove(node_id)
-                    progress = True
-                    continue
-                else:
-                    continue  # skip unknown nodes
-
-                output_port = [p for p in node.ports if p.type == "output"][0]
-                port_values[output_port.id] = output_val
-                resolved.add(node_id)
-                remaining.remove(node_id)
-                progress = True
-
-            if not progress:
-                raise RuntimeError("Simulation stalled; possible cycle or unconnected inputs.")
-
-        self.port_values = port_values
-
-    def get_port_value(self, port):
-        return self.port_values.get(port.id, None)
+import utils
+import graph
 
 #def half_adder(circuit, x, y):
 #    sum = circuit.add_gate("XOR", [x, y])
@@ -165,9 +48,11 @@ def or_tree_recursive(circuit, input_list):
     or_node = circuit.add_node("or", "OR", inputs=[left, right])
     return or_node.ports[2]
 
-def half_adder(circuit, x, y):
-    xor_gate = circuit.add_node("xor", "HA_XOR", inputs=[x, y])
-    and_gate = circuit.add_node("and", "HA_AND", inputs=[x, y])
+def half_adder(circuit, x, y, parent_group=None):
+    ha_group = circuit.add_group("HA_GROUP")
+    ha_group.set_parent(parent_group)
+    xor_gate = circuit.add_node("xor", "HA_XOR", inputs=[x, y], group_id=ha_group.id)
+    and_gate = circuit.add_node("and", "HA_AND", inputs=[x, y], group_id=ha_group.id)
     return xor_gate.ports[2], and_gate.ports[2]
 
 def full_adder(circuit, x, y, cin):
@@ -390,13 +275,6 @@ def wallace_tree_multiplier(circuit, x_list, y_list):
 
     return outputs
 
-def int_to_binary_list(n, bit_length=None):
-    binary_str = bin(n)[2:]
-    binary_list = [int(bit) for bit in reversed(binary_str)]
-    if bit_length:
-        binary_list += [0] * (bit_length - len(binary_list))
-    return binary_list
-
 def binary_list_to_int(binary_list):
     return sum(bit * (2 ** i) for i, bit in enumerate(binary_list))
 
@@ -410,7 +288,7 @@ def multiplexer(circuit, inputs_list, selector_list):
 
     and_ports = []
     for i in range(len(inputs_list)):
-        bin_list = int_to_binary_list(i, bit_length=n_bits)
+        bin_list = utils.int2binlist(i, bit_len=n_bits)
         curr_sel = []
         for j in range(len(bin_list)):
             if bin_list[j]:
@@ -453,10 +331,13 @@ def or_tree_recursive(circuit, input_list):
     or_node = circuit.add_node("or", "OR", inputs=[left, right])
     return or_node.ports[2]
 
+# if condition is one then zero it
 def conditional_zeroing(circuit, x_list, cond):
     ports = []
+    not_cond_node = circuit.add_node("not", "NOT", inputs=[cond])
+    not_cond_port = not_cond_node.ports[1]
     for x in x_list:
-        and_node = circuit.add_node("and", "AND", inputs=[x, cond])
+        and_node = circuit.add_node("and", "AND", inputs=[x, not_cond_port])
         ports.append(and_node.ports[2])
     return ports
 
@@ -478,6 +359,26 @@ def two_complement(circuit, x_list):
     two_comp_list, _ = ripple_carry_adder(circuit, inverted_list, one_number, zero)
     return two_comp_list
 
+def precompute_a_i(const_zero, const_one, int_m, n):
+    print("int_m ", int_m)
+    print("n ", n)
+    a_i_lists = []
+    for i in range(n):
+        print("index ", i)
+        calc = (2**i) % int_m
+        print("calc ", calc)
+        a = []
+        for j in range(n):
+            if calc % 2 == 0:
+                a.append(const_zero)
+                print("0")
+            else:
+                a.append(const_one)
+                print("1")
+            calc >>= 1
+        a_i_lists.append(a)
+    return a_i_lists
+
 def small_mod_lemma_4_1(circuit, x_list, m_list, int_m):
 
     n = len(x_list)
@@ -487,37 +388,25 @@ def small_mod_lemma_4_1(circuit, x_list, m_list, int_m):
     const_one = constant_one(circuit, input.ports[0])
 
     # precompute constants: a_im = 2^i mod m values
-    a_i_lists = []
-    for i in range(n):
-        calc = (2**i) % int_m
-        a = []
-        for j in range(n):
-            if calc % 2 == 0:
-                a.append(const_zero)
-            else:
-                a.append(const_one)
-            calc >>= 1
-        a_i_lists.append(a)
+    a_i_lists = precompute_a_i(const_zero, const_one, int_m, n)
     
     summands = []
     for ind, x_i in enumerate(x_list):
-        summand = conditional_zeroing(circuit, a_i_lists[ind], x_i)
+        not_x_i_node = circuit.add_node("not", "NOT", inputs=[x_i])
+        summand = conditional_zeroing(circuit, a_i_lists[ind], not_x_i_node.ports[1])
         summands.append(summand)
 
     y, carry = adder_tree_recursive(circuit, summands, const_zero)
 
     results = []
     for i in range(n):
-        bin_i = int_to_binary_list(n, len(x_list))
+        bin_i = utils.int2binlist(i, bit_len=len(x_list))
         coef = [const_zero if bit == 0 else const_one for bit in bin_i]
         mult_m = wallace_tree_multiplier(circuit, m_list, coef)
         mult_m = mult_m[:-(len(mult_m)//2)]
         negative_mult_m = two_complement(circuit, mult_m)
-        print(len(y))
-        print(len(negative_mult_m))
         
         sum, carry = ripple_carry_adder(circuit, y, negative_mult_m, const_zero)
-
 
         is_negative = sign_detector(circuit, sum) # if 1 then negative
         result = conditional_zeroing(circuit, coef, is_negative)
@@ -527,7 +416,7 @@ def small_mod_lemma_4_1(circuit, x_list, m_list, int_m):
         results.append(result)
 
     final = []
-    for i in range(len(result)):
+    for i in range(n):
         for j in range(len(results)):
             curr_list = []
             curr_list.append(results[j][i])
@@ -627,9 +516,10 @@ def setup_or_tree_recursive(cg):
     return
 
 def setup_half_adder(cg):
+    root_group = cg.add_group("ROOT_GROUP")
     A = cg.add_node("input", "A")
     B = cg.add_node("input", "B")
-    sum_port, carry_port = half_adder(cg, A.ports[0], B.ports[0])
+    sum_port, carry_port = half_adder(cg, A.ports[0], B.ports[0], parent_group=root_group)
     sum_node = cg.add_node("output", "sum")
     carry_node = cg.add_node("output", "carry")
     cg.add_edge(sum_port, sum_node.ports[0])
@@ -672,25 +562,20 @@ def setup_carry_look_ahead_adder(cg):
     B = [cg.add_node("input", f"B{i}") for i in range(4)]
     cin = cg.add_node("input", "Cin")
     sum_outputs, carry_out = carry_look_ahead_adder(cg, [a.ports[0] for a in A], [b.ports[0] for b in B], cin.ports[0])
+    sum_nodes = []
     for sum in sum_outputs:
-        cg.add_node("output", "SUM", inputs=[sum])
-    cg.add_node("output", "CARRY", inputs=[carry_out])
-    return
-    A = [cg.add_input(f"A{i}") for i in range(4)]
-    B = [cg.add_input(f"B{i}") for i in range(4)]
-    Cin = cg.add_input("Cin")
-    sum_outputs, carry_out = carry_look_ahead_adder(cg, A, B, Cin)
-    for sum in sum_outputs:
-        cg.add_output(sum, "sum")
-    cg.add_output(carry_out, "carry")
+        sum_nodes.append(cg.add_node("output", "SUM", inputs=[sum]))
+    carry_node = cg.add_node("output", "CARRY", inputs=[carry_out])
+    return A, B, cin, sum_nodes, carry_node
 
 def setup_wallace_tree_multiplier(cg):
-    A = [cg.add_node("input", f"A{i}") for i in range(2)]
-    B = [cg.add_node("input", f"B{i}") for i in range(2)]
+    A = [cg.add_node("input", f"A{i}") for i in range(4)]
+    B = [cg.add_node("input", f"B{i}") for i in range(4)]
     outputs = wallace_tree_multiplier(cg, [a.ports[0] for a in A], [b.ports[0] for b in B])
+    output_nodes = []
     for out in outputs:
-        cg.add_node("output", "PRODUCT", inputs=[out])
-    return
+        output_nodes.append(cg.add_node("output", "PRODUCT", inputs=[out]))
+    return A, B, output_nodes
 
 # def setup_four_bit_wallace_tree_multiplier(cg):
 #    A = [cg.add_input(f"A{i}") for i in range(4)]

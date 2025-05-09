@@ -14,7 +14,7 @@ def int2binlist(x, bit_len=None):
 
 # Write function that converts binary list to integer
 
-def iter_random_bin_list(list_length=4, amount=10):
+def iter_random_bin_list(list_len=4, amount=10):
     for i in range(amount):
-        bin_list = [random.randint(0, 1) for _ in range(list_length)]
+        bin_list = [random.randint(0, 1) for _ in range(list_len)]
         yield bin_list

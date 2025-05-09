@@ -1,5 +1,6 @@
 import unittest
 from circuit import *
+from graph import *
 from utils import int2binlist, iter_random_bin_list
 from node import Node
 from port import Port

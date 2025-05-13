@@ -129,16 +129,53 @@ class TestCircuitSimulation(unittest.TestCase):
             for idx, e in enumerate(expected_bin_list):
                 self.assertEqual(circuit.get_port_value(outputs[idx].ports[0]), e)
 
-    # precompute constants: a_im = 2^i mod m values
-    #def test_precompute_a_i(self):
-    #    circuit = CircuitGraph()
-    #    input_node = circuit.add_node("input", "INPUT")
-    #    port = input_node.ports[0]
-    #    zero_node = constant_zero(circuit, port)
-    #    one_node = constant_one(circuit, port)
-    #    a_i_lists = precompute_a_i(zero_node, one_node, 2, 3) # m, n
-    #    expected = [1, 0]
-    #    self.assertEqual(a_i_lists, expected)
+    def test_modulo_circuit(self):
+        circuit = CircuitGraph()
+        X, A, OUT_NODES = setup_modulo_circuit(circuit)
+
+        bit_len = 4
+        for i in range(10):
+            rand_x = random.randrange(2**bit_len - 1)
+            rand_a = random.randrange(2**(bit_len//2) - 1)
+            if rand_a == 0:
+                rand_a = 2
+            expected_num = rand_x % rand_a
+            expected_bin_list = int2binlist(expected_num, bit_len=bit_len)
+            x_bin_list = int2binlist(rand_x, bit_len=bit_len)
+            a_bin_list = int2binlist(rand_a, bit_len=bit_len)
+            for idx, x in enumerate(X):
+                circuit.node_values[str(x.node_id)] = x_bin_list[idx]
+            for idx, a in enumerate(A):
+                circuit.node_values[str(a.node_id)] = a_bin_list[idx]
+            circuit.simulate()
+            for idx, e in enumerate(expected_bin_list):
+                self.assertEqual(circuit.get_port_value(OUT_NODES[idx].ports[0]), e)
+
+    def test_modular_exponentiation(self):
+        circuit = CircuitGraph()
+        B, E, M, OUT_NODES = setup_modular_exponentiation(circuit)
+        bit_len = 4
+        for i in range(10):
+            rand_b = random.randrange(2**bit_len - 1)
+            rand_e = random.randrange(2**bit_len - 1)
+            rand_m = random.randrange(2**(bit_len//2) - 1)
+            if rand_m == 0:
+                rand_m = 2
+            expected_num = (rand_b**rand_e) % rand_m
+            expected_bin_list = int2binlist(expected_num, bit_len=bit_len)
+            b_bin_list = int2binlist(rand_b, bit_len=bit_len)
+            e_bin_list = int2binlist(rand_e, bit_len=bit_len)
+            m_bin_list = int2binlist(rand_m, bit_len=bit_len)
+            for idx, b in enumerate(B):
+                circuit.node_values[str(b.node_id)] = b_bin_list[idx]
+            for idx, e in enumerate(E):
+                circuit.node_values[str(e.node_id)] = e_bin_list[idx]
+            for idx, m in enumerate(M):
+                circuit.node_values[str(m.node_id)] = m_bin_list[idx]
+            circuit.simulate()
+            for idx, ex in enumerate(expected_bin_list):
+                self.assertEqual(circuit.get_port_value(OUT_NODES[idx].ports[0]), ex)
+
 
 class TestUtilsFunctions(unittest.TestCase):
     def test_int2binlist(self):

@@ -470,6 +470,11 @@
         }
         
         function renderCircuit() {
+            
+            // Try out
+            //renderCollapsedCircuit();
+            //return;
+
             canvas.innerHTML = '';
             edgesLayer.innerHTML = '';
             circuit.nodes.forEach(node => {
@@ -478,6 +483,25 @@
             circuit.edges.forEach(edge => {
                 renderEdge(edge);
             });
+        }
+
+        function renderCollapsedCircuit() {
+            canvas.innerHTML = '';
+            edgesLayer.innerHTML = '';
+            root_group = circuit.groups[0];
+            renderGroup(root_group);
+            runSimulation();
+        }
+
+        function renderGroup(group) {
+            const groupElement = document.createElement('div');
+            groupElement.style.width = '80px';
+            groupElement.style.height = '80px';
+            groupElement.style.left = '0px';
+            groupElement.style.top = '0px';
+
+            canvas.appendChild(groupElement);
+            return;
         }
         
         function renderNode(node) {
@@ -569,9 +593,31 @@
             canvas.appendChild(nodeElement);
             
             // how many ports has a node, calculate the relative pos for the ports
-            node.ports.forEach(port => {
+            // do this seperate for input ports and output ports
+
+            const inputPorts = node.ports.filter(port => port.type === "input");
+            const outputPorts = node.ports.filter(port => port.type === "output");
+
+            const portSpace = 100;
+
+            const inputPortSpacing = portSpace / (inputPorts.length + 1);
+            const outputPortSpacing = portSpace / (outputPorts.length + 1);
+
+            inputPorts.forEach((port, index) => {
+                port.y = inputPortSpacing * (index + 1) - (portSpace / 2) + 20;
+                port.x = 0;
                 renderPort(port);
             });
+
+            outputPorts.forEach((port, index) => {
+                port.y = outputPortSpacing * (index + 1) - (portSpace / 2) + 20;
+                port.x = 40;
+                renderPort(port);
+            });
+
+            /*node.ports.forEach(port => {
+                renderPort(port);
+            });*/
         }
         
         function renderPort(port) {

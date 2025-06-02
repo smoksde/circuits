@@ -474,12 +474,9 @@ def one_right_shift(circuit, x_list):
 
 # check how to handle too large amounts
 def n_left_shift(circuit, x_list, amount):
-
     # assert len(x_list) == len(amount), "x_list and amount must have the same number of bits"
     n = len(x_list) if len(x_list) < len(amount) else len(amount)
-
     current = x_list
-
     # depending on the signal (bit of amount), do a shift or not
     for i in range(n):
         #shift by 1, 2, 4, 8, ...
@@ -493,28 +490,17 @@ def n_left_shift(circuit, x_list, amount):
         else:
             for m in range(n):
                 shifted.append(constant_zero(circuit, current[0]))
-
-        print(f"iteration {i}")
-        print("len(shifted)")
-        print(len(shifted))
-        print("len(current)")
-        print(len(current))
         assert len(shifted) == len(current)
-
         next_current = []
         for l in range(n):
             next_current.append(mux2(circuit, amount[i], shifted[l], current[l]))
-
         current = next_current
     return current
 
 def n_right_shift(circuit, x_list, amount):
-
     assert len(x_list) == len(amount), "x_list and amount must have the same number of bits"
     n = len(x_list)
-
     current = x_list
-
     for i in range(n):
         shift_amount = 2**i
         shifted = []
@@ -526,20 +512,15 @@ def n_right_shift(circuit, x_list, amount):
         else:
             for m in range(n):
                 shifted.append(constant_zero(circuit, current[0]))
-
         assert len(shifted) == len(current)
-
         next_current = []
         for l in range(n):
             next_current.append(mux2(circuit, amount[i], shifted[l], current[l]))
-
         current = next_current
     return current
 
 # if signal then a else b
 def mux2(circuit, signal, a, b):
-    print("signal type")
-    print(signal)
     not_signal = circuit.add_node("not", "MUX_NOT", inputs=[signal])
     not_signal_port = not_signal.ports[1]
     first_and = circuit.add_node("and", "MUX_AND", inputs=[signal, a])
@@ -817,10 +798,10 @@ def setup_n_bit_comparator(cg):
     A = [cg.add_node("input", f"A{i}") for i in range(4)]
     B = [cg.add_node("input", f"B{i}") for i in range(4)]
     less, equals, greater = n_bit_comparator(cg, [a.ports[0] for a in A], [b.ports[0] for b in B])
-    less_node = cg.add_node("output", "LESS", inputs=[less])
-    equals_node = cg.add_node("output", "EQUALS", inputs=[equals])
-    greater_node = cg.add_node("output", "GREATER", inputs=[greater])
-    return
+    L = cg.add_node("output", "LESS", inputs=[less])
+    E = cg.add_node("output", "EQUALS", inputs=[equals])
+    G = cg.add_node("output", "GREATER", inputs=[greater])
+    return A, B, L, E, G
 
 def setup_xnor_gate(cg):
     X = [cg.add_node("input", f"X{i}") for i in range(2)]
@@ -928,16 +909,16 @@ def setup_precompute_a_i(cg):
     return output_nodes
 
 def setup_conditional_zeroing(cg):
-    input_node = cg.add_node("input", "INPUT")
-    input_node_port = input_node.ports[0]
-    zero_port = constant_zero(cg, input_node_port)
-    one_port = constant_one(cg, input_node_port)
-    output = conditional_zeroing(cg, [one_port, zero_port, one_port, zero_port], input_node_port)
+    X = [cg.add_node("input", f"A{i}") for i in range(4)]
+    C = cg.add_node("input", f"COND")
+    zero_port = constant_zero(cg, C.ports[0])
+    one_port = constant_one(cg, C.ports[0])
+    output = conditional_zeroing(cg, [x.ports[0] for x in X], C.ports[0])
     output_nodes = []
     for i, out in enumerate(output):
         output_node = cg.add_node("output", f"OUT_{i}", inputs=[out])
         output_nodes.append(output_node)
-    return output_nodes
+    return X, C, output_nodes
 # def setup_four_bit_wallace_tree_multiplier(cg):
 #    A = [cg.add_input(f"A{i}") for i in range(4)]
 #    B = [cg.add_input(f"B{i}") for i in range(4)]

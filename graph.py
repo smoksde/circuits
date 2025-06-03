@@ -127,3 +127,8 @@ class CircuitGraph:
 
     def get_port_value(self, port):
         return self.port_values.get(port.id, None)
+    
+    def fill_values(self, nodes, values):
+        assert len(nodes) == len(values), "In function fill_values length of nodes and values must be the same"
+        for idx, node in enumerate(nodes):
+            self.node_values[str(node.node_id)] = values[idx]

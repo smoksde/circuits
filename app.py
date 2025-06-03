@@ -27,9 +27,10 @@ def get_circuit():
     if circuit_name not in circuit.CIRCUIT_FUNCTIONS:
         return jsonify({"error": "Invalid circuit name"}), 400
     cg = graph.CircuitGraph()
+    bit_len = 4
     circuit_func = circuit.CIRCUIT_FUNCTIONS.get(circuit_name)
     if circuit_func:
-        circuit_func(cg)
+        circuit_func(cg, bit_len)
         try:
             data = cg.to_json()
             return jsonify(data)

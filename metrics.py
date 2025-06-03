@@ -1,6 +1,7 @@
 from collections import Counter, defaultdict, deque
 from graph import *
 from circuit import *
+import matplotlib.pyplot as plt
 
 def compute_node_edges(cg):
     port_to_node_dict = {}
@@ -50,20 +51,21 @@ def longest_path_length(cg):
     return max(dist[node] for node in input_nodes if dist[node] != -float('inf'))
 
 
-def analyze_circuit_function(name, setup_fn):
+def analyze_circuit_function(name, setup_fn, bit_len=4):
     cg = CircuitGraph()
-    setup_fn(cg)
+    setup_fn(cg, bit_len)
     num_nodes = len(cg.nodes)
     num_edges = len(cg.edges)
     depth = longest_path_length(cg)
     return {
         "name": name,
+        "bit_len": bit_len,
         "num_nodes": num_nodes,
         "num_edges": num_edges,
         "depth": depth
     }
 
-if __name__ == "__main__":
+def analyze_all_functions():
     results = []
     for name, fn in CIRCUIT_FUNCTIONS.items():
         try:
@@ -74,6 +76,53 @@ if __name__ == "__main__":
 
     for r in results:
         print(f"\nCircuit: {r['name']}")
+        print(f" Bit Length: {r['bit_len']}")
         print(f"  Nodes: {r['num_nodes']}")
         print(f"  Edges: {r['num_edges']}")
         print(f"Max depth: {r['depth']}")
+    
+
+def plot_metrics_for_adders():
+    results = []
+    functions = {"carry_look_ahead_adder": setup_carry_look_ahead_adder,
+                 "ripple_carry_adder": setup_ripple_carry_adder}
+    bit_lengths = [4,8,16,32,64]
+    
+    plt.figure(figsize=(8, 5))
+    for key, value in functions.items():
+        depths = []
+        node_nums = []
+        edge_nums = []
+        for i in bit_lengths:
+            #result = analyze_circuit_function("n_bit_comparator", setup_n_bit_comparator, i)
+            result = analyze_circuit_function(key, value, i)
+            depths.append(result['depth'])
+            node_nums.append(result['num_nodes'])
+            edge_nums.append(result['num_edges'])
+            results.append(result)
+
+    
+        plt.plot(bit_lengths, depths, marker='o', label='Circuit Depth', linestyle='--', color='blue')
+        #plt.plot(bit_lengths, node_nums, marker='x', label='Node Count', linestyle='-.', color='purple')
+        #plt.plot(bit_lengths, edge_nums, marker='x', label='Edge Count', linestyle='-.', color="green")
+    plt.title("Circuit Characteristics")
+    plt.xlabel("Bit Length (Number representation size)")
+    plt.ylabel("Values")
+    plt.grid(True)
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+
+    for r in results:
+        print(f"\nCircuit: {r['name']}")
+        print(f" Bit Length: {r['bit_len']}")
+        print(f"  Nodes: {r['num_nodes']}")
+        print(f"  Edges: {r['num_edges']}")
+        print(f"Max depth: {r['depth']}")
+
+
+if __name__ == "__main__":
+    
+    # plot_metrics_for_adders()
+
+    analyze_all_functions()

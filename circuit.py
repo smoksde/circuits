@@ -1,90 +1,93 @@
+import math
+
 import utils
 import graph
 
-#def half_adder(circuit, x, y):
-#    sum = circuit.add_gate("XOR", [x, y])
-#    carry = circuit.add_gate("AND", [x, y])
-#    return sum, carry
-
-def constant_zero(circuit, in_port):
-    not_in = circuit.add_node("not", "NOT", inputs=[in_port])
+def constant_zero(circuit, in_port, parent_group=None):
+    cz_group = circuit.add_group("CONSTANT_ZERO")
+    cz_group.set_parent(parent_group)
+    not_in = circuit.add_node("not", "NOT", inputs=[in_port], group_id=cz_group)
     not_in_port = not_in.ports[1]
-    zero_node = circuit.add_node("and", "ZERO_AND", inputs=[in_port, not_in_port])
+    zero_node = circuit.add_node("and", "ZERO_AND", inputs=[in_port, not_in_port], group_id=cz_group)
     zero_port = zero_node.ports[2]
     return zero_port
 
-def constant_one(circuit, in_port):
-    not_in = circuit.add_node("not", "NOT", inputs=[in_port])
+def constant_one(circuit, in_port, parent_group=None):
+    co_group = circuit.add_group("CONSTANT_ONE")
+    co_group.set_parent(parent_group)
+    not_in = circuit.add_node("not", "NOT", inputs=[in_port], group_id=co_group)
     not_in_port = not_in.ports[1]
-    one_node = circuit.add_node("or", "ONE_OR", inputs=[in_port, not_in_port])
+    one_node = circuit.add_node("or", "ONE_OR", inputs=[in_port, not_in_port], group_id=co_group)
     one_port = one_node.ports[2]
     return one_port
 
-def and_tree_recursive(circuit, input_list):
+def and_tree_recursive(circuit, input_list, parent_group=None):
+    atr_group = circuit.add_group("AND_TREE_RECURSIVE")
+    atr_group.set_parent(parent_group)
     if len(input_list) == 1:
         return input_list[0]
     
     if len(input_list) == 2:
-        and_node = circuit.add_node("and", "AND", inputs=input_list)
+        and_node = circuit.add_node("and", "AND", inputs=input_list, group_id=atr_group)
         return and_node.ports[2]
     
     mid = len(input_list) // 2
-    left = and_tree_recursive(circuit, input_list[:mid])
-    right = and_tree_recursive(circuit, input_list[mid:])
-    and_node = circuit.add_node("and", "AND", inputs=[left, right])
+    left = and_tree_recursive(circuit, input_list[:mid], parent_group=atr_group)
+    right = and_tree_recursive(circuit, input_list[mid:], parent_group=atr_group)
+    and_node = circuit.add_node("and", "AND", inputs=[left, right], group_id=atr_group)
     return and_node.ports[2]
 
-def or_tree_recursive(circuit, input_list):
+def or_tree_recursive(circuit, input_list, parent_group=None):
+    otr_group = circuit.add_group("OR_TREE_RECURSIVE")
+    otr_group.set_parent(parent_group)
     if len(input_list) == 1:
         return input_list[0]
     
     if len(input_list) == 2:
-        or_node = circuit.add_node("or", "OR", inputs=input_list)
+        or_node = circuit.add_node("or", "OR", inputs=input_list, group_id=otr_group)
         return or_node.ports[2]
     
     mid = len(input_list) // 2
-    left = or_tree_recursive(circuit, input_list[:mid])
-    right = or_tree_recursive(circuit, input_list[mid:])
-    or_node = circuit.add_node("or", "OR", inputs=[left, right])
+    left = or_tree_recursive(circuit, input_list[:mid], parent_group=otr_group)
+    right = or_tree_recursive(circuit, input_list[mid:], parent_group=otr_group)
+    or_node = circuit.add_node("or", "OR", inputs=[left, right], group_id=otr_group)
     return or_node.ports[2]
 
 def half_adder(circuit, x, y, parent_group=None):
-    ha_group = circuit.add_group("HA_GROUP")
+    ha_group = circuit.add_group("HALF_ADDER")
     ha_group.set_parent(parent_group)
     xor_gate = circuit.add_node("xor", "HA_XOR", inputs=[x, y], group_id=ha_group.id)
     and_gate = circuit.add_node("and", "HA_AND", inputs=[x, y], group_id=ha_group.id)
     return xor_gate.ports[2], and_gate.ports[2]
 
-def full_adder(circuit, x, y, cin):
-    sum1, carry1 = half_adder(circuit, x, y)
-    sum2, carry2 = half_adder(circuit, sum1, cin)
-    cout = circuit.add_node("or", "FA_OR", inputs=[carry1, carry2])
+def full_adder(circuit, x, y, cin, parent_group=None):
+    fa_group = circuit.add_group("FULL_ADDER")
+    fa_group.set_parent(parent_group)
+    sum1, carry1 = half_adder(circuit, x, y, parent_group=fa_group)
+    sum2, carry2 = half_adder(circuit, sum1, cin, parent_group=fa_group)
+    cout = circuit.add_node("or", "FA_OR", inputs=[carry1, carry2], group_id=fa_group.id)
     return sum2, cout.ports[2]
 
-def ripple_carry_adder(circuit, x_list, y_list, cin):
+def ripple_carry_adder(circuit, x_list, y_list, cin, parent_group=None):
     assert len(x_list) == len(y_list), "x, y must have the same number of bits"
-    
+    rca_group = circuit.add_group("RIPPLE_CARRY_ADDER")
+    rca_group.set_parent(parent_group)
     sum_outputs = []
     for i, (x, y) in enumerate(zip(x_list, y_list)):
-        sum, cin = full_adder(circuit, x, y, cin)
+        sum, cin = full_adder(circuit, x, y, cin, parent_group=rca_group)
         sum_outputs.append(sum)
     return sum_outputs, cin
-    carry = cin
-    sum_outputs = []
-    for x, y in zip(x_list, y_list):
-        sum, carry = full_adder(circuit, x, y, carry)
-        sum_outputs.append(sum)
-    return sum_outputs, carry
 
-def carry_look_ahead_adder(circuit, x_list, y_list, cin):
+def carry_look_ahead_adder(circuit, x_list, y_list, cin, parent_group=None):
     assert len(x_list) == len(y_list), "x, y must have the same number of bits"
     n = len(x_list)
-    
+    claa_group = circuit.add_group("CARRY_LOOK_AHEAD_ADDER")
+    claa_group.set_parent(parent_group)
     propagate = []
     generate = []
     for x, y in zip(x_list, y_list):
-        p = circuit.add_node("xor", "XOR", inputs=[x, y])
-        g = circuit.add_node("and", "AND", inputs=[x, y])
+        p = circuit.add_node("xor", "XOR", inputs=[x, y], group_id=claa_group)
+        g = circuit.add_node("and", "AND", inputs=[x, y], group_id=claa_group)
         propagate.append(p.ports[2])
         generate.append(g.ports[2])
     
@@ -96,10 +99,10 @@ def carry_look_ahead_adder(circuit, x_list, y_list, cin):
             p_low, g_low = build_group_pg(start, mid)
             p_high, g_high = build_group_pg(mid + 1, end)
             
-            p_combined = circuit.add_node("and", "AND", inputs=[p_high, p_low])
+            p_combined = circuit.add_node("and", "AND", inputs=[p_high, p_low], group_id=claa_group)
             
-            p_high_and_g_low = circuit.add_node("and", "AND", inputs=[p_high, g_low])
-            g_combined = circuit.add_node("or", "OR", inputs=[g_high, p_high_and_g_low.ports[2]])
+            p_high_and_g_low = circuit.add_node("and", "AND", inputs=[p_high, g_low], group_id=claa_group)
+            g_combined = circuit.add_node("or", "OR", inputs=[g_high, p_high_and_g_low.ports[2]], group_id=claa_group)
             
             return p_combined.ports[2], g_combined.ports[2]
     
@@ -108,81 +111,62 @@ def carry_look_ahead_adder(circuit, x_list, y_list, cin):
     if n > 1:
         for i in range(n):
             if i == 0:
-                p0_and_c0 = circuit.add_node("and", "AND", inputs=[propagate[0], cin])
-                c1 = circuit.add_node("or", "OR", inputs=[generate[0], p0_and_c0.ports[2]])
+                p0_and_c0 = circuit.add_node("and", "AND", inputs=[propagate[0], cin], group_id=claa_group)
+                c1 = circuit.add_node("or", "OR", inputs=[generate[0], p0_and_c0.ports[2]], group_id=claa_group)
                 carries.append(c1.ports[2])
             else:
                 p_group, g_group = build_group_pg(0, i-1)
                 
-                p_group_and_cin = circuit.add_node("and", "AND", inputs=[p_group, cin])
+                p_group_and_cin = circuit.add_node("and", "AND", inputs=[p_group, cin], group_id=claa_group)
                 
-                carry_term = circuit.add_node("or", "OR", inputs=[g_group, p_group_and_cin.ports[2]])
+                carry_term = circuit.add_node("or", "OR", inputs=[g_group, p_group_and_cin.ports[2]], group_id=claa_group)
                 
-                pi_and_carry = circuit.add_node("and", "AND", inputs=[propagate[i], carry_term.ports[2]])
-                ci_plus_1 = circuit.add_node("or", "OR", inputs=[generate[i], pi_and_carry.ports[2]])
+                pi_and_carry = circuit.add_node("and", "AND", inputs=[propagate[i], carry_term.ports[2]], group_id=claa_group)
+                ci_plus_1 = circuit.add_node("or", "OR", inputs=[generate[i], pi_and_carry.ports[2]], group_id=claa_group)
                 
                 carries.append(ci_plus_1.ports[2])
     elif n == 1:
-        p0_and_c0 = circuit.add_node("and", "AND", inputs=[propagate[0], cin])
-        c1 = circuit.add_node("or", "OR", inputs=[generate[0], p0_and_c0.ports[2]])
+        p0_and_c0 = circuit.add_node("and", "AND", inputs=[propagate[0], cin], group_id=claa_group)
+        c1 = circuit.add_node("or", "OR", inputs=[generate[0], p0_and_c0.ports[2]], group_id=claa_group)
         carries.append(c1.ports[2])
     
     sum_outputs = []
     for i in range(n):
-        sum_out = circuit.add_node("xor", "XOR", inputs=[propagate[i], carries[i]])
+        sum_out = circuit.add_node("xor", "XOR", inputs=[propagate[i], carries[i]], group_id=claa_group)
         sum_outputs.append(sum_out.ports[2])
     
     return sum_outputs, carries[-1]
 
-    propagate = []
-    generate = []
-    
-    for x, y in zip(x_list, y_list):
-        p = circuit.add_gate("OR", [x, y])
-        g = circuit.add_gate("AND", [x, y])
-        propagate.append(p)
-        generate.append(g)
-
-    carries = [cin]
-    for i in range(len(x_list) - 1):
-        p_and_c = circuit.add_gate("AND", [propagate[i], carries[i]])
-        
-        carry = circuit.add_gate("OR", [generate[i], p_and_c])
-        carries.append(carry)
-
-    sum_outputs = []
-    for i in range(len(x_list)):
-        sum_out = circuit.add_gate("XOR", [x_list[i], y_list[i]])
-        sum_out = circuit.add_gate("XOR", [sum_out, carries[i]])
-        sum_outputs.append(sum_out)
-
-    return sum_outputs, carries[-1]
-
-def xnor_gate(circuit, x, y):
-    or_node = circuit.add_node("or", "OR", inputs=[x, y])
+def xnor_gate(circuit, x, y, parent_group=None):
+    xnor_group = circuit.add_group("XNOR")
+    xnor_group.set_parent(parent_group)
+    or_node = circuit.add_node("or", "OR", inputs=[x, y], group_id=xnor_group)
     or_node_port = or_node.ports[2]
-    and_node = circuit.add_node("and", "AND", inputs=[x, y])
-    not_or_node = circuit.add_node("not", "NOT", inputs=[or_node_port])
+    and_node = circuit.add_node("and", "AND", inputs=[x, y], group_id=xnor_group)
+    not_or_node = circuit.add_node("not", "NOT", inputs=[or_node_port], group_id=xnor_group)
     not_or_node_port = not_or_node.ports[1]
-    xnor_node = circuit.add_node("or", "OR", inputs=[not_or_node_port, and_node.ports[2]])
+    xnor_node = circuit.add_node("or", "OR", inputs=[not_or_node_port, and_node.ports[2]], group_id=xnor_group)
     return xnor_node.ports[2]
 
-def one_bit_comparator(circuit, x, y):
-    not_x = circuit.add_node("not", "NOT", inputs=[x])
-    not_y = circuit.add_node("not", "NOT", inputs=[y])
-    x_less_y = circuit.add_node("and", "AND", inputs=[not_x.ports[1], y])
-    x_greater_y = circuit.add_node("and", "AND", inputs=[x, not_y.ports[1]])
-    x_equals_y = xnor_gate(circuit, x_less_y.ports[2], x_greater_y.ports[2])
+def one_bit_comparator(circuit, x, y, parent_group=None):
+    obc_group = circuit.add_group("ONE_BIT_COMPARATOR")
+    obc_group.set_parent(parent_group)
+    not_x = circuit.add_node("not", "NOT", inputs=[x], group_id=obc_group)
+    not_y = circuit.add_node("not", "NOT", inputs=[y], group_id=obc_group)
+    x_less_y = circuit.add_node("and", "AND", inputs=[not_x.ports[1], y], group_id=obc_group)
+    x_greater_y = circuit.add_node("and", "AND", inputs=[x, not_y.ports[1]], group_id=obc_group)
+    x_equals_y = xnor_gate(circuit, x_less_y.ports[2], x_greater_y.ports[2], parent_group=obc_group)
     return x_less_y.ports[2], x_equals_y, x_greater_y.ports[2]
 
-def n_bit_comparator(circuit, x_list, y_list):
+def n_bit_comparator(circuit, x_list, y_list, parent_group=None):
     assert len(x_list) == len(y_list), "Both inputs have to be equally long"
     n = len(x_list)
-
+    nbc_group = circuit.add_group("N_BIT_COMPARATOR")
+    nbc_group.set_parent(parent_group)
     # bit wise results
     bit_wise = []
     for i in range(n):
-        less, equals, greater = one_bit_comparator(circuit, x_list[i], y_list[i])
+        less, equals, greater = one_bit_comparator(circuit, x_list[i], y_list[i], parent_group=nbc_group)
         bit_wise.append((less, equals, greater))
 
     # and gates for n bit equals
@@ -191,7 +175,7 @@ def n_bit_comparator(circuit, x_list, y_list):
     build_equals = []
     build_equals.append(pre_port)
     while index > 0:
-        curr_equals = circuit.add_node("and", "AND", inputs=[pre_port, bit_wise[index-1][1]])
+        curr_equals = circuit.add_node("and", "AND", inputs=[pre_port, bit_wise[index-1][1]], group_id=nbc_group)
         build_equals.append(curr_equals.ports[2])
         pre_port = curr_equals.ports[2]
         index -= 1
@@ -201,26 +185,28 @@ def n_bit_comparator(circuit, x_list, y_list):
     build_less = []
     build_less.append(bit_wise[index][0]) # append msb less port
     while index > 0:
-        curr_less_node = circuit.add_node("and", "AND", inputs=[build_equals[n-1-index], bit_wise[index-1][0]])
+        curr_less_node = circuit.add_node("and", "AND", inputs=[build_equals[n-1-index], bit_wise[index-1][0]], group_id=nbc_group)
         build_less.append(curr_less_node.ports[2])
         index -= 1
 
     # build or tree for n bit less
-    n_less = or_tree_recursive(circuit, build_less)
+    n_less = or_tree_recursive(circuit, build_less, parent_group=nbc_group)
 
     index = n - 1
     build_greater = []
     build_greater.append(bit_wise[index][2])
     while index > 0:
-        curr_greater_node = circuit.add_node("and", "AND", inputs=[build_equals[n-1-index], bit_wise[index-1][2]])
+        curr_greater_node = circuit.add_node("and", "AND", inputs=[build_equals[n-1-index], bit_wise[index-1][2]], group_id=nbc_group)
         build_greater.append(curr_greater_node.ports[2])
         index -= 1
     
-    n_greater = or_tree_recursive(circuit, build_greater)
+    n_greater = or_tree_recursive(circuit, build_greater, parent_group=nbc_group)
 
     return n_less, n_equals, n_greater
 
-def wallace_tree_multiplier(circuit, x_list, y_list):
+def wallace_tree_multiplier(circuit, x_list, y_list, parent_group=None):
+    wtm_group = circuit.add_group("WALLACE_TREE_MULTIPLIER")
+    wtm_group.set_parent(parent_group)
     assert len(x_list) == len(y_list), "Both inputs have to be equally long"
     n = len(x_list)
     partial_products = [[] for _ in range(2*n)]
@@ -228,7 +214,7 @@ def wallace_tree_multiplier(circuit, x_list, y_list):
     for i, x in enumerate(x_list):
         for j, y in enumerate(y_list):
             index = i + j
-            node = circuit.add_node("and", "AND", inputs=[x, y])
+            node = circuit.add_node("and", "AND", inputs=[x, y], group_id=wtm_group)
             partial_products[index].append(node.ports[2])
 
     while any(len(col) > 2 for col in partial_products):
@@ -237,13 +223,13 @@ def wallace_tree_multiplier(circuit, x_list, y_list):
             col = partial_products[i]
             j = 0
             while len(col) > j + 2: # as long as 3 or more partial products remain in the current column
-                sum, cout = full_adder(circuit, col[j], col[j+1], col[j+2])
+                sum, cout = full_adder(circuit, col[j], col[j+1], col[j+2], parent_group=wtm_group)
                 new_products[i].append(sum)
                 new_products[i+1].append(cout)
                 j += 3
 
             if len(col) > j + 1 and j > 0: # if 2 partial products remain in the current column and j > 0
-                sum, cout = half_adder(circuit, col[j], col[j+1])
+                sum, cout = half_adder(circuit, col[j], col[j+1], parent_group=wtm_group)
                 new_products[i].append(sum)
                 new_products[i+1].append(cout)
                 j += 2
@@ -254,7 +240,7 @@ def wallace_tree_multiplier(circuit, x_list, y_list):
 
         partial_products = new_products
 
-    zero_port = constant_zero(circuit, x_list[0])
+    zero_port = constant_zero(circuit, x_list[0], parent_group=wtm_group)
 
     # Applying fast adder since all columns have at most 2 partial products
     x_addend = []
@@ -268,7 +254,7 @@ def wallace_tree_multiplier(circuit, x_list, y_list):
             x_addend.append(partial_products[i][0])
             y_addend.append(zero_port)
 
-    sum_outputs, carry = carry_look_ahead_adder(circuit, x_addend, y_addend, zero_port)
+    sum_outputs, carry = carry_look_ahead_adder(circuit, x_addend, y_addend, zero_port, parent_group=wtm_group)
 
     outputs = sum_outputs
     outputs.append(carry)
@@ -318,6 +304,7 @@ def adder_tree_recursive(circuit, summand_lists, zero):
     sums, carry = ripple_carry_adder(circuit, left_sums, right_sums, zero)
     return sums, carry
 
+"""
 def or_tree_recursive(circuit, input_list):
     if len(input_list) == 1:
         return input_list[0]
@@ -330,15 +317,17 @@ def or_tree_recursive(circuit, input_list):
     left = or_tree_recursive(circuit, input_list[:mid])
     right = or_tree_recursive(circuit, input_list[mid:])
     or_node = circuit.add_node("or", "OR", inputs=[left, right])
-    return or_node.ports[2]
+    return or_node.ports[2]"""
 
 # if condition is one then zero it
-def conditional_zeroing(circuit, x_list, cond):
+def conditional_zeroing(circuit, x_list, cond, parent_group=None):
+    cz_group = circuit.add_group("CONDITIONAL_ZEROING")
+    cz_group.set_parent(parent_group)
     ports = []
-    not_cond_node = circuit.add_node("not", "NOT", inputs=[cond])
+    not_cond_node = circuit.add_node("not", "NOT", inputs=[cond], group_id=cz_group)
     not_cond_port = not_cond_node.ports[1]
     for x in x_list:
-        and_node = circuit.add_node("and", "AND", inputs=[x, not_cond_port])
+        and_node = circuit.add_node("and", "AND", inputs=[x, not_cond_port], group_id=cz_group)
         ports.append(and_node.ports[2])
     return ports
 
@@ -346,18 +335,20 @@ def sign_detector(circuit, x_list):
     msb = x_list[-1]
     return msb
 
-def two_complement(circuit, x_list):
+def two_complement(circuit, x_list, parent_group=None):
+    tc_group = circuit.add_group("TWO_COMPLEMENT")
+    tc_group.set_parent(parent_group)
     inverted_list = []
     for x in x_list:
-        not_node = circuit.add_node("not", "NOT", inputs=[x])
+        not_node = circuit.add_node("not", "NOT", inputs=[x], group_id=tc_group)
         inverted_list.append(not_node.ports[1])
-    one = constant_one(circuit, x_list[0])
-    zero = constant_zero(circuit, x_list[0])
+    one = constant_one(circuit, x_list[0], parent_group=tc_group)
+    zero = constant_zero(circuit, x_list[0], parent_group=tc_group)
     one_number = []
     for i in range(len(x_list)):
         one_number.append(zero)
     one_number[0] = one
-    two_comp_list, _ = ripple_carry_adder(circuit, inverted_list, one_number, zero)
+    two_comp_list, _ = ripple_carry_adder(circuit, inverted_list, one_number, zero, parent_group=tc_group)
     return two_comp_list
 
 def precompute_a_i(const_zero, const_one, int_m, n):
@@ -457,23 +448,29 @@ def small_mod_lemma_4_1(circuit, x_list, m_list, int_m):
     return sums
 
 # 1-bit shift to the left without carry
-def one_left_shift(circuit, x_list):
+def one_left_shift(circuit, x_list, parent_group=None):
+    ols_group = circuit.add_group("ONE_LEFT_SHIFT")
+    ols_group.set_parent(parent_group)
     result = []
-    result.append(constant_zero(circuit, x_list[0]))
+    result.append(constant_zero(circuit, x_list[0], parent_group=ols_group))
     for x in x_list[:-1]:
         result.append(x)
     return result
 
 # 1-bit shift to the right
-def one_right_shift(circuit, x_list):
+def one_right_shift(circuit, x_list, parent_group=None):
+    ors_group = circuit.add_group("ONE_RIGHT_SHIFT")
+    ors_group.set_parent(parent_group)
     result = []
     for x in x_list[1:]:
         result.append(x)
-    result.append(constant_zero(circuit, x_list[len(x_list)-1]))
+    result.append(constant_zero(circuit, x_list[len(x_list)-1], parent_group=ors_group))
     return result
 
 # check how to handle too large amounts
-def n_left_shift(circuit, x_list, amount):
+def n_left_shift(circuit, x_list, amount, parent_group=None):
+    nls_group = circuit.add_group("N_LEFT_SHIFT")
+    nls_group.set_parent(parent_group)
     # assert len(x_list) == len(amount), "x_list and amount must have the same number of bits"
     n = len(x_list) if len(x_list) < len(amount) else len(amount)
     current = x_list
@@ -484,20 +481,22 @@ def n_left_shift(circuit, x_list, amount):
         shifted = []
         if shift_amount <= n:
             for k in range(shift_amount):
-                shifted.append(constant_zero(circuit, current[0])) # filling the lsb zeros
+                shifted.append(constant_zero(circuit, current[0], parent_group=nls_group)) # filling the lsb zeros
             for j in range(n - shift_amount):
                 shifted.append(current[j])
         else:
             for m in range(n):
-                shifted.append(constant_zero(circuit, current[0]))
+                shifted.append(constant_zero(circuit, current[0], parent_group=nls_group))
         assert len(shifted) == len(current)
         next_current = []
         for l in range(n):
-            next_current.append(mux2(circuit, amount[i], shifted[l], current[l]))
+            next_current.append(mux2(circuit, amount[i], shifted[l], current[l], parent_group=nls_group))
         current = next_current
     return current
 
-def n_right_shift(circuit, x_list, amount):
+def n_right_shift(circuit, x_list, amount, parent_group=None):
+    nrs_group = circuit.add_group("N_RIGHT_SHIFT")
+    nrs_group.set_parent(parent_group)
     assert len(x_list) == len(amount), "x_list and amount must have the same number of bits"
     n = len(x_list)
     current = x_list
@@ -508,26 +507,28 @@ def n_right_shift(circuit, x_list, amount):
             for j in range(shift_amount, n):
                 shifted.append(current[j])
             for k in range(shift_amount):
-                shifted.append(constant_zero(circuit, current[0]))
+                shifted.append(constant_zero(circuit, current[0], parent_group=nrs_group))
         else:
             for m in range(n):
-                shifted.append(constant_zero(circuit, current[0]))
+                shifted.append(constant_zero(circuit, current[0], parent_group=nrs_group))
         assert len(shifted) == len(current)
         next_current = []
         for l in range(n):
-            next_current.append(mux2(circuit, amount[i], shifted[l], current[l]))
+            next_current.append(mux2(circuit, amount[i], shifted[l], current[l], parent_group=nrs_group))
         current = next_current
     return current
 
 # if signal then a else b
-def mux2(circuit, signal, a, b):
-    not_signal = circuit.add_node("not", "MUX_NOT", inputs=[signal])
+def mux2(circuit, signal, a, b, parent_group=None):
+    mux_group = circuit.add_group("MUX")
+    mux_group.set_parent(parent_group)
+    not_signal = circuit.add_node("not", "MUX_NOT", inputs=[signal], group_id=mux_group)
     not_signal_port = not_signal.ports[1]
-    first_and = circuit.add_node("and", "MUX_AND", inputs=[signal, a])
-    second_and = circuit.add_node("and", "MUX_AND", inputs=[not_signal_port, b])
+    first_and = circuit.add_node("and", "MUX_AND", inputs=[signal, a], group_id=mux_group)
+    second_and = circuit.add_node("and", "MUX_AND", inputs=[not_signal_port, b], group_id=mux_group)
     first_and_port = first_and.ports[2]
     second_and_port = second_and.ports[2]
-    out_node = circuit.add_node("or", "MUX_OR", inputs=[first_and_port, second_and_port])
+    out_node = circuit.add_node("or", "MUX_OR", inputs=[first_and_port, second_and_port], group_id=mux_group)
     out_port = out_node.ports[2]
     return out_port
 
@@ -603,27 +604,29 @@ def initial_approximation(circuit, m_bits, n):
     initial_approx = n_left_shift(circuit, one_fixed_point, shift_amount)
     return initial_approx
 
-def subtract(circuit, a_bits, b_bits):
+def subtract(circuit, a_bits, b_bits, parent_group=None):
     # a - b
-    zero = constant_zero(circuit, a_bits[0])
-    n = len(a_bits)
-    b_complement = two_complement(circuit, b_bits)
-    result, carry = ripple_carry_adder(circuit, a_bits, b_complement, zero)
+    sub_group = circuit.add_group("SUBTRACT")
+    sub_group.set_parent(parent_group)
+    zero = constant_zero(circuit, a_bits[0], parent_group=sub_group)
+    b_complement = two_complement(circuit, b_bits, parent_group=sub_group)
+    result, carry = ripple_carry_adder(circuit, a_bits, b_complement, zero, parent_group=sub_group)
     return result
 
-def conditional_subtract(circuit, x_bits, m_bits, select):
+def conditional_subtract(circuit, x_bits, m_bits, select, parent_group=None):
+    cs_group = circuit.add_group("CONDITIONAL_SUBTRACT")
+    cs_group.set_parent(parent_group)
     n = len(x_bits)
     assert len(m_bits) == n, "Both inputs must have the same bit length"
-    difference = subtract(circuit, x_bits, m_bits)
+    difference = subtract(circuit, x_bits, m_bits, parent_group=cs_group)
     result = [None] * n
     for i in range(n):
-        not_select = circuit.add_node("not", f"NOT_SEL_{i}", inputs=[select]).ports[1]
-        and1 = circuit.add_node("and", f"AND_DIFF_{i}", inputs=[select, difference[i]]).ports[2]
-        and2 = circuit.add_node("and", f"AND_X_{i}", inputs=[not_select, x_bits[i]]).ports[2]
-        result[i] = circuit.add_node("or", f"OR_RES_{i}", inputs=[and1, and2]).ports[2]
-    
+        not_select = circuit.add_node("not", f"NOT_SEL_{i}", inputs=[select], group_id=cs_group).ports[1]
+        and1 = circuit.add_node("and", f"AND_DIFF_{i}", inputs=[select, difference[i]], group_id=cs_group).ports[2]
+        and2 = circuit.add_node("and", f"AND_X_{i}", inputs=[not_select, x_bits[i]], group_id=cs_group).ports[2]
+        result[i] = circuit.add_node("or", f"OR_RES_{i}", inputs=[and1, and2], group_id=cs_group).ports[2]
     return result
-
+"""
 def modulo_circuit(circuit, x_bits, m_bits):
     n = len(x_bits)
     assert len(m_bits) == n, "Both inputs must have the same bit length"
@@ -639,120 +642,241 @@ def modulo_circuit(circuit, x_bits, m_bits):
         can_subtract = circuit.add_node("not", "NOT", inputs=[less]).ports[1]
         current_remainder = conditional_subtract(circuit, current_remainder, power_m, can_subtract)
     return current_remainder
+"""
 
-def modular_exponentiation(circuit, base, exponent, modulus):
+"""
+def modulo_circuit(circuit, x_bits, m_bits):
+    n = len(x_bits)
+    assert len(m_bits) <= n, "Modulus must not be wider than dividend"
+
+    current_remainder = x_bits
+
+    zero = constant_zero(circuit, x_bits[0])
+    one = constant_one(circuit, m_bits[0])
+
+    for shift in range(n - len(m_bits), -1, -1):
+        shift_bin_list = utils.int2binlist(shift, len(x_bits))
+        shift_repr = [one if bit else zero for bit in shift_bin_list]
+        
+        shifted_m = n_left_shift(circuit, m_bits, shift_repr)
+        
+        less, _, _ = n_bit_comparator(circuit, current_remainder, shifted_m)
+        can_subtract = circuit.add_node("not", "NOT", inputs=[less]).ports[1]
+
+        current_remainder = conditional_subtract(circuit, current_remainder, shifted_m, can_subtract)
+
+    return current_remainder
+"""
+
+"""
+def modulo_circuit(circuit, x_bits, m_bits):
+    
+    n = len(x_bits)
+    m_len = len(m_bits)
+    current_remainder = x_bits
+    
+    # We need to do at most 2^n iterations, but that's impractical
+    # Instead, we'll do a more reasonable number based on bit width
+
+    padded_m = m_bits
+    max_iterations = (1 << (n - m_len + 1)) if n >= m_len else 1
+    
+    for _ in range(max_iterations):
+        # Check if current_remainder >= padded_m
+        less, equal, greater = n_bit_comparator(circuit, current_remainder, padded_m)
+        
+        # can_subtract = (current_remainder >= padded_m)
+        can_subtract = circuit.add_node("or", "OR", inputs=[equal, greater]).ports[2]
+        
+        current_remainder = conditional_subtract(circuit, current_remainder, padded_m, can_subtract)
+
+    return current_remainder
+"""
+
+def slow_modulo_circuit(circuit, x_bits, m_bits, parent_group=None):
+    smc_group = circuit.add_group("SLOW_MODULO_CIRCUIT")
+    smc_group.set_parent(parent_group)
+    n = len(x_bits)
+    m_len = len(m_bits)
+    assert m_len <= n, "Modulus must not be wider than dividend"
+    
+    zero = constant_zero(circuit, x_bits[0], parent_group=smc_group)
+    
+    # Pad modulus to same width as dividend
+    padded_m = m_bits + [zero] * (n - m_len)
+    
+    current_remainder = x_bits[:]
+    
+    # Unroll a fixed number of subtractions (enough to handle worst case)
+    # For n-bit numbers, we need at most 2^(n-m_len) subtractions
+    max_subtractions = 2**(n-4)  # Cap at 32 for practicality
+    
+    for step in range(max_subtractions):
+        # Check if current_remainder >= padded_m
+        less, equal, greater = n_bit_comparator(circuit, current_remainder, padded_m, parent_group=smc_group)
+        can_subtract = circuit.add_node("or", "OR", inputs=[equal, greater], group_id=smc_group).ports[2]
+        # Conditionally subtract
+        current_remainder = conditional_subtract(circuit, current_remainder, padded_m, can_subtract, parent_group=smc_group)
+    
+    return current_remainder
+
+def modulo_circuit_optimized(circuit, x_bits, m_bits):
+    """
+    Most efficient version: processes multiple bit positions when possible.
+    """
+    n = len(x_bits)
+    m_len = len(m_bits)
+    assert m_len <= n, "Modulus must not be wider than dividend"
+    
+    zero = constant_zero(circuit, x_bits[0])
+    one = constant_one(circuit, x_bits[0])
+    current_remainder = x_bits[:]
+    
+    # Create a table of shifted moduli
+    shifted_moduli = []
+    for shift in range(n - m_len + 1):
+
+        shift_bin_list = utils.int2binlist(shift, len(x_bits))
+        shift_repr = [one if bit else zero for bit in shift_bin_list]
+        shifted_m = n_left_shift(circuit, m_bits, shift_repr)
+        shifted_moduli.append(shifted_m)
+    
+    # Process from largest shift to smallest
+    for i in range(len(shifted_moduli) - 1, -1, -1):
+        shifted_m = shifted_moduli[i]
+        
+        # Check if we can subtract this shifted modulus
+        less, equal, greater = n_bit_comparator(circuit, current_remainder, shifted_m)
+        can_subtract = circuit.add_node("or", "OR", inputs=[equal, greater]).ports[2]
+        
+        # Conditionally subtract
+        current_remainder = conditional_subtract(circuit, current_remainder, shifted_m, can_subtract)
+    
+    return current_remainder
+
+def modulo_circuit(circuit, x_bits, m_bits, parent_group=None):
+    m_group = circuit.add_group("MODULO")
+    m_group.set_parent(parent_group)
+    return slow_modulo_circuit(circuit, x_bits, m_bits, parent_group=m_group)
+
+def modular_exponentiation(circuit, base, exponent, modulus, parent_group=None):
+    me_group = circuit.add_group("MODULAR_EXPONENTIATION")
+    me_group.set_parent(parent_group)
     n = len(base)
     assert n == len(exponent) and n == len(modulus), "All input must have the same bit length"
 
-    zero = constant_zero(circuit, base[0])
-    one = constant_one(circuit, base[0])
+    zero = constant_zero(circuit, base[0], parent_group=me_group)
+    one = constant_one(circuit, base[0], parent_group=me_group)
 
     result = [zero] * n
     result[0] = one
-    base_mod = modulo_circuit(circuit, base, modulus)
+    base_mod = modulo_circuit(circuit, base, modulus, parent_group=me_group)
     for i in range(n):
         bit_pos = n - 1 - i
         current_bit = exponent[bit_pos]
-        squared = wallace_tree_multiplier(circuit, result, result)
+        squared = wallace_tree_multiplier(circuit, result, result, parent_group=me_group)
         squared = squared[:len(base)]
-        squared_mod = modulo_circuit(circuit, squared, modulus)
-        with_multiply = wallace_tree_multiplier(circuit, squared_mod, base_mod)
+        squared_mod = modulo_circuit(circuit, squared, modulus, parent_group=me_group)
+        with_multiply = wallace_tree_multiplier(circuit, squared_mod, base_mod, parent_group=me_group)
         with_multiply = with_multiply[:len(base)]
-        multiply_mod = modulo_circuit(circuit, with_multiply, modulus)
+        multiply_mod = modulo_circuit(circuit, with_multiply, modulus, parent_group=me_group)
         new_result = [None] * n
         for j in range(n):
-            not_bit = circuit.add_node("not", f"NOT_BIT_{bit_pos}_{j}", inputs=[current_bit]).ports[1]
+            not_bit = circuit.add_node("not", f"NOT_BIT_{bit_pos}_{j}", inputs=[current_bit], group_id=me_group).ports[1]
             and1 = circuit.add_node("and", f"AND_MULT_{bit_pos}_{j}", 
-                                  inputs=[current_bit, multiply_mod[j]]).ports[2]
+                                  inputs=[current_bit, multiply_mod[j]], group_id=me_group).ports[2]
             and2 = circuit.add_node("and", f"AND_SQR_{bit_pos}_{j}", 
-                                  inputs=[not_bit, squared_mod[j]]).ports[2]
+                                  inputs=[not_bit, squared_mod[j]], group_id=me_group).ports[2]
             new_result[j] = circuit.add_node("or", f"OR_RESULT_{bit_pos}_{j}", 
-                                           inputs=[and1, and2]).ports[2]
+                                           inputs=[and1, and2], group_id=me_group).ports[2]
         result = new_result
     return result
 
 CIRCUIT_FUNCTIONS = {
-    "xnor_gate": lambda cg: setup_xnor_gate(cg),
-    "one_bit_comparator": lambda cg: setup_one_bit_comparator(cg),
-    "n_bit_comparator": lambda cg: setup_n_bit_comparator(cg),
-    "constant_zero": lambda cg: setup_constant_zero(cg),
-    "constant_one": lambda cg: setup_constant_one(cg),
-    "and_tree_recursive": lambda cg: setup_and_tree_recursive(cg),
-    "or_tree_recursive": lambda cg: setup_or_tree_recursive(cg),
-    "half_adder": lambda cg: setup_half_adder(cg),
-    "full_adder": lambda cg: setup_full_adder(cg),
-    "ripple_carry_adder": lambda cg: setup_ripple_carry_adder(cg),
-    "carry_look_ahead_adder": lambda cg: setup_carry_look_ahead_adder(cg),
-    "wallace_tree_multiplier": lambda cg: setup_wallace_tree_multiplier(cg),
-    "multiplexer": lambda cg: setup_multiplexer(cg),
-    "adder_tree_recursive": lambda cg: setup_adder_tree_recursive(cg),
-    "small_mod_lemma_4_1": lambda cg: setup_small_mod_lemma_4_1(cg),
-    "precompute_a_i": lambda cg: setup_precompute_a_i(cg),
-    "conditional_zeroing": lambda cg: setup_conditional_zeroing(cg),
-    "one_left_shift": lambda cg: setup_one_left_shift(cg),
-    "one_right_shift": lambda cg: setup_one_right_shift(cg),
-    "n_left_shift": lambda cg: setup_n_left_shift(cg),
-    "n_right_shift": lambda cg: setup_n_right_shift(cg),
-    "log2_estimate": lambda cg: setup_log2_estimate(cg),
-    "reciprocal_newton_raphson": lambda cg: setup_reciprocal_newton_raphson(cg),
-    "modulo_circuit": lambda cg: setup_modulo_circuit(cg),
-    "modular_exponentiation": lambda cg: setup_modular_exponentiation(cg),
+    "xnor_gate": lambda cg, bit_len: setup_xnor_gate(cg, bit_len=bit_len),
+    "one_bit_comparator": lambda cg, bit_len: setup_one_bit_comparator(cg, bit_len=bit_len),
+    "n_bit_comparator": lambda cg, bit_len: setup_n_bit_comparator(cg, bit_len=bit_len),
+    "constant_zero": lambda cg, bit_len: setup_constant_zero(cg, bit_len=bit_len),
+    "constant_one": lambda cg, bit_len: setup_constant_one(cg, bit_len=bit_len),
+    "and_tree_recursive": lambda cg, bit_len: setup_and_tree_recursive(cg, bit_len=bit_len),
+    "or_tree_recursive": lambda cg, bit_len: setup_or_tree_recursive(cg, bit_len=bit_len),
+    "half_adder": lambda cg, bit_len: setup_half_adder(cg, bit_len=bit_len),
+    "full_adder": lambda cg, bit_len: setup_full_adder(cg, bit_len=bit_len),
+    "ripple_carry_adder": lambda cg, bit_len: setup_ripple_carry_adder(cg, bit_len=bit_len),
+    "carry_look_ahead_adder": lambda cg, bit_len: setup_carry_look_ahead_adder(cg, bit_len=bit_len),
+    "wallace_tree_multiplier": lambda cg, bit_len: setup_wallace_tree_multiplier(cg, bit_len=bit_len),
+    #"multiplexer": lambda cg, bit_len: setup_multiplexer(cg, bit_len=bit_len),
+    "adder_tree_recursive": lambda cg, bit_len: setup_adder_tree_recursive(cg, bit_len=bit_len),
+    #"small_mod_lemma_4_1": lambda cg, bit_len: setup_small_mod_lemma_4_1(cg, bit_len=bit_len),
+    "precompute_a_i": lambda cg, bit_len: setup_precompute_a_i(cg, bit_len=bit_len),
+    "conditional_zeroing": lambda cg, bit_len: setup_conditional_zeroing(cg, bit_len=bit_len),
+    "conditional_subtract": lambda cg, bit_len: setup_conditional_subtract(cg, bit_len=bit_len),
+    "one_left_shift": lambda cg, bit_len: setup_one_left_shift(cg, bit_len=bit_len),
+    "one_right_shift": lambda cg, bit_len: setup_one_right_shift(cg, bit_len=bit_len),
+    "n_left_shift": lambda cg, bit_len: setup_n_left_shift(cg, bit_len=bit_len),
+    "n_right_shift": lambda cg, bit_len: setup_n_right_shift(cg, bit_len=bit_len),
+    "log2_estimate": lambda cg, bit_len: setup_log2_estimate(cg, bit_len=bit_len),
+    "reciprocal_newton_raphson": lambda cg, bit_len: setup_reciprocal_newton_raphson(cg, bit_len=bit_len),
+    "modulo_circuit": lambda cg, bit_len: setup_modulo_circuit(cg, bit_len=bit_len),
+    "modular_exponentiation": lambda cg, bit_len: setup_modular_exponentiation(cg, bit_len=bit_len),
 }
 
-def setup_modular_exponentiation(cg):
-    B = [cg.add_node("input", f"B_{i}") for i in range(4)]
-    E = [cg.add_node("input", f"E_{i}") for i in range(4)]
-    M = [cg.add_node("input", f"M_{i}") for i in range(4)]
+def setup_modular_exponentiation(cg, bit_len=4):
+    B = [cg.add_node("input", f"B_{i}") for i in range(bit_len)]
+    E = [cg.add_node("input", f"E_{i}") for i in range(bit_len)]
+    M = [cg.add_node("input", f"M_{i}") for i in range(bit_len)]
     OUT = modular_exponentiation(cg, [b.ports[0] for b in B], [e.ports[0] for e in E], [m.ports[0] for m in M])
     OUT_NODES = [cg.add_node("output", f"OUT_{i}", inputs=[o]) for i, o in enumerate(OUT)]
     return B, E, M, OUT_NODES
 
-def setup_modulo_circuit(cg):
-    X = [cg.add_node("input", f"X_{i}") for i in range(4)]
-    A = [cg.add_node("input", f"A_{i}") for i in range(4)]
+def setup_modulo_circuit(cg, bit_len=4):
+    X = [cg.add_node("input", f"X_{i}") for i in range(bit_len)]
+    A = [cg.add_node("input", f"A_{i}") for i in range(bit_len)]
     OUT = modulo_circuit(cg, [x.ports[0] for x in X], [a.ports[0] for a in A])
     OUT_NODES = [cg.add_node("output", f"OUT_{i}", inputs=[o]) for i, o in enumerate(OUT)]
     return X, A, OUT_NODES
 
-def setup_reciprocal_newton_raphson(cg):
+def setup_reciprocal_newton_raphson(cg, bit_len=4):
     X = [cg.add_node("input", f"X_{i}") for i in range(4)]
     OUT = reciprocal_newton_raphson(cg, [x.ports[0] for x in X], 4)
     OUT_NODES = [cg.add_node("output", f"OUT_{i}", inputs=[o]) for i, o in enumerate(OUT)]
     return X, OUT_NODES
 
-def setup_log2_estimate(cg):
+def setup_log2_estimate(cg, bit_len=4):
     X = [cg.add_node("input", f"X_{i}") for i in range(4)]
     OUT = log2_estimate(cg, [x.ports[0] for x in X])
     OUT_NODES = [cg.add_node("output", f"OUT_{i}", inputs=[o]) for i, o in enumerate(OUT)]
     return X, OUT_NODES
 
-def setup_n_left_shift(cg):
-    X = [cg.add_node("input", f"X_{i}") for i in range(4)]
-    A = [cg.add_node("input", f"A_{i}") for i in range(4)]
+
+
+def setup_n_left_shift(cg, bit_len=4):
+    X = [cg.add_node("input", f"X_{i}") for i in range(bit_len)]
+    A = [cg.add_node("input", f"A_{i}") for i in range(bit_len)]
     OUT = n_left_shift(cg, [x.ports[0] for x in X], [a.ports[0] for a in A])
     OUT_NODES = [cg.add_node("output", f"OUT_{i}", inputs=[o]) for i, o in enumerate(OUT)]
     return X, A, OUT_NODES
 
-def setup_n_right_shift(cg):
-    X = [cg.add_node("input", f"X_{i}") for i in range(4)]
-    A = [cg.add_node("input", f"A_{i}") for i in range(4)]
+def setup_n_right_shift(cg, bit_len=4):
+    X = [cg.add_node("input", f"X_{i}") for i in range(bit_len)]
+    A = [cg.add_node("input", f"A_{i}") for i in range(bit_len)]
     OUT = n_right_shift(cg, [x.ports[0] for x in X], [a.ports[0] for a in A])
     OUT_NODES = [cg.add_node("output", f"OUT_{i}", inputs=[o]) for i, o in enumerate(OUT)]
     return X, A, OUT_NODES
 
-def setup_one_left_shift(cg):
-    X = [cg.add_node("input", f"X_{i}") for i in range(4)]
+def setup_one_left_shift(cg, bit_len=4):
+    X = [cg.add_node("input", f"X_{i}") for i in range(bit_len)]
     OUT = one_left_shift(cg, [x.ports[0] for x in X])
     OUT_NODES = [cg.add_node("output", f"OUT_{i}", inputs=[o]) for i, o in enumerate(OUT)]
     return X, OUT_NODES
 
-def setup_one_right_shift(cg):
-    X = [cg.add_node("input", f"X_{i}") for i in range(4)]
+def setup_one_right_shift(cg, bit_len=4):
+    X = [cg.add_node("input", f"X_{i}") for i in range(bit_len)]
     OUT = one_right_shift(cg, [x.ports[0] for x in X])
     OUT_NODES = [cg.add_node("output", f"OUT_{i}", inputs=[o]) for i, o in enumerate(OUT)]
     return X, OUT_NODES
 
-def setup_small_mod_lemma_4_1(cg):
+def setup_small_mod_lemma_4_1(cg, bit_len=4):
     X = [cg.add_node("input", f"X{i}") for i in range(4)]
     M = [cg.add_node("input", f"M{i}") for i in range(4)]
     # in_node = cg.add_node("input", f"IN")
@@ -768,10 +892,10 @@ def setup_small_mod_lemma_4_1(cg):
         out_nodes.append(out_node)
     return X, out_nodes
 
-def setup_adder_tree_recursive(cg):
+def setup_adder_tree_recursive(cg, bit_len=4):
     ports = []
     for k in range(4):
-        X = [cg.add_node("input", f"X{i}") for i in range(4)]
+        X = [cg.add_node("input", f"X{i}") for i in range(bit_len)]
         ports.append([x.ports[0] for x in X])
     cin = cg.add_node("input", "CIN")
     outputs, carry = adder_tree_recursive(cg, ports, cin.ports[0])
@@ -780,60 +904,60 @@ def setup_adder_tree_recursive(cg):
     cg.add_node("output", "CARRY", inputs=[carry])
     return
 
-def setup_multiplexer(cg):
-    X = [cg.add_node("input", f"X{i}") for i in range(4)]
-    S = [cg.add_node("input", f"S{i}") for i in range(2)]
+def setup_multiplexer(cg, bit_len=4):
+    X = [cg.add_node("input", f"X{i}") for i in range(bit_len)]
+    S = [cg.add_node("input", f"S{i}") for i in range(math.log2(bit_len))]
     mux = multiplexer(cg, [x.ports[0] for x in X], [s.ports[0] for s in S])
     out = cg.add_node("output", "MUX OUT", inputs=[mux])
     return
 
-def setup_one_bit_comparator(cg):
+def setup_one_bit_comparator(cg, bit_len=4):
     less, equals, greater = one_bit_comparator(cg, cg.add_node("input", "x").ports[0], cg.add_node("input", "y").ports[0])
     less_node = cg.add_node("output", "LESS", inputs=[less])
     equals_node = cg.add_node("output", "EQUALS", inputs=[equals])
     greater_node = cg.add_node("output", "GREATER", inputs=[greater])
     return
 
-def setup_n_bit_comparator(cg):
-    A = [cg.add_node("input", f"A{i}") for i in range(4)]
-    B = [cg.add_node("input", f"B{i}") for i in range(4)]
+def setup_n_bit_comparator(cg, bit_len=4):
+    A = [cg.add_node("input", f"A{i}") for i in range(bit_len)]
+    B = [cg.add_node("input", f"B{i}") for i in range(bit_len)]
     less, equals, greater = n_bit_comparator(cg, [a.ports[0] for a in A], [b.ports[0] for b in B])
     L = cg.add_node("output", "LESS", inputs=[less])
     E = cg.add_node("output", "EQUALS", inputs=[equals])
     G = cg.add_node("output", "GREATER", inputs=[greater])
     return A, B, L, E, G
 
-def setup_xnor_gate(cg):
+def setup_xnor_gate(cg, bit_len=4):
     X = [cg.add_node("input", f"X{i}") for i in range(2)]
     out = xnor_gate(cg, X[0].ports[0], X[1].ports[0])
     xnor_output = cg.add_node("output", "XNOR OUTPUT", inputs=[out])
     return
 
-def setup_constant_zero(cg):
+def setup_constant_zero(cg, bit_len=4):
     X = cg.add_node("input", "X")
     zero_port = constant_zero(cg, X.ports[0])
     zero_node = cg.add_node("output", "CONSTANT ZERO", inputs=[zero_port])
     return
 
-def setup_constant_one(cg):
+def setup_constant_one(cg, bit_len=4):
     X = cg.add_node("input", "X")
     one_port = constant_one(cg, X.ports[0])
     one_node = cg.add_node("output", "CONSTANT ONE", inputs=[one_port])
     return
 
-def setup_and_tree_recursive(cg):
-    X = [cg.add_node("input", f"X{i}") for i in range(4)]
+def setup_and_tree_recursive(cg, bit_len=4):
+    X = [cg.add_node("input", f"X{i}") for i in range(bit_len)]
     out = and_tree_recursive(cg, [x.ports[0] for x in X])
     cg.add_node("output", "OUTPUT", inputs=[out])
     return
 
-def setup_or_tree_recursive(cg):
-    X = [cg.add_node("input", f"X{i}") for i in range(4)]
+def setup_or_tree_recursive(cg, bit_len=4):
+    X = [cg.add_node("input", f"X{i}") for i in range(bit_len)]
     out = or_tree_recursive(cg, [x.ports[0] for x in X])
     cg.add_node("output", "OUTPUT", inputs=[out])
     return
 
-def setup_half_adder(cg):
+def setup_half_adder(cg, bit_len=4):
     root_group = cg.add_group("ROOT_GROUP")
     A = cg.add_node("input", "A")
     B = cg.add_node("input", "B")
@@ -845,7 +969,7 @@ def setup_half_adder(cg):
     
     return A, B, sum_node, carry_node
 
-def setup_full_adder(cg):
+def setup_full_adder(cg, bit_len=4):
     A = cg.add_node("input", "A")
     B = cg.add_node("input", "B")
     cin = cg.add_node("input", "Cin")
@@ -856,9 +980,9 @@ def setup_full_adder(cg):
     cg.add_edge(carry_port, carry_node.ports[0])
     return A, B, cin, sum_node, carry_node
 
-def setup_ripple_carry_adder(cg):
-    A = [cg.add_node("input", f"A{i}") for i in range(4)]
-    B = [cg.add_node("input", f"B{i}") for i in range(4)]
+def setup_ripple_carry_adder(cg, bit_len=4):
+    A = [cg.add_node("input", f"A{i}") for i in range(bit_len)]
+    B = [cg.add_node("input", f"B{i}") for i in range(bit_len)]
     cin = cg.add_node("input", "Cin")
     sum_ports, carry_port = ripple_carry_adder(cg, [a.ports[0] for a in A], [b.ports[0] for b in B], cin.ports[0])
     for i, s_port in enumerate(sum_ports):
@@ -875,9 +999,9 @@ def setup_ripple_carry_adder(cg):
         cg.add_output(sum, "sum")
     cg.add_output(carry_out, "carry")
 
-def setup_carry_look_ahead_adder(cg):
-    A = [cg.add_node("input", f"A{i}") for i in range(4)]
-    B = [cg.add_node("input", f"B{i}") for i in range(4)]
+def setup_carry_look_ahead_adder(cg, bit_len=4):
+    A = [cg.add_node("input", f"A{i}") for i in range(bit_len)]
+    B = [cg.add_node("input", f"B{i}") for i in range(bit_len)]
     cin = cg.add_node("input", "Cin")
     sum_outputs, carry_out = carry_look_ahead_adder(cg, [a.ports[0] for a in A], [b.ports[0] for b in B], cin.ports[0])
     sum_nodes = []
@@ -886,16 +1010,16 @@ def setup_carry_look_ahead_adder(cg):
     carry_node = cg.add_node("output", "CARRY", inputs=[carry_out])
     return A, B, cin, sum_nodes, carry_node
 
-def setup_wallace_tree_multiplier(cg):
-    A = [cg.add_node("input", f"A{i}") for i in range(4)]
-    B = [cg.add_node("input", f"B{i}") for i in range(4)]
+def setup_wallace_tree_multiplier(cg, bit_len=4):
+    A = [cg.add_node("input", f"A{i}") for i in range(bit_len)]
+    B = [cg.add_node("input", f"B{i}") for i in range(bit_len)]
     outputs = wallace_tree_multiplier(cg, [a.ports[0] for a in A], [b.ports[0] for b in B])
     output_nodes = []
     for out in outputs:
         output_nodes.append(cg.add_node("output", "PRODUCT", inputs=[out]))
     return A, B, output_nodes
 
-def setup_precompute_a_i(cg):
+def setup_precompute_a_i(cg, bit_len=4):
     input_node = cg.add_node("input", "INPUT")
     input_node_port = input_node.ports[0]
     zero_port = constant_zero(cg, input_node_port)
@@ -908,17 +1032,27 @@ def setup_precompute_a_i(cg):
             output_nodes.append(output_node)
     return output_nodes
 
-def setup_conditional_zeroing(cg):
-    X = [cg.add_node("input", f"A{i}") for i in range(4)]
+def setup_conditional_zeroing(cg, bit_len=4):
+    X = [cg.add_node("input", f"A{i}") for i in range(bit_len)]
     C = cg.add_node("input", f"COND")
-    zero_port = constant_zero(cg, C.ports[0])
-    one_port = constant_one(cg, C.ports[0])
     output = conditional_zeroing(cg, [x.ports[0] for x in X], C.ports[0])
     output_nodes = []
     for i, out in enumerate(output):
         output_node = cg.add_node("output", f"OUT_{i}", inputs=[out])
         output_nodes.append(output_node)
     return X, C, output_nodes
+
+def setup_conditional_subtract(cg, bit_len=4):
+    A = [cg.add_node("input", f"A{i}") for i in range(bit_len)]
+    B = [cg.add_node("input", f"B{i}") for i in range(bit_len)]
+    C = cg.add_node("input", f"COND")
+    output = conditional_subtract(cg, [a.ports[0] for a in A], [b.ports[0] for b in B], C.ports[0])
+    O = []
+    for i, out in enumerate(output):
+        output_node = cg.add_node("output", f"OUT_{i}", inputs=[out])
+        O.append(output_node)
+    return A, B, C, O
+
 # def setup_four_bit_wallace_tree_multiplier(cg):
 #    A = [cg.add_input(f"A{i}") for i in range(4)]
 #    B = [cg.add_input(f"B{i}") for i in range(4)]

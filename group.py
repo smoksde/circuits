@@ -1,10 +1,9 @@
 class Group:
-    def __init__(self, group_id, group_label, collapsed=False):
+    def __init__(self, group_id, group_label):
         self.id = group_id
         self.label = group_label
-        self.parent = None # holds group
-        self.collapsed = collapsed
-    
+        self.parent = None
+
     def set_parent(self, parent):
         self.parent = parent
 
@@ -23,4 +22,3 @@ class Group:
 
     def __repr__(self):
         return f""
-

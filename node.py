@@ -12,7 +12,7 @@ class Node:
     def add_port(self, port):
         self.ports.append(port)
         return port
-    
+
     def to_dict(self):
         return {
             "id": self.node_id,
@@ -22,8 +22,8 @@ class Node:
             "value": self.value,
             "label": self.label,
             "group_id": self.group_id,
-            "ports": [port.to_dict() for port in self.ports]
+            "ports": [port.to_dict() for port in self.ports],
         }
-    
+
     def __repr__(self):
         return f"label: {self.label}"

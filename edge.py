@@ -6,5 +6,5 @@ class Edge:
     def to_dict(self):
         return {
             "sourcePortId": self.source_port_id,
-            "targetPortId": self.target_port_id
+            "targetPortId": self.target_port_id,
         }

@@ -1,7 +1,8 @@
 from collections import Counter, defaultdict, deque
 from graph import *
-from circuit import *
+from circuits import *
 import matplotlib.pyplot as plt
+
 
 def compute_node_edges(cg):
     port_to_node_dict = {}
@@ -14,21 +15,26 @@ def compute_node_edges(cg):
     for edge in cg.edges:
         source_port = edge.source_port_id
         target_port = edge.target_port_id
-        node_edges.append((port_to_node_dict[source_port], port_to_node_dict[target_port]))
+        node_edges.append(
+            (port_to_node_dict[source_port], port_to_node_dict[target_port])
+        )
     node_edges = list(set(node_edges))
     return node_edges
+
 
 def longest_path_length(cg):
     input_nodes = [node.node_id for node in cg.nodes.values() if node.type == "input"]
     output_nodes = [node.node_id for node in cg.nodes.values() if node.type == "output"]
-    
+
     node_edges = compute_node_edges(cg)
 
     in_degree = defaultdict(int)
     for node in cg.nodes.values():
         in_degree[node] = len([port for port in node.ports if port.type == "input"])
 
-    queue = deque([node.node_id for node in cg.nodes.values() if in_degree[node.node_id] == 0])
+    queue = deque(
+        [node.node_id for node in cg.nodes.values() if in_degree[node.node_id] == 0]
+    )
     topo_order = []
 
     while queue:
@@ -39,16 +45,16 @@ def longest_path_length(cg):
             if in_degree[successor] == 0:
                 queue.append(successor)
 
-    dist = defaultdict(lambda: -float('inf'))
+    dist = defaultdict(lambda: -float("inf"))
     for node_id in output_nodes:
         dist[node_id] = 0
 
     for node_id in reversed(topo_order):
         for successor in [target for source, target in node_edges if source == node_id]:
-            if dist[successor] != -float('inf'):
+            if dist[successor] != -float("inf"):
                 dist[node_id] = max(dist[node_id], dist[successor] + 1)
 
-    return max(dist[node] for node in input_nodes if dist[node] != -float('inf'))
+    return max(dist[node] for node in input_nodes if dist[node] != -float("inf"))
 
 
 def analyze_circuit_function(name, setup_fn, bit_len=4):
@@ -62,8 +68,9 @@ def analyze_circuit_function(name, setup_fn, bit_len=4):
         "bit_len": bit_len,
         "num_nodes": num_nodes,
         "num_edges": num_edges,
-        "depth": depth
+        "depth": depth,
     }
+
 
 def analyze_all_functions():
     results = []
@@ -80,31 +87,38 @@ def analyze_all_functions():
         print(f"  Nodes: {r['num_nodes']}")
         print(f"  Edges: {r['num_edges']}")
         print(f"Max depth: {r['depth']}")
-    
+
 
 def plot_metrics_for_adders():
     results = []
-    functions = {"carry_look_ahead_adder": setup_carry_look_ahead_adder,
-                 "ripple_carry_adder": setup_ripple_carry_adder}
-    bit_lengths = [4,8,16,32,64]
-    
+    functions = {"carry_look_ahead_adder": setup_carry_look_ahead_adder}
+    # functions = {"ripple_carry_adder": setup_ripple_carry_adder}
+    bit_lengths = [4, 8, 16, 32, 64]
+
     plt.figure(figsize=(8, 5))
     for key, value in functions.items():
         depths = []
         node_nums = []
         edge_nums = []
         for i in bit_lengths:
-            #result = analyze_circuit_function("n_bit_comparator", setup_n_bit_comparator, i)
+            # result = analyze_circuit_function("n_bit_comparator", setup_n_bit_comparator, i)
             result = analyze_circuit_function(key, value, i)
-            depths.append(result['depth'])
-            node_nums.append(result['num_nodes'])
-            edge_nums.append(result['num_edges'])
+            depths.append(result["depth"])
+            node_nums.append(result["num_nodes"])
+            edge_nums.append(result["num_edges"])
             results.append(result)
 
-    
-        plt.plot(bit_lengths, depths, marker='o', label='Circuit Depth', linestyle='--', color='blue')
-        #plt.plot(bit_lengths, node_nums, marker='x', label='Node Count', linestyle='-.', color='purple')
-        #plt.plot(bit_lengths, edge_nums, marker='x', label='Edge Count', linestyle='-.', color="green")
+        plt.plot(
+            bit_lengths,
+            depths,
+            marker="o",
+            label="Circuit Depth",
+            linestyle="--",
+            color="blue",
+        )
+        # plt.plot(bit_lengths, node_nums, marker='x', label='Node Count', linestyle='-.', color='purple')
+        # plt.plot(bit_lengths, edge_nums, marker='x', label='Edge Count', linestyle='-.', color="green")
+
     plt.title("Circuit Characteristics")
     plt.xlabel("Bit Length (Number representation size)")
     plt.ylabel("Values")
@@ -113,16 +127,18 @@ def plot_metrics_for_adders():
     plt.tight_layout()
     plt.show()
 
+
+"""
     for r in results:
         print(f"\nCircuit: {r['name']}")
         print(f" Bit Length: {r['bit_len']}")
         print(f"  Nodes: {r['num_nodes']}")
         print(f"  Edges: {r['num_edges']}")
-        print(f"Max depth: {r['depth']}")
+        print(f"Max depth: {r['depth']}")"""
 
 
 if __name__ == "__main__":
-    
-    # plot_metrics_for_adders()
 
-    analyze_all_functions()
+    plot_metrics_for_adders()
+
+    # analyze_all_functions()

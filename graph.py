@@ -3,6 +3,7 @@ from port import Port
 from edge import Edge
 from group import Group
 
+
 class CircuitGraph:
     def __init__(self):
         self.nodes = {}
@@ -17,7 +18,7 @@ class CircuitGraph:
         node_id = self.node_count
         self.node_count += 1
         node = Node(node_id, node_type, label, group_id=group_id)
-        
+
         if node_type in ["xor", "and", "or"]:
             input_port_1 = node.add_port(Port(self.port_count, "input", node_id, 0, 10))
             self.port_count += 1
@@ -50,12 +51,12 @@ class CircuitGraph:
         self.nodes[str(node_id)] = node
         self.node_values[str(node_id)] = 0
         return node
-    
+
     def add_edge(self, source_port, target_port):
         edge = Edge(source_port.id, target_port.id)
         self.edges.append(edge)
         return edge
-    
+
     def add_group(self, label="DEFAULT_GROUP"):
         group_id = self.group_count
         self.group_count += 1
@@ -66,23 +67,30 @@ class CircuitGraph:
     def to_json(self):
         nodes = [node.to_dict() for node in self.nodes.values()]
         edges = [edge.to_dict() for edge in self.edges]
-        groups = [group.to_dict() for group in self.groups.values()] 
-        return {"nodes": nodes, "edges": edges, "groups": groups, "values": self.node_values}
-    
+        groups = [group.to_dict() for group in self.groups.values()]
+        return {
+            "nodes": nodes,
+            "edges": edges,
+            "groups": groups,
+            "values": self.node_values,
+        }
+
     def simulate(self):
         port_values = {}
         port_sources = {}
-        
+
         for edge in self.edges:
             port_sources[edge.target_port_id] = edge.source_port_id
-        
+
         for node_id, node in self.nodes.items():
             if node.type == "input":
                 val = self.node_values[node_id]
                 output_port = node.ports[0]
                 port_values[output_port.id] = val
 
-        remaining = set(self.nodes.keys()) - {nid for nid, n in self.nodes.items() if n.type == "input"}
+        remaining = set(self.nodes.keys()) - {
+            nid for nid, n in self.nodes.items() if n.type == "input"
+        }
         resolved = set()
 
         while remaining:
@@ -121,14 +129,18 @@ class CircuitGraph:
                 progress = True
 
             if not progress:
-                raise RuntimeError("Simulation stalled; possible cycle or unconnected inputs.")
+                raise RuntimeError(
+                    "Simulation stalled; possible cycle or unconnected inputs."
+                )
 
         self.port_values = port_values
 
     def get_port_value(self, port):
         return self.port_values.get(port.id, None)
-    
+
     def fill_values(self, nodes, values):
-        assert len(nodes) == len(values), "In function fill_values length of nodes and values must be the same"
+        assert len(nodes) == len(
+            values
+        ), "In function fill_values length of nodes and values must be the same"
         for idx, node in enumerate(nodes):
             self.node_values[str(node.node_id)] = values[idx]

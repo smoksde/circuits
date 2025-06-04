@@ -1,5 +1,6 @@
 import random
 
+
 # Write function that converts integer to binary list
 def int2binlist(x, bit_len=None):
     if x < 0:
@@ -12,7 +13,9 @@ def int2binlist(x, bit_len=None):
         res = res + [0] * (bit_len - len(res))
     return res
 
+
 # Write function that converts binary list to integer
+
 
 def iter_random_bin_list(list_len=4, amount=10):
     for i in range(amount):

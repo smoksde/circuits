@@ -5,12 +5,12 @@ class Port:
         self.node_id = node_id
         self.x = x
         self.y = y
-    
+
     def to_dict(self):
         return {
             "id": self.id,
             "type": self.type,
             "x": self.x,
             "y": self.y,
-            "nodeId": self.node_id
+            "nodeId": self.node_id,
         }

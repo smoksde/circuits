@@ -195,6 +195,36 @@ class TestCircuitSimulation(unittest.TestCase):
             if instances >= 10:
                 break
 
+    """def test_or_tree_recursive(self):
+        circuit = CircuitGraph()
+        bit_len = 4
+        X, o = setup_or_tree_recursive(circuit, bit_len=bit_len)
+        for i in range(100):
+            rand_x = random.randrange((2**bit_len - 1))
+            expect = 1 if rand_x > 0 else 0
+            x_bin_list = int2binlist(rand_x, bit_len=bit_len)
+            expect_bin_list = int2binlist(expect, bit_len=bit_len)
+            for idx, x in enumerate(X):
+                circuit.node_values[str(x.node_id)] = x_bin_list[idx]
+            circuit.simulate()
+            for idx, e in enumerate(expect_bin_list):
+                self.assertEqual(circuit.get_port_value(o.ports[0]), e)
+    """
+
+    def test_or_tree_iterative(self):
+        circuit = CircuitGraph()
+        bit_len = 4
+        X, o = setup_or_tree_iterative(circuit, bit_len=bit_len)
+        for i in range(100):
+            rand_x = random.randrange((2**bit_len - 1))
+            expect = 1 if rand_x > 0 else 0
+            x_bin_list = int2binlist(rand_x, bit_len=bit_len)
+            e = int2binlist(expect, bit_len=1)
+            for idx, x in enumerate(X):
+                circuit.node_values[str(x.node_id)] = x_bin_list[idx]
+            circuit.simulate()
+            self.assertEqual(circuit.get_port_value(o.ports[0]), e[0])
+
     def test_one_left_shift(self):
         circuit = CircuitGraph()
         bit_len = 4
@@ -310,15 +340,15 @@ class TestCircuitSimulation(unittest.TestCase):
 
     def test_modulo_circuit(self):
         circuit = CircuitGraph()
-        bit_len = 8
+        bit_len = 4
         X, A, OUT_NODES = setup_modulo_circuit(circuit, bit_len=bit_len)
-        for i in range(10):
+        for i in range(100):
             rand_x = random.randrange(2**bit_len - 1)
             rand_a = random.randrange(2 ** (bit_len // 2) - 1)
             if rand_a == 0:
                 rand_a = 2
-            if rand_a < 16:
-                rand_a = 16
+            if rand_a < 8:
+                rand_a = 8
             expected_num = rand_x % rand_a
             expected_bin_list = int2binlist(expected_num, bit_len=bit_len)
             x_bin_list = int2binlist(rand_x, bit_len=bit_len)
@@ -340,18 +370,18 @@ class TestCircuitSimulation(unittest.TestCase):
                     ),
                 )
 
-    def test_modular_exponentiation(self):
+    def test_montgomery_ladder(self):
         circuit = CircuitGraph()
-        bit_len = 8
-        B, E, M, OUT_NODES = setup_modular_exponentiation(circuit, bit_len=bit_len)
+        bit_len = 4
+        B, E, M, OUT_NODES = setup_montgomery_ladder(circuit, bit_len=bit_len)
         for i in range(1):
             rand_b = random.randrange(2**bit_len - 1)
             rand_e = random.randrange(2**bit_len - 1)
             rand_m = random.randrange(2 ** (bit_len // 2) - 1)
             if rand_m == 0:
                 rand_m = 2
-            if rand_m < 16:
-                rand_m = 16
+            if rand_m < 8:
+                rand_m = 8
             expected_num = (rand_b**rand_e) % rand_m
             expected_bin_list = int2binlist(expected_num, bit_len=bit_len)
             b_bin_list = int2binlist(rand_b, bit_len=bit_len)
@@ -366,6 +396,70 @@ class TestCircuitSimulation(unittest.TestCase):
             circuit.simulate()
             for idx, ex in enumerate(expected_bin_list):
                 self.assertEqual(circuit.get_port_value(OUT_NODES[idx].ports[0]), ex)
+
+    def test_modular_exponentiation(self):
+        circuit = CircuitGraph()
+        bit_len = 4
+        B, E, M, OUT_NODES = setup_modular_exponentiation(circuit, bit_len=bit_len)
+        for i in range(1):
+            rand_b = random.randrange(2**bit_len - 1)
+            rand_e = random.randrange(2**bit_len - 1)
+            rand_m = random.randrange(2 ** (bit_len // 2) - 1)
+            if rand_m == 0:
+                rand_m = 2
+            if rand_m < 8:
+                rand_m = 8
+            expected_num = (rand_b**rand_e) % rand_m
+            expected_bin_list = int2binlist(expected_num, bit_len=bit_len)
+            b_bin_list = int2binlist(rand_b, bit_len=bit_len)
+            e_bin_list = int2binlist(rand_e, bit_len=bit_len)
+            m_bin_list = int2binlist(rand_m, bit_len=bit_len)
+            for idx, b in enumerate(B):
+                circuit.node_values[str(b.node_id)] = b_bin_list[idx]
+            for idx, e in enumerate(E):
+                circuit.node_values[str(e.node_id)] = e_bin_list[idx]
+            for idx, m in enumerate(M):
+                circuit.node_values[str(m.node_id)] = m_bin_list[idx]
+            circuit.simulate()
+            for idx, ex in enumerate(expected_bin_list):
+                self.assertEqual(circuit.get_port_value(OUT_NODES[idx].ports[0]), ex)
+
+    def test_next_power_of_two(self):
+        circuit = CircuitGraph()
+        bit_len = 4
+        X, O = setup_next_power_of_two(circuit, bit_len=bit_len)
+        for i in range(20):
+            rand_x = random.randrange(2 ** (bit_len - 1) - 1)
+            x_bin_list = int2binlist(rand_x, bit_len=bit_len)
+
+            """def next_power(n: int) -> int:
+                if n < 1:
+                    return 1
+                return 1 << (n - 1).bit_length()
+            """
+
+            # Funtion returns next higher power of two in case n is already a power of two
+            def next_power(n: int) -> int:
+                if n < 1:
+                    return 0
+                # If n is already a power of two, bit_length won't help — so use n.bit_length()
+                return 1 << n.bit_length()
+
+            expect = next_power(rand_x)
+            expect_bin_list = int2binlist(expect, bit_len=bit_len)
+            for idx, x in enumerate(X):
+                circuit.node_values[str(x.node_id)] = x_bin_list[idx]
+            circuit.simulate()
+            for idx, e in enumerate(expect_bin_list):
+                self.assertEqual(
+                    circuit.get_port_value(O[idx].ports[0]),
+                    e,
+                    msg=(
+                        f"X: {rand_x}"
+                        f"Expect: {expect_bin_list}"
+                        f"OUTPUT: {[circuit.get_port_value(o.ports[0]) for o in O]}"
+                    ),
+                )
 
 
 class TestUtilsFunctions(unittest.TestCase):

@@ -11,6 +11,7 @@ from .comparators import *
 from .multiplexers import *
 from .subtractors import *
 from .modular import *
+from .montgomery_ladder import montgomery_ladder
 
 
 def binary_list_to_int(binary_list):
@@ -329,6 +330,12 @@ CIRCUIT_FUNCTIONS = {
     "or_tree_recursive": lambda cg, bit_len: setup_or_tree_recursive(
         cg, bit_len=bit_len
     ),
+    "and_tree_iterative": lambda cg, bit_len: setup_and_tree_iterative(
+        cg, bit_len=bit_len
+    ),
+    "or_tree_iterative": lambda cg, bit_len: setup_or_tree_iterative(
+        cg, bit_len=bit_len
+    ),
     "half_adder": lambda cg, bit_len: setup_half_adder(cg, bit_len=bit_len),
     "full_adder": lambda cg, bit_len: setup_full_adder(cg, bit_len=bit_len),
     "ripple_carry_adder": lambda cg, bit_len: setup_ripple_carry_adder(
@@ -352,6 +359,9 @@ CIRCUIT_FUNCTIONS = {
     "conditional_subtract": lambda cg, bit_len: setup_conditional_subtract(
         cg, bit_len=bit_len
     ),
+    "next_power_of_two": lambda cg, bit_len: setup_next_power_of_two(
+        cg, bit_len=bit_len
+    ),
     "one_left_shift": lambda cg, bit_len: setup_one_left_shift(cg, bit_len=bit_len),
     "one_right_shift": lambda cg, bit_len: setup_one_right_shift(cg, bit_len=bit_len),
     "n_left_shift": lambda cg, bit_len: setup_n_left_shift(cg, bit_len=bit_len),
@@ -361,10 +371,32 @@ CIRCUIT_FUNCTIONS = {
         cg, bit_len=bit_len
     ),
     "modulo_circuit": lambda cg, bit_len: setup_modulo_circuit(cg, bit_len=bit_len),
+    "slow_modulo_circuit": lambda cg, bit_len: setup_slow_modulo_circuit(
+        cg, bit_len=bit_len
+    ),
+    "optimized_modulo_circuit": lambda cg, bit_len: setup_optimized_modulo_circuit(
+        cg, bit_len=bit_len
+    ),
     "modular_exponentiation": lambda cg, bit_len: setup_modular_exponentiation(
         cg, bit_len=bit_len
     ),
+    "montgomery_ladder": lambda cg, bit_len: setup_montgomery_ladder(
+        cg, bit_len=bit_len
+    ),
 }
+
+
+def setup_montgomery_ladder(cg, bit_len=4):
+    B = [cg.add_node("input", f"B_{i}") for i in range(bit_len)]
+    E = [cg.add_node("input", f"E_{i}") for i in range(bit_len)]
+    M = [cg.add_node("input", f"M_{i}") for i in range(bit_len)]
+    OUT = montgomery_ladder(
+        cg, [b.ports[0] for b in B], [e.ports[0] for e in E], [m.ports[0] for m in M]
+    )
+    OUT_NODES = [
+        cg.add_node("output", f"OUT_{i}", inputs=[o]) for i, o in enumerate(OUT)
+    ]
+    return B, E, M, OUT_NODES
 
 
 def setup_modular_exponentiation(cg, bit_len=4):
@@ -390,6 +422,26 @@ def setup_modulo_circuit(cg, bit_len=4):
     return X, A, OUT_NODES
 
 
+def setup_slow_modulo_circuit(cg, bit_len=4):
+    X = [cg.add_node("input", f"X_{i}") for i in range(bit_len)]
+    A = [cg.add_node("input", f"A_{i}") for i in range(bit_len)]
+    OUT = slow_modulo_circuit(cg, [x.ports[0] for x in X], [a.ports[0] for a in A])
+    OUT_NODES = [
+        cg.add_node("output", f"OUT_{i}", inputs=[o]) for i, o in enumerate(OUT)
+    ]
+    return X, A, OUT_NODES
+
+
+def setup_optimized_modulo_circuit(cg, bit_len=4):
+    X = [cg.add_node("input", f"X_{i}") for i in range(bit_len)]
+    A = [cg.add_node("input", f"A_{i}") for i in range(bit_len)]
+    OUT = modulo_circuit_optimized(cg, [x.ports[0] for x in X], [a.ports[0] for a in A])
+    OUT_NODES = [
+        cg.add_node("output", f"OUT_{i}", inputs=[o]) for i, o in enumerate(OUT)
+    ]
+    return X, A, OUT_NODES
+
+
 def setup_reciprocal_newton_raphson(cg, bit_len=4):
     X = [cg.add_node("input", f"X_{i}") for i in range(4)]
     OUT = reciprocal_newton_raphson(cg, [x.ports[0] for x in X], 4)
@@ -406,6 +458,27 @@ def setup_log2_estimate(cg, bit_len=4):
         cg.add_node("output", f"OUT_{i}", inputs=[o]) for i, o in enumerate(OUT)
     ]
     return X, OUT_NODES
+
+
+def setup_or_tree_recursive(cg, bit_len=4):
+    X = [cg.add_node("input", f"X_{i}") for i in range(bit_len)]
+    o = or_tree_recursive(cg, [x.ports[0] for x in X])
+    o_node = cg.add_node("output", "OUT", inputs=[o])
+    return X, o_node
+
+
+def setup_or_tree_iterative(cg, bit_len=4):
+    X = [cg.add_node("input", f"X_{i}") for i in range(bit_len)]
+    o = or_tree_iterative(cg, [x.ports[0] for x in X])
+    o_node = cg.add_node("output", "OUT", inputs=[o])
+    return X, o_node
+
+
+def setup_and_tree_iterative(cg, bit_len=4):
+    X = [cg.add_node("input", f"X_{i}") for i in range(bit_len)]
+    o = and_tree_iterative(cg, [x.ports[0] for x in X])
+    o_node = cg.add_node("output", "OUT", inputs=[o])
+    return X, o_node
 
 
 def setup_n_left_shift(cg, bit_len=4):
@@ -650,6 +723,16 @@ def setup_conditional_subtract(cg, bit_len=4):
         output_node = cg.add_node("output", f"OUT_{i}", inputs=[out])
         O.append(output_node)
     return A, B, C, O
+
+
+def setup_next_power_of_two(cg, bit_len=4):
+    X = [cg.add_node("input", f"X{i}") for i in range(bit_len)]
+    output = next_power_of_two(cg, [x.ports[0] for x in X])
+    O = []
+    for i, out in enumerate(output):
+        output_node = cg.add_node("output", f"OUT_{i}", inputs=[out])
+        O.append(output_node)
+    return X, O
 
 
 # def setup_four_bit_wallace_tree_multiplier(cg):

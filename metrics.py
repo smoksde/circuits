@@ -89,6 +89,46 @@ def analyze_all_functions():
         print(f"Max depth: {r['depth']}")
 
 
+def plot_metrics_for_modulo_functions():
+    results = []
+    functions = {
+        # "slow_modulo_circuit": setup_slow_modulo_circuit,
+        "optimized_modulo_circuit": setup_optimized_modulo_circuit,
+    }
+    bit_lengths = [4, 8, 16, 32, 64]
+    plt.figure(figsize=(8, 5))
+
+    colors = ["blue", "red", "green"]
+
+    for idx, (key, value) in enumerate(functions.items()):
+        depths = []
+        node_nums = []
+        edge_nums = []
+        for i in bit_lengths:
+            result = analyze_circuit_function(key, value, i)
+            depths.append(result["depth"])
+            node_nums.append(result["num_nodes"])
+            edge_nums.append(result["num_edges"])
+            results.append(result)
+
+        plt.plot(
+            bit_lengths,
+            depths,
+            marker="o",
+            label=f"Circuit Depth of {key}",
+            linestyle="--",
+            color=colors[idx],
+        )
+
+    plt.title("Circuit Characteristics")
+    plt.xlabel("Bit Length (Number representation size)")
+    plt.ylabel("Values")
+    plt.grid(True)
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+
+
 def plot_metrics_for_adders():
     results = []
     functions = {"carry_look_ahead_adder": setup_carry_look_ahead_adder}
@@ -128,6 +168,50 @@ def plot_metrics_for_adders():
     plt.show()
 
 
+def compare_sam_ml_depth():
+    results = []
+    functions = {
+        "modular_exponentiation": setup_modular_exponentiation,
+        "montgomery_ladder": setup_montgomery_ladder,
+    }
+
+    bit_lengths = [4]
+    colors = ["blue", "red", "green"]
+
+    plt.figure(figsize=(8, 5))
+    for idx, (key, value) in enumerate(functions.items()):
+        depths = []
+        node_nums = []
+        edge_nums = []
+        for i in bit_lengths:
+            print(key, i)
+            # result = analyze_circuit_function("n_bit_comparator", setup_n_bit_comparator, i)
+            result = analyze_circuit_function(key, value, i)
+            depths.append(result["depth"])
+            node_nums.append(result["num_nodes"])
+            edge_nums.append(result["num_edges"])
+            results.append(result)
+
+        plt.plot(
+            bit_lengths,
+            depths,
+            marker="o",
+            label=f"Circuit Depth of {key}",
+            linestyle="--",
+            color=colors[idx],
+        )
+        # plt.plot(bit_lengths, node_nums, marker='x', label='Node Count', linestyle='-.', color='purple')
+        # plt.plot(bit_lengths, edge_nums, marker='x', label='Edge Count', linestyle='-.', color="green")
+
+    plt.title("Circuit Characteristics")
+    plt.xlabel("Bit Length (Number representation size)")
+    plt.ylabel("Values")
+    plt.grid(True)
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+
+
 """
     for r in results:
         print(f"\nCircuit: {r['name']}")
@@ -139,6 +223,7 @@ def plot_metrics_for_adders():
 
 if __name__ == "__main__":
 
-    plot_metrics_for_adders()
-
+    # plot_metrics_for_adders()
+    # plot_metrics_for_modulo_functions()
     # analyze_all_functions()
+    compare_sam_ml_depth()

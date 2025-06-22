@@ -1,3 +1,5 @@
+from typing import List, Optional
+
 from node import Node
 from port import Port
 from edge import Edge
@@ -14,7 +16,13 @@ class CircuitGraph:
         self.port_count = 0
         self.group_count = 0
 
-    def add_node(self, node_type, label, inputs=[], group_id=-1):
+    def add_node(
+        self,
+        node_type: str,
+        label: str,
+        inputs: Optional[List[Port]] = [],
+        group_id: Optional[int] = -1,
+    ) -> Node:
         node_id = self.node_count
         self.node_count += 1
         node = Node(node_id, node_type, label, group_id=group_id)

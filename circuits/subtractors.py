@@ -1,9 +1,11 @@
+from typing import List
+
 from .constants import *
 from .adders import *
 from .utils import *
 
 
-def subtract(circuit, a_bits, b_bits, parent_group=None):
+def subtract(circuit, a_bits, b_bits, parent_group=None) -> List[Port]:
     # a - b
     sub_group = circuit.add_group("SUBTRACT")
     sub_group.set_parent(parent_group)

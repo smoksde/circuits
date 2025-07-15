@@ -8,6 +8,7 @@ from edge import Edge
 import json
 from io import StringIO
 import random
+import software_beame as sb
 
 
 def run_tests():
@@ -91,10 +92,8 @@ class TestCircuitSimulation(unittest.TestCase):
             a_bin_list = int2binlist(rand_a, bit_len=bit_len)
             b_bin_list = int2binlist(rand_b, bit_len=bit_len)
             cin_bin_list = int2binlist(rand_cin, bit_len=1)
-            for idx, a in enumerate(A):
-                circuit.node_values[str(a.node_id)] = a_bin_list[idx]
-            for idx, b in enumerate(B):
-                circuit.node_values[str(b.node_id)] = b_bin_list[idx]
+            circuit.fill_node_values_via_ports(A, a_bin_list)
+            circuit.fill_node_values_via_ports(B, b_bin_list)
             circuit.node_values[str(cin.node_id)] = cin_bin_list[0]
             circuit.simulate()
 
@@ -428,7 +427,7 @@ class TestCircuitSimulation(unittest.TestCase):
         circuit = CircuitGraph()
         bit_len = 4
         X, O = setup_next_power_of_two(circuit, bit_len=bit_len)
-        for i in range(20):
+        for _ in range(20):
             rand_x = random.randrange(2 ** (bit_len - 1) - 1)
             x_bin_list = int2binlist(rand_x, bit_len=bit_len)
 
@@ -460,6 +459,259 @@ class TestCircuitSimulation(unittest.TestCase):
                         f"OUTPUT: {[circuit.get_port_value(o.ports[0]) for o in O]}"
                     ),
                 )
+
+    def test_bus_multiplexer(self):
+        circuit = CircuitGraph()
+        bit_len = 4
+        num_amount = 4
+        sel_bit_width = int(math.log2(num_amount))
+        BUS, S, O = setup_bus_multiplexer(
+            circuit, num_amount=num_amount, bit_len=bit_len
+        )
+        for _ in range(20):
+            NUMS = []
+            rand_selector = random.randrange(2 ** (sel_bit_width - 1) - 1)
+            rand_selector_bits = int2binlist(rand_selector, bit_len=sel_bit_width)
+            expect_list = []
+            for i in range(num_amount):
+                rand_num = random.randrange(2 ** (bit_len - 1) - 1)
+                rand_num_bits = int2binlist(rand_num, bit_len=bit_len)
+                if i == rand_selector - 1:
+                    expect_list = rand_num_bits
+                NUMS.append(rand_num_bits)
+
+            # FILL BUS VALUES
+            for num_idx, num in enumerate(BUS):
+                for idx, port in enumerate(num):
+                    circuit.node_values[str(port.node_id)] = NUMS[num_idx][idx]
+
+            # FILL SELECTOR
+            for idx, s in enumerate(S):
+                circuit.node_values[str(s.node_id)] = rand_selector_bits[idx]
+
+            circuit.simulate()
+            for idx, e in expect_list:
+                self.assertEqual(circuit.get_port_value(O[idx].ports[0]), e)
+
+    def test_tensor_multiplexer(self):
+        circuit = CircuitGraph()
+        bit_len = 4
+        num_amount = 4
+        sel_bit_width = int(math.log2(num_amount))
+        TENSOR, S, O = setup_tensor_multiplexer(
+            circuit, num_amount=num_amount, bit_len=bit_len
+        )
+        for _ in range(20):
+            NUMS = []
+            NUMS_BITS = []
+            rand_selector = random.randrange(2 ** (sel_bit_width - 1) - 1)
+            rand_selector_bits = int2binlist(rand_selector, bit_len=sel_bit_width)
+            for i in range(num_amount):
+                num_row = []
+                num_row_bits = []
+                for j in range(num_amount):
+                    rand_num = random.randrange(2 ** (bit_len - 1) - 1)
+                    rand_num_bits = int2binlist(rand_num)
+                    num_row.append(rand_num)
+                    num_row_bits.append(rand_num_bits)
+                NUMS.append(num_row)
+                NUMS_BITS.append(num_row_bits)
+
+            # FILL TENSOR VALUES
+            for i, row in enumerate(TENSOR):
+                for num_idx, num in enumerate(row):
+                    circuit.fill_node_values(num, NUMS_BITS[i][num_idx])
+
+            # FILL SELECTOR VALUE
+            circuit.fill_node_values(S, rand_selector_bits)
+
+            circuit.simulate()
+
+            # for idx, e in expect_list:
+            #    self.assertEqual(circuit.get_port_value(O[idx].ports[0]), e)
+
+    def test_precompute_aim(self):
+        circuit = CircuitGraph()
+        bit_len = 4
+        n = bit_len
+        output = setup_precompute_aim(circuit, bit_len=bit_len)
+        sb_output = sb.precompute_aim(bit_len)
+        circuit.simulate()
+
+        print("sb_output: ", sb_output)
+        for m in range(len(output)):
+            for i in range(n):
+                value = circuit.compute_value_from_ports(
+                    circuit.get_output_nodes_ports(output[m][i])
+                )
+                print(value, end="")
+            print()
+
+        for m in range(0, n):
+            for i in range(n):
+                e_bin_list = int2binlist(sb_output[m, i])
+                for idx, e in enumerate(e_bin_list):
+                    self.assertEqual(
+                        circuit.get_port_value(output[m][i][idx].ports[0]), e
+                    )
+
+    def test_lemma_4_1(self):
+        circuit = CircuitGraph()
+        bit_len = 4
+        n = bit_len
+        X, M, O = setup_lemma_4_1(circuit, bit_len=bit_len)
+        for i in range(20):
+            rand_x = random.randrange(2 ** (n - 1) - 1)
+            rand_x_bits = int2binlist(rand_x, bit_len=n)
+            rand_m = random.randrange(1, n, 1)
+            rand_m_bits = int2binlist(rand_m, bit_len=n)
+            expect_num = int(rand_x % rand_m)
+            expect_bits = int2binlist(expect_num, bit_len=n)
+
+            print("x: ", rand_x, " m: ", rand_m)
+
+            for idx, x in enumerate(X):
+                circuit.node_values[str(x.node_id)] = rand_x_bits[idx]
+            for idx, m in enumerate(M):
+                circuit.node_values[str(m.node_id)] = rand_m_bits[idx]
+            circuit.simulate()
+            for idx, e in enumerate(expect_bits):
+                print("Assert in test_lemma_4_1")
+                self.assertEqual(
+                    circuit.get_port_value(O[idx].ports[0]),
+                    e,
+                    msg=(
+                        f"X: {rand_x} "
+                        f"M: {rand_m} "
+                        f"Expect: {expect_bits}"
+                        f"OUTPUT: {[circuit.get_port_value(o.ports[0]) for o in O]}"
+                    ),
+                )
+
+    def test_lemma_4_1_compute_summands(self):
+        circuit = CircuitGraph()
+        bit_len = 4
+        num_amount = bit_len
+        n = bit_len
+        # O -> List[List[Port]]
+        X, NUMS, O = setup_lemma_4_1_compute_summands(
+            circuit, num_amount=num_amount, bit_len=bit_len
+        )
+        for i in range(20):
+            rand_x = random.randrange(2 ** (n - 1) - 1)
+            rand_x_bits = int2binlist(rand_x, bit_len=n)
+            rand_nums = []
+            rand_nums_bits = []
+            for j in range(num_amount):
+                rand_num = random.randrange(2 * (n - 1) - 1)
+                rand_nums.append(rand_num)
+                rand_num_bits = int2binlist(rand_num, bit_len=n)
+                rand_nums_bits.append(rand_num_bits)
+            circuit.fill_node_values(X, rand_x_bits)
+            for idx, num in enumerate(NUMS):
+                circuit.fill_node_values(num, rand_nums_bits[idx])
+            circuit.simulate()
+            for idx in range(num_amount):
+                if rand_x_bits[idx] == 0:
+                    e = 0
+                else:
+                    e = rand_nums[idx]
+                value = circuit.compute_value_from_ports(
+                    circuit.get_output_nodes_ports(O[idx])
+                )
+                self.assertEqual(
+                    value,
+                    e,
+                    msg=(
+                        f"idx: {idx}",
+                        f"expect: {e}",
+                        f"value: {value}",
+                        f"rand_nums: {rand_nums}",
+                        f"rand_x_bits: {rand_x_bits}",
+                    ),
+                )
+
+    def test_lemma_4_1_provide_aims_given_m(self):
+        circuit = CircuitGraph()
+        bit_len = 4
+        max_m = 4
+        M, O = setup_lemma_4_1_provide_aims_given_m(circuit, bit_len=bit_len)
+        for m in range(4, max_m + 1):
+            m_bits = int2binlist(m, bit_len=bit_len)
+            circuit.fill_node_values(M, m_bits)
+            circuit.simulate()
+            sim_values = []
+            for o in O:
+                value = circuit.compute_value_from_ports(
+                    circuit.get_output_nodes_ports(o)
+                )
+                sim_values.append(value)
+            sb_aims = sb.precompute_aim(max_m)
+            sb_ais = sb_aims[m - 1]
+            for i in range(len(sim_values)):
+                self.assertEqual(
+                    sb_ais[i],
+                    sim_values[i],
+                    msg=(f"m: {m}", f"sim_values: {sim_values}", f"sb_ais: {sb_ais}"),
+                )
+
+    def test_adder_tree_iterative(self):
+        circuit = CircuitGraph()
+        bit_len = 4
+        num_amount = 4
+        n = bit_len
+        SUMMANDS, O = setup_adder_tree_iterative(
+            circuit, num_amount=num_amount, bit_len=bit_len
+        )
+        for i in range(20):
+            nums = []
+            nums_bits = []
+            for j in range(num_amount):
+                rand_x = random.randrange(int((2 ** (n - 1) - 1) / 4))
+                rand_x_bits = int2binlist(rand_x, bit_len=bit_len)
+                nums.append(rand_x)
+                nums_bits.append(nums_bits)
+                circuit.fill_node_values(SUMMANDS[j], rand_x_bits)
+            circuit.simulate()
+            expect_num = sum(nums)
+            value = circuit.compute_value_from_ports(circuit.get_output_nodes_ports(O))
+            self.assertEqual(expect_num, value)
+
+    def test_lemma_4_1_compute_y(self):
+        circuit = CircuitGraph()
+        bit_len = 4
+        num_amount = bit_len
+        n = bit_len
+        X, M, O = setup_lemma_4_1_compute_y(circuit, bit_len=bit_len)
+
+        aims = sb.precompute_aim(n)
+
+        for i in range(20):
+            rand_x = random.randrange(2 ** (n - 1) - 1)
+            rand_x = 3
+            rand_x_bits = int2binlist(rand_x, bit_len=n)
+            rand_m = random.randrange(n)
+            rand_m = 3
+            rand_m_bits = int2binlist(rand_m, bit_len=n)
+            circuit.fill_node_values(X, rand_x_bits)
+            circuit.fill_node_values(M, rand_m_bits)
+            circuit.simulate()
+
+            y_value = 0
+            for j in range(n):
+                y_value += rand_x_bits[j] * aims[rand_m][j]
+
+            value = circuit.compute_value_from_ports(circuit.get_output_nodes_ports(O))
+            self.assertEqual(
+                y_value,
+                value,
+                msg=(
+                    f"expect: {y_value}",
+                    f"value: {value}",
+                    f"rand_x: {rand_x}",
+                    f"rand_m: {rand_m}",
+                ),
+            )
 
 
 class TestUtilsFunctions(unittest.TestCase):

@@ -5,6 +5,8 @@ from port import Port
 from edge import Edge
 from group import Group
 
+from utils import binlist2int
+
 
 class CircuitGraph:
     def __init__(self):
@@ -59,6 +61,65 @@ class CircuitGraph:
         self.nodes[str(node_id)] = node
         self.node_values[str(node_id)] = 0
         return node
+
+    def add_input_nodes(self, amount, label: Optional[str] = "INPUT"):
+        return [self.add_node("input", f"{label}_{i}") for i in range(amount)]
+
+    # Returns the output port for gates and input nodes but raises error for i.e. output nodes
+    def get_output_port_of_gate(self, node: Node):
+        if node.type in ["xor", "and", "or"]:
+            return node.ports[2]
+        else:
+            raise ValueError(f"Node type: {node.type} is unsupported here.")
+
+    # Returns the output port of an input node and by that the only port this node has
+    def get_input_node_port(self, node: Node):
+        if node.type == "input":
+            return node.ports[0]
+        else:
+            raise ValueError(f"Node type: {node.type} is unsupported here.")
+
+    # Returns the output ports for all nodes of a input node list
+    def get_input_nodes_ports(self, nodes: List[Node]):
+        return [self.get_input_node_port(node) for node in nodes]
+
+    # Returns the input port of an output node and by that the only port this node has
+    def get_output_node_port(self, node: Node):
+        if node.type == "output":
+            return node.ports[0]
+        else:
+            raise ValueError(f"Node type: {node.type} is unsupported here.")
+
+    # Returns the input ports for all nodes of a output node list
+    def get_output_nodes_ports(self, nodes: List[Node]):
+        return [self.get_output_node_port(node) for node in nodes]
+
+    def generate_output_node_from_port(self, port: Port, label="OUTPUT"):
+        node = self.add_node("output", label, inputs=[port])
+        return node
+
+    def generate_output_nodes_from_ports(self, ports: List[Port], label="OUTPUT"):
+        nodes = []
+        for i, port in enumerate(ports):
+            nodes.append(
+                self.generate_output_node_from_port(port, label=f"{label}_{i}")
+            )
+        return nodes
+
+    def fill_node_values(self, nodes: List[Node], bin_list: List[int]):
+        for idx, node in enumerate(nodes):
+            self.node_values[str(node.node_id)] = bin_list[idx]
+
+    def fill_node_values_via_ports(self, ports: List[Port], bin_list: List[int]):
+        for idx, port in enumerate(ports):
+            self.node_values[str(port.node_id)] = bin_list[idx]
+
+    def compute_value_from_ports(self, ports: List[Port]):
+        bin_list = []
+        for port in ports:
+            port_value = self.get_port_value(port)
+            bin_list.append(port_value)
+        return binlist2int(bin_list)
 
     def add_edge(self, source_port, target_port):
         edge = Edge(source_port.id, target_port.id)

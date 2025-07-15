@@ -14,6 +14,13 @@ def int2binlist(x, bit_len=None):
     return res
 
 
+def binlist2int(bin_list):
+    value = 0
+    for i, bit in enumerate(bin_list):
+        value += (2**i) * bit
+    return int(value)
+
+
 # Write function that converts binary list to integer
 
 

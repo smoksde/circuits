@@ -2,6 +2,7 @@ from .trees import *
 import utils
 
 
+# expects selector with log num of inputs bits?
 def multiplexer(circuit, inputs_list, selector_list):
     # inputs should be ascending order
     n_bits = len(selector_list)
@@ -21,11 +22,51 @@ def multiplexer(circuit, inputs_list, selector_list):
                 curr_sel.append(not_selector_list[j])
         and_ins = [inputs_list[i]]
         and_ins.extend(curr_sel)
-        and_port = and_tree_recursive(circuit, and_ins)
+        and_port = and_tree_iterative(circuit, and_ins)
         and_ports.append(and_port)
 
-    or_port = or_tree_recursive(circuit, and_ports)
+    or_port = or_tree_iterative(circuit, and_ports)
     return or_port
+
+
+# selects between multi bit numbers
+# bus = [[a1,a2,...],[b1,b2,...],[c1,c2,...],[d1,d2,...]]
+# selector = [s1,s2]
+# result = [b1,b2,b3,b4] if selector selects the second number, in this case b
+# selector bit width is log of num of inputs to choose from
+def bus_multiplexer(circuit, bus, selector):
+    bit_width = len(bus[0])
+    num_amount = len(bus)
+    num_out = []
+    for i in range(bit_width):
+        in_list = []
+        for j in range(num_amount):
+            p = bus[j][i]
+            in_list.append(p)
+        sig = multiplexer(circuit, in_list, selector)
+        num_out.append(sig)
+
+    return num_out
+
+
+# gets a 3-dim input and reduces it to 2-dims
+# selects one row, so one entry of the first dim
+def tensor_multiplexer(circuit, tensor, selector):
+    bit_width = len(tensor[0][0])
+    dim_one = len(tensor)
+    dim_two = len(tensor[0])
+    result = []
+    for i in range(dim_two):
+        outer_list = []
+        for j in range(bit_width):
+            inner_list = []
+            for k in range(dim_one):
+                p = tensor[k][i][j]
+                inner_list.append(p)
+            outer_list.append(inner_list)
+        sig = bus_multiplexer(circuit, outer_list, selector)
+        result.append(sig)
+    return result
 
 
 # if signal then a else b

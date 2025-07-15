@@ -12,28 +12,12 @@ from .multiplexers import *
 from .subtractors import *
 from .modular import *
 from .montgomery_ladder import montgomery_ladder
+from .beame import *
+from .manipulators import conditional_zeroing
 
 
 def binary_list_to_int(binary_list):
     return sum(bit * (2**i) for i, bit in enumerate(binary_list))
-
-
-def adder_tree_recursive(circuit, summand_lists, zero):
-    # carry does not work, pseudo non deterministic behaviour
-    if len(summand_lists) == 1:
-        return summand_lists[0], zero
-
-    if len(summand_lists) == 2:
-        sums, carry = ripple_carry_adder(
-            circuit, summand_lists[0], summand_lists[1], zero
-        )
-        return sums, carry
-
-    mid = len(summand_lists) // 2
-    left_sums, left_carry = adder_tree_recursive(circuit, summand_lists[:mid], zero)
-    right_sums, right_carry = adder_tree_recursive(circuit, summand_lists[mid:], zero)
-    sums, carry = ripple_carry_adder(circuit, left_sums, right_sums, zero)
-    return sums, carry
 
 
 """
@@ -52,21 +36,7 @@ def or_tree_recursive(circuit, input_list):
     return or_node.ports[2]"""
 
 
-# if condition is one then zero it
-def conditional_zeroing(circuit, x_list, cond, parent_group=None):
-    cz_group = circuit.add_group("CONDITIONAL_ZEROING")
-    cz_group.set_parent(parent_group)
-    ports = []
-    not_cond_node = circuit.add_node("not", "NOT", inputs=[cond], group_id=cz_group.id)
-    not_cond_port = not_cond_node.ports[1]
-    for x in x_list:
-        and_node = circuit.add_node(
-            "and", "AND", inputs=[x, not_cond_port], group_id=cz_group.id
-        )
-        ports.append(and_node.ports[2])
-    return ports
-
-
+"""
 def precompute_a_i(const_zero, const_one, int_m, n):
     print("int_m ", int_m)
     print("n ", n)
@@ -86,6 +56,7 @@ def precompute_a_i(const_zero, const_one, int_m, n):
             calc >>= 1
         a_i_lists.append(a)
     return a_i_lists
+"""
 
 
 def small_mod_lemma_4_1(circuit, x_list, m_list, int_m):
@@ -386,6 +357,110 @@ CIRCUIT_FUNCTIONS = {
 }
 
 
+def setup_adder_tree_iterative(cg: CircuitGraph, num_amount=4, bit_len=4):
+    SUMMANDS = []
+    SUMMANDS_PORTS = []
+
+    for i in range(num_amount):
+        X = cg.add_input_nodes(bit_len, label=f"X_{i}")
+        X_PORTS = cg.get_input_nodes_ports(X)
+        SUMMANDS.append(X)
+        SUMMANDS_PORTS.append(X_PORTS)
+    zero = constant_zero(cg, SUMMANDS_PORTS[0][0])
+    O = adder_tree_iterative(cg, SUMMANDS_PORTS, zero)
+    O_NODES = cg.generate_output_nodes_from_ports(O, label="OUTPUT")
+    return SUMMANDS, O_NODES
+
+
+def setup_lemma_4_1(cg, bit_len=4):
+    X = [cg.add_node("input", f"X_{i}") for i in range(bit_len)]
+    M = [cg.add_node("input", f"M_{i}") for i in range(bit_len)]
+    O = lemma_4_1(cg, [x.ports[0] for x in X], [m.ports[0] for m in M])
+    O_NODES = [cg.add_node("output", f"OUT_{i}", inputs=[o]) for i, o in enumerate(O)]
+    return X, M, O_NODES
+
+
+# Returns M -> List[Node] and O_NODES -> List[List[Node]]
+def setup_lemma_4_1_provide_aims_given_m(cg: CircuitGraph, bit_len=4):
+    M = cg.add_input_nodes(bit_len, label="M")
+    M_PORTS = cg.get_input_nodes_ports(M)
+    O = lemma_4_1_provide_aims_given_m(cg, M_PORTS)
+    O_NODES = []
+    for num in O:
+        num_nodes = cg.generate_output_nodes_from_ports(num)
+        O_NODES.append(num_nodes)
+    return M, O_NODES
+
+
+# O_NODES is a List[List[Port]]
+def setup_lemma_4_1_compute_summands(cg: CircuitGraph, num_amount=4, bit_len=4):
+    X = cg.add_input_nodes(bit_len, label="X")
+    X_PORTS = cg.get_input_nodes_ports(X)
+    NUMS = []
+    NUMS_PORTS = []
+    for i in range(num_amount):
+        num = cg.add_input_nodes(bit_len, label=f"NUM_{i}")
+        num_ports = cg.get_input_nodes_ports(num)
+        NUMS.append(num)
+        NUMS_PORTS.append(num_ports)
+    O = lemma_4_1_compute_summands(cg, X_PORTS, NUMS_PORTS)
+    O_NODES = []
+    for summand in O:
+        O_NODES.append(cg.generate_output_nodes_from_ports(summand, label="OUT"))
+    return X, NUMS, O_NODES
+
+
+def setup_lemma_4_1_compute_y(cg: CircuitGraph, bit_len=4):
+    X = cg.add_input_nodes(bit_len, label="X")
+    X_PORTS = cg.get_input_nodes_ports(X)
+    M = cg.add_input_nodes(bit_len, label="M")
+    M_PORTS = cg.get_input_nodes_ports(M)
+    Y = lemma_4_1_compute_y(cg, X_PORTS, M_PORTS)
+    Y_NODES = cg.generate_output_nodes_from_ports(Y, label="OUTPUT")
+    return X, M, Y_NODES
+
+
+def setup_bus_multiplexer(cg, num_amount=4, bit_len=4):
+    BUS = []
+    BUS_PORTS = []
+    for i in range(num_amount):
+        input = [cg.add_node("input", f"BUS_{i}_{j}") for j in range(bit_len)]
+        BUS.append(input)
+        num_ports = []
+        for nde in input:
+            num_ports.append(nde.ports[0])
+        BUS_PORTS.append(num_ports)
+    selector = [
+        cg.add_node("input", f"SELECTOR_{i}") for i in range(int(math.log2(num_amount)))
+    ]
+    O = bus_multiplexer(cg, BUS_PORTS, [s.ports[0] for s in selector])
+    O_NODES = [cg.add_node("output", f"OUT_{i}", inputs=[o]) for i, o in enumerate(O)]
+    return BUS, selector, O_NODES
+
+
+def setup_tensor_multiplexer(cg: CircuitGraph, num_amount=4, bit_len=4):
+    TENSOR = []
+    TENSOR_PORTS = []
+    for i in range(num_amount):
+        column_nodes = []
+        column_ports = []
+        for j in range(num_amount):
+            num = cg.add_input_nodes(bit_len, label=f"INPUT_{i}_{j}")
+            num_bits = int2binlist(num, bit_len=bit_len)
+            column_nodes.append(num)
+            column_ports.append(num_bits)
+        TENSOR.append(column_nodes)
+        TENSOR_PORTS.append(column_ports)
+    selector = cg.add_input_nodes(bit_len, label="SELECTOR")
+    selector_ports = cg.get_input_nodes_ports(selector)
+    BUS = tensor_multiplexer(cg, TENSOR_PORTS, selector_ports)
+    BUS_NODES = []
+    for num in BUS:
+        num_nodes = cg.generate_output_nodes_from_ports(num)
+        BUS_NODES.append(num_nodes)
+    return TENSOR, selector, BUS_NODES
+
+
 def setup_montgomery_ladder(cg, bit_len=4):
     B = [cg.add_node("input", f"B_{i}") for i in range(bit_len)]
     E = [cg.add_node("input", f"E_{i}") for i in range(bit_len)]
@@ -638,9 +713,11 @@ def setup_full_adder(cg, bit_len=4):
     return A, B, cin, sum_node, carry_node
 
 
-def setup_ripple_carry_adder(cg, bit_len=4):
-    A = [cg.add_node("input", f"A{i}") for i in range(bit_len)]
-    B = [cg.add_node("input", f"B{i}") for i in range(bit_len)]
+def setup_ripple_carry_adder(cg: CircuitGraph, bit_len=4):
+    A = cg.add_input_nodes(bit_len, label="A")
+    B = cg.add_input_nodes(bit_len, label="B")
+    # A = [cg.add_node("input", f"A{i}") for i in range(bit_len)]
+    # B = [cg.add_node("input", f"B{i}") for i in range(bit_len)]
     cin = cg.add_node("input", "Cin")
     sum_ports, carry_port = ripple_carry_adder(
         cg, [a.ports[0] for a in A], [b.ports[0] for b in B], cin.ports[0]
@@ -660,12 +737,15 @@ def setup_ripple_carry_adder(cg, bit_len=4):
     cg.add_output(carry_out, "carry")
 
 
-def setup_carry_look_ahead_adder(cg, bit_len=4):
-    A = [cg.add_node("input", f"A{i}") for i in range(bit_len)]
-    B = [cg.add_node("input", f"B{i}") for i in range(bit_len)]
+def setup_carry_look_ahead_adder(cg: CircuitGraph, bit_len=4):
+    A = cg.add_input_nodes(bit_len, label="A")
+    B = cg.add_input_nodes(bit_len, label="B")
     cin = cg.add_node("input", "Cin")
     sum_outputs, carry_out = carry_look_ahead_adder(
-        cg, [a.ports[0] for a in A], [b.ports[0] for b in B], cin.ports[0]
+        cg,
+        cg.get_input_nodes_ports(A),
+        cg.get_input_nodes_ports(B),
+        cg.get_input_node_port(cin),
     )
     sum_nodes = []
     for sum in sum_outputs:
@@ -686,17 +766,23 @@ def setup_wallace_tree_multiplier(cg, bit_len=4):
     return A, B, output_nodes
 
 
-def setup_precompute_a_i(cg, bit_len=4):
+def setup_precompute_aim(cg, bit_len=4):
     input_node = cg.add_node("input", "INPUT")
     input_node_port = input_node.ports[0]
     zero_port = constant_zero(cg, input_node_port)
     one_port = constant_one(cg, input_node_port)
-    out_port = precompute_a_i(zero_port, one_port, 2, 4)
+    aims = precompute_aim(cg, zero_port, one_port, bit_len, bit_len)
     output_nodes = []
-    for i, number in enumerate(out_port):
-        for j, digit in enumerate(number):
-            output_node = cg.add_node("output", f"OUT_{i}_{j}", inputs=[digit])
-            output_nodes.append(output_node)
+    for m, ais in enumerate(aims):
+        m = m + 1
+        am_entry = []
+        for i, ports in enumerate(ais):
+            aim_entry = []
+            for port in ports:
+                out_node = cg.add_node("output", f"OUT_{m}_{i}", inputs=[port])
+                aim_entry.append(out_node)
+            am_entry.append(aim_entry)
+        output_nodes.append(am_entry)
     return output_nodes
 
 

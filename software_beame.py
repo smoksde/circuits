@@ -3,6 +3,7 @@ import numpy as np
 from typing import Iterable
 from functools import reduce
 import operator
+from utils import int2binlist
 
 # Software level implementations of sections out of Log Depth Circuits for Division and Related Problems
 
@@ -84,12 +85,33 @@ def precompute_aim(n):
     return aims
 
 
+def lemma_4_1_compute_diffs(y: int, m: int, n: int):
+    diffs = []
+    for i in range(n):
+        diffs.append(y - (m * i))
+    return diffs
+
+
 def compute_y_lemma_4_1(X, A, m, n):
     sum = 0
     for i in range(n):
         part = X[i] * A[i, m]
         sum += part
     return sum
+
+
+def lemma_4_1_compute_y(x: int, m: int, n: int):
+    x_bits = int2binlist(x, bit_len=n)
+    aims = precompute_aim(n)
+    y = 0
+    print("aims:")
+    print(aims)
+    print("x_bits")
+    print(x_bits)
+    for j in range(n):
+        y += x_bits[j] * aims[m - 1][j]
+        print(f"product y: {y}")
+    return y
 
 
 def get_binary_list_lsb_first(x):

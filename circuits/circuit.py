@@ -372,12 +372,27 @@ def setup_adder_tree_iterative(cg: CircuitGraph, num_amount=4, bit_len=4):
     return SUMMANDS, O_NODES
 
 
-def setup_lemma_4_1(cg, bit_len=4):
-    X = [cg.add_node("input", f"X_{i}") for i in range(bit_len)]
-    M = [cg.add_node("input", f"M_{i}") for i in range(bit_len)]
-    O = lemma_4_1(cg, [x.ports[0] for x in X], [m.ports[0] for m in M])
-    O_NODES = [cg.add_node("output", f"OUT_{i}", inputs=[o]) for i, o in enumerate(O)]
-    return X, M, O_NODES
+def setup_lemma_4_1(cg: CircuitGraph, bit_len=4):
+    X = cg.add_input_nodes(bit_len, label="X")
+    X_PORTS = cg.get_input_nodes_ports(X)
+    M = cg.add_input_nodes(bit_len, label="M")
+    M_PORTS = cg.get_input_nodes_ports(M)
+    M_DECR = cg.add_input_nodes(bit_len, label="M")
+    M_DECR_PORTS = cg.get_input_nodes_ports(M_DECR)
+    O = lemma_4_1(cg, X_PORTS, M_PORTS, M_DECR_PORTS)
+    O_NODES = cg.generate_output_nodes_from_ports(O, label="OUTPUT")
+    return X, M, M_DECR, O_NODES
+
+
+def setup_lemma_4_1_reduce_in_parallel(cg: CircuitGraph, bit_len=4):
+    Y = cg.add_input_nodes(bit_len, label="Y")
+    Y_PORTS = cg.get_input_nodes_ports(Y)
+    M = cg.add_input_nodes(bit_len, label="M")
+    M_PORTS = cg.get_input_nodes_ports(M)
+    n = bit_len
+    O = lemma_4_1_reduce_in_parallel(cg, Y_PORTS, M_PORTS, n)
+    O_NODES = cg.generate_output_nodes_from_ports(O, "OUTPUT")
+    return Y, M, O_NODES
 
 
 # Returns M -> List[Node] and O_NODES -> List[List[Node]]
@@ -420,6 +435,20 @@ def setup_lemma_4_1_compute_y(cg: CircuitGraph, bit_len=4):
     return X, M, Y_NODES
 
 
+def setup_lemma_4_1_compute_diffs(cg: CircuitGraph, bit_len=4):
+    Y = cg.add_input_nodes(bit_len, label="Y")
+    Y_PORTS = cg.get_input_nodes_ports(Y)
+    M = cg.add_input_nodes(bit_len, label="M")
+    M_PORTS = cg.get_input_nodes_ports(M)
+    n = bit_len
+    D = lemma_4_1_compute_diffs(cg, Y_PORTS, M_PORTS, n)
+    D_NODES = []
+    for d in D:
+        d_nodes = cg.generate_output_nodes_from_ports(d, label="OUTPUT")
+        D_NODES.append(d_nodes)
+    return Y, M, D_NODES
+
+
 def setup_bus_multiplexer(cg, num_amount=4, bit_len=4):
     BUS = []
     BUS_PORTS = []
@@ -446,12 +475,12 @@ def setup_tensor_multiplexer(cg: CircuitGraph, num_amount=4, bit_len=4):
         column_ports = []
         for j in range(num_amount):
             num = cg.add_input_nodes(bit_len, label=f"INPUT_{i}_{j}")
-            num_bits = int2binlist(num, bit_len=bit_len)
+            num_ports = cg.get_input_nodes_ports(num)
             column_nodes.append(num)
-            column_ports.append(num_bits)
+            column_ports.append(num_ports)
         TENSOR.append(column_nodes)
         TENSOR_PORTS.append(column_ports)
-    selector = cg.add_input_nodes(bit_len, label="SELECTOR")
+    selector = cg.add_input_nodes(int(math.log2(num_amount)), label="SELECTOR")
     selector_ports = cg.get_input_nodes_ports(selector)
     BUS = tensor_multiplexer(cg, TENSOR_PORTS, selector_ports)
     BUS_NODES = []

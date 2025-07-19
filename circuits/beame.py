@@ -6,7 +6,7 @@ from .multipliers import *
 from .manipulators import conditional_zeroing
 from .multiplexers import tensor_multiplexer
 from .adders import carry_look_ahead_adder
-from .trees import adder_tree_recursive, or_tree_iterative
+from .trees import adder_tree_iterative, or_tree_iterative
 from .subtractors import subtract
 from .comparators import n_bit_comparator
 
@@ -57,7 +57,6 @@ def lemma_4_1_provide_aims_given_m(
     n = len(m)
     aims_ports = precompute_aim(circuit, zero, one, n, parent_group=pagm_group)
     # figure out if aims_ports needs to be reformated
-    print(aims_ports)
     ais = tensor_multiplexer(circuit, aims_ports, m)
     return ais  # List[List[Port]]
 
@@ -95,10 +94,37 @@ def lemma_4_1_compute_y(
 
     aims = lemma_4_1_provide_aims_given_m(circuit, m, parent_group=cy_group)
     summands = lemma_4_1_compute_summands(circuit, x, aims, parent_group=cy_group)
-    sum, carry = adder_tree_recursive(circuit, summands, zero, parent_group=cy_group)
+    sum = adder_tree_iterative(circuit, summands, zero, parent_group=cy_group)
 
     assert_list_of_ports(sum)
     return sum
+
+
+def lemma_4_1_compute_diffs(
+    circuit: CircuitGraph,
+    y: List[Port],
+    m: List[Port],
+    n: int,
+    parent_group: Optional[Group] = None,
+) -> List[List[Port]]:
+
+    cd_group = circuit.add_group("LEMMA_4_1_COMPUTE_DIFFS")
+    cd_group.set_parent(parent_group)
+
+    zero = constant_zero(circuit, y[0], parent_group=cd_group)
+
+    diff_list = []
+
+    for i in range(n):
+        acc = [zero for k in range(n)]
+        for _ in range(i):
+            acc, _ = carry_look_ahead_adder(
+                circuit, acc, m, zero, parent_group=cd_group
+            )
+        diff = subtract(circuit, y, acc, parent_group=cd_group)
+        diff_list.append(diff)
+
+    return diff_list
 
 
 # check if its correct that we can generate the multiples via additions due to the fact that m <= n where n is the bit width of the number x in the lemma
@@ -117,15 +143,12 @@ def lemma_4_1_reduce_in_parallel(
 
     inter_list = []
 
+    diff_list = lemma_4_1_compute_diffs(circuit, y, m, n, parent_group=rip_group)
+
     # is parallel in the circuit
     for i in range(n):
         # build acc starting at zero
-        acc = [zero for k in range(n)]
-        for j in range(i):
-            acc, _ = carry_look_ahead_adder(
-                circuit, acc, m, zero, parent_group=rip_group
-            )
-        diff = subtract(circuit, y, acc, parent_group=rip_group)
+        diff = diff_list[i]
         # check diff if its in the range of [0, m - 1]
         is_negative = diff[len(diff) - 1]
         is_positive = circuit.add_node(
@@ -158,13 +181,15 @@ def lemma_4_1(
     circuit: CircuitGraph,
     x: List[Port],
     m: List[Port],
+    m_decr: List[Port],
     parent_group: Optional[Group] = None,
 ) -> List[Port]:
     lemma_group = circuit.add_group("LEMMA_4_1")
     lemma_group.set_parent(parent_group)
 
     n = len(x)
-    y = lemma_4_1_compute_y(circuit, x, m, parent_group=lemma_group)
+    print("n: ", n)
+    y = lemma_4_1_compute_y(circuit, x, m_decr, parent_group=lemma_group)
     result = lemma_4_1_reduce_in_parallel(circuit, y, m, n, parent_group=lemma_group)
     return result
 

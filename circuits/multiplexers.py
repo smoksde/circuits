@@ -51,7 +51,7 @@ def bus_multiplexer(circuit, bus, selector):
 
 # gets a 3-dim input and reduces it to 2-dims
 # selects one row, so one entry of the first dim
-def tensor_multiplexer(circuit, tensor, selector):
+"""def tensor_multiplexer(circuit, tensor, selector):
     bit_width = len(tensor[0][0])
     dim_one = len(tensor)
     dim_two = len(tensor[0])
@@ -66,6 +66,20 @@ def tensor_multiplexer(circuit, tensor, selector):
             outer_list.append(inner_list)
         sig = bus_multiplexer(circuit, outer_list, selector)
         result.append(sig)
+    return result"""
+
+
+def tensor_multiplexer(circuit, tensor, selector):
+    dim_one = len(tensor)  # number of words to choose from
+    dim_two = len(tensor[0])  # rows (i.e., how many outputs you want)
+    bit_width = len(tensor[0][0])  # width of each number
+
+    result = []
+    for i in range(dim_two):  # for each row
+        # gather all words at this row index i
+        bus = [tensor[k][i] for k in range(dim_one)]  # each tensor[k][i] is a word
+        selected_word = bus_multiplexer(circuit, bus, selector)
+        result.append(selected_word)
     return result
 
 

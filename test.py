@@ -511,7 +511,7 @@ class TestCircuitSimulation(unittest.TestCase):
                 num_row_bits = []
                 for j in range(num_amount):
                     rand_num = random.randrange(2 ** (bit_len - 1) - 1)
-                    rand_num_bits = int2binlist(rand_num)
+                    rand_num_bits = int2binlist(rand_num, bit_len=bit_len)
                     num_row.append(rand_num)
                     num_row_bits.append(rand_num_bits)
                 NUMS.append(num_row)
@@ -529,6 +529,14 @@ class TestCircuitSimulation(unittest.TestCase):
 
             # for idx, e in expect_list:
             #    self.assertEqual(circuit.get_port_value(O[idx].ports[0]), e)
+            for i in range(num_amount):
+                expect = utils.binlist2int(NUMS_BITS[rand_selector][i])
+                value = circuit.compute_value_from_ports(
+                    circuit.get_output_nodes_ports(O[i])
+                )
+                self.assertEqual(
+                    value, expect, msg=(f"selector: {rand_selector}", f"NUMS: {NUMS}")
+                )
 
     def test_precompute_aim(self):
         circuit = CircuitGraph()
@@ -555,38 +563,178 @@ class TestCircuitSimulation(unittest.TestCase):
                         circuit.get_port_value(output[m][i][idx].ports[0]), e
                     )
 
+    def test_lemma_4_1_reduce_in_parallel(self):
+        circuit = CircuitGraph()
+        bit_len = 4
+        n = bit_len
+        Y, M, O = setup_lemma_4_1_reduce_in_parallel(circuit, bit_len=bit_len)
+
+        y_cases = [3]
+        m_cases = [3]
+
+        for y_value, m_value in zip(y_cases, m_cases):
+            y_bits = int2binlist(y_value, bit_len=n)
+            m_bits = int2binlist(m_value, bit_len=n)
+            circuit.fill_node_values(Y, y_bits)
+            circuit.fill_node_values(M, m_bits)
+            circuit.simulate()
+
+            expect = y_value % m_value
+
+            O_PORTS = circuit.get_output_nodes_ports(O)
+            O_VALUE = circuit.compute_value_from_ports(O_PORTS)
+            print(f"y: {y_value}, m: {m_value}, expect: {expect}, got: {O_VALUE}")
+            self.assertEqual(O_VALUE, expect)
+
+        for i in range(40):
+            rand_y = random.randrange(2 ** (n - 1) - 1)
+            rand_y_bits = int2binlist(rand_y, bit_len=n)
+            rand_m = random.randrange(1, n + 1)
+            rand_m_bits = int2binlist(rand_m, bit_len=n)
+            expect_num = rand_y % rand_m
+
+            circuit.fill_node_values(Y, rand_y_bits)
+            circuit.fill_node_values(M, rand_m_bits)
+
+            circuit.simulate()
+
+            sim_value = circuit.compute_value_from_ports(
+                circuit.get_output_nodes_ports(O)
+            )
+            self.assertEqual(
+                sim_value,
+                expect_num,
+                msg=(
+                    f"y: {rand_y}",
+                    f"m: {rand_m}",
+                    f"sim_value: {sim_value}",
+                    f"expect_num: {expect_num}",
+                ),
+            )
+
+    def test_lemma_4_1_compute_diffs(self):
+        circuit = CircuitGraph()
+        bit_len = 4
+        n = bit_len
+        Y, M, O = setup_lemma_4_1_compute_diffs(circuit, bit_len=bit_len)
+
+        y_cases = [3]
+        m_cases = [3]
+
+        for y_value, m_value in zip(y_cases, m_cases):
+            y_bits = int2binlist(y_value, bit_len=n)
+            m_bits = int2binlist(m_value, bit_len=n)
+            circuit.fill_node_values(Y, y_bits)
+            circuit.fill_node_values(M, m_bits)
+
+            circuit.simulate()
+
+            diffs = sb.lemma_4_1_compute_diffs(y_value, m_value, n)
+            print("diffs:")
+            print(diffs)
+
+            O_VALUES = []
+
+            for o in O:
+                O_PORTS = circuit.get_output_nodes_ports(o)
+                O_VALUE = circuit.compute_value_from_ports(O_PORTS)
+                O_VALUES.append(O_VALUE)
+
+            for idx, diff in enumerate(diffs):
+                if diff < 0:
+                    print("diff is smaller than 0, break")
+                    break
+                self.assertEqual(
+                    O_VALUES[idx],
+                    diff,
+                    msg=f"idx: {idx}, expect: {diff}, got: {O_VALUES[idx]}",
+                )
+                print(f"idx: {idx}, expect: {diff}, got: {O_VALUES[idx]}")
+
     def test_lemma_4_1(self):
         circuit = CircuitGraph()
         bit_len = 4
         n = bit_len
-        X, M, O = setup_lemma_4_1(circuit, bit_len=bit_len)
+        X, M, M_DECR, O = setup_lemma_4_1(circuit, bit_len=bit_len)
+        X_CY, M_CY, Y_CY = setup_lemma_4_1_compute_y(circuit, bit_len=bit_len)
+
+        x_cases = [6]
+        m_cases = [3]
+        for x_value, m_value in zip(x_cases, m_cases):
+            x_bits = int2binlist(x_value, bit_len=n)
+            m_bits = int2binlist(m_value, bit_len=n)
+            m_decr_bits = int2binlist(m_value - 1, bit_len=n)
+
+            expect_num = int(x_value % m_value)
+
+            circuit.fill_node_values(X, x_bits)
+            circuit.fill_node_values(M, m_bits)
+            circuit.fill_node_values(M_DECR, m_decr_bits)
+            circuit.fill_node_values(X_CY, x_bits)
+            circuit.fill_node_values(M_CY, m_decr_bits)
+
+            circuit.simulate()
+
+            O_PORTS = circuit.get_output_nodes_ports(O)
+            Y_CY_PORTS = circuit.get_output_nodes_ports(Y_CY)
+
+            O_VALUE = circuit.compute_value_from_ports(O_PORTS)
+            Y_CY_VALUE = circuit.compute_value_from_ports(Y_CY_PORTS)
+            expect_value = int(sb.lemma_4_1_compute_y(x_value, m_value, n))
+            print(
+                f"x: {x_value}, m: {m_value}, n: {n}, expect: {expect_value}, got: {Y_CY_VALUE}"
+            )
+
+            self.assertEqual(
+                O_VALUE,
+                expect_num,
+                msg=(
+                    f"X: {x_value}",
+                    f"M: {m_value}",
+                    f"M_DECR: {m_value - 1}",
+                    f"O_VALUE: {O_VALUE}",
+                    f"EXPECT: {expect_num}",
+                    f"Y_CY_VALUE: {Y_CY_VALUE}",
+                ),
+            )
+
         for i in range(20):
             rand_x = random.randrange(2 ** (n - 1) - 1)
             rand_x_bits = int2binlist(rand_x, bit_len=n)
             rand_m = random.randrange(1, n, 1)
             rand_m_bits = int2binlist(rand_m, bit_len=n)
+            rand_m_decr_bits = int2binlist(rand_m - 1, bit_len=n)
             expect_num = int(rand_x % rand_m)
             expect_bits = int2binlist(expect_num, bit_len=n)
 
             print("x: ", rand_x, " m: ", rand_m)
 
-            for idx, x in enumerate(X):
-                circuit.node_values[str(x.node_id)] = rand_x_bits[idx]
-            for idx, m in enumerate(M):
-                circuit.node_values[str(m.node_id)] = rand_m_bits[idx]
+            circuit.fill_node_values(X, rand_x_bits)
+            circuit.fill_node_values(M, rand_m_bits)
+            circuit.fill_node_values(M_DECR, rand_m_decr_bits)
+            circuit.fill_node_values(X_CY, rand_x_bits)
+            circuit.fill_node_values(M_CY, rand_m_decr_bits)
+
             circuit.simulate()
-            for idx, e in enumerate(expect_bits):
-                print("Assert in test_lemma_4_1")
-                self.assertEqual(
-                    circuit.get_port_value(O[idx].ports[0]),
-                    e,
-                    msg=(
-                        f"X: {rand_x} "
-                        f"M: {rand_m} "
-                        f"Expect: {expect_bits}"
-                        f"OUTPUT: {[circuit.get_port_value(o.ports[0]) for o in O]}"
-                    ),
-                )
+
+            O_PORTS = circuit.get_output_nodes_ports(O)
+            O_VALUE = circuit.compute_value_from_ports(O_PORTS)
+
+            Y_CY_PORTS = circuit.get_output_nodes_ports(Y_CY)
+            Y_CY_VALUE = circuit.compute_value_from_ports(Y_CY_PORTS)
+
+            self.assertEqual(
+                O_VALUE,
+                expect_num,
+                msg=(
+                    f"X: {rand_x}",
+                    f"M: {rand_m}",
+                    f"M_DECR: {rand_m - 1}",
+                    f"O_VALUE: {O_VALUE}",
+                    f"EXPECT: {expect_num}",
+                    f"Y_CY_VALUE: {Y_CY_VALUE}",
+                ),
+            )
 
     def test_lemma_4_1_compute_summands(self):
         circuit = CircuitGraph()
@@ -636,8 +784,8 @@ class TestCircuitSimulation(unittest.TestCase):
         bit_len = 4
         max_m = 4
         M, O = setup_lemma_4_1_provide_aims_given_m(circuit, bit_len=bit_len)
-        for m in range(4, max_m + 1):
-            m_bits = int2binlist(m, bit_len=bit_len)
+        for m in range(1, max_m + 1):
+            m_bits = int2binlist(m - 1, bit_len=bit_len)
             circuit.fill_node_values(M, m_bits)
             circuit.simulate()
             sim_values = []
@@ -648,6 +796,7 @@ class TestCircuitSimulation(unittest.TestCase):
                 sim_values.append(value)
             sb_aims = sb.precompute_aim(max_m)
             sb_ais = sb_aims[m - 1]
+
             for i in range(len(sim_values)):
                 self.assertEqual(
                     sb_ais[i],
@@ -684,22 +833,48 @@ class TestCircuitSimulation(unittest.TestCase):
         n = bit_len
         X, M, O = setup_lemma_4_1_compute_y(circuit, bit_len=bit_len)
 
-        aims = sb.precompute_aim(n)
+        print("compute_y_extra_test_cases: ")
+
+        x_cases = [5, 5, 6]
+        m_cases = [2, 3, 3]
+
+        for x_value, m_value in zip(x_cases, m_cases):
+            x_bits = int2binlist(x_value, bit_len=n)
+            m_bits = int2binlist(m_value - 1, bit_len=n)
+            circuit.fill_node_values(X, x_bits)
+            circuit.fill_node_values(M, m_bits)
+            circuit.simulate()
+            y_value = sb.lemma_4_1_compute_y(x_value, m_value, n)
+            value = circuit.compute_value_from_ports(circuit.get_output_nodes_ports(O))
+            self.assertEqual(
+                y_value,
+                value,
+                msg=(
+                    f"expect: {y_value}",
+                    f"value: {value}",
+                    f"rand_x: {x_value}",
+                    f"rand_m: {m_value}",
+                ),
+            )
+            print(f"expect: {y_value}, got: {value}, x: {x_value}, m: {m_value}")
 
         for i in range(20):
             rand_x = random.randrange(2 ** (n - 1) - 1)
-            rand_x = 3
+            # rand_x = 3
             rand_x_bits = int2binlist(rand_x, bit_len=n)
-            rand_m = random.randrange(n)
-            rand_m = 3
-            rand_m_bits = int2binlist(rand_m, bit_len=n)
+            rand_m = random.randrange(1, n)
+            # rand_m = 3
+            rand_m_bits = int2binlist(rand_m - 1, bit_len=n)
             circuit.fill_node_values(X, rand_x_bits)
             circuit.fill_node_values(M, rand_m_bits)
             circuit.simulate()
 
-            y_value = 0
+            """y_value = 0
             for j in range(n):
                 y_value += rand_x_bits[j] * aims[rand_m][j]
+            """
+
+            y_value = sb.lemma_4_1_compute_y(rand_x, rand_m, n)
 
             value = circuit.compute_value_from_ports(circuit.get_output_nodes_ports(O))
             self.assertEqual(

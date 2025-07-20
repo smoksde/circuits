@@ -21,9 +21,12 @@ def two_complement(circuit, x_list, parent_group=None):
     for i in range(len(x_list)):
         one_number.append(zero)
     one_number[0] = one
-    two_comp_list, _ = ripple_carry_adder(
+    two_comp_list, _ = carry_look_ahead_adder(
         circuit, inverted_list, one_number, zero, parent_group=tc_group
     )
+    # two_comp_list, _ = ripple_carry_adder(
+    #    circuit, inverted_list, one_number, zero, parent_group=tc_group
+    # )
     return two_comp_list
 
 

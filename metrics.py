@@ -1,4 +1,5 @@
 from collections import Counter, defaultdict, deque
+
 from graph import *
 from circuits import *
 import matplotlib.pyplot as plt
@@ -22,6 +23,55 @@ def compute_node_edges(cg):
     return node_edges
 
 
+def longest_path_length(cg):
+    input_nodes = [node.node_id for node in cg.nodes.values() if node.type == "input"]
+    output_nodes = set(
+        node.node_id for node in cg.nodes.values() if node.type == "output"
+    )
+
+    node_edges = compute_node_edges(cg)  # returns list of (source, target) edges
+
+    # Build adjacency list and in-degree count
+    graph = defaultdict(list)
+    in_degree = defaultdict(int)
+
+    # Register all nodes in in_degree (even if no incoming edges)
+    for node in cg.nodes.values():
+        in_degree[node.node_id] = 0
+
+    for source, target in node_edges:
+        graph[source].append(target)
+        in_degree[target] += 1
+
+    # Queue of nodes with zero in-degree (starting points)
+    queue = deque([nid for nid, deg in in_degree.items() if deg == 0])
+
+    # Distance dict: longest distance from input node to current node
+    dist = defaultdict(lambda: -float("inf"))
+
+    # Initialize distance for input nodes to 0
+    for nid in input_nodes:
+        dist[nid] = 0
+
+    # Topological traversal
+    while queue:
+        node = queue.popleft()
+        for succ in graph[node]:
+            # Update longest distance for successor
+            dist[succ] = max(dist[succ], dist[node] + 1)
+            # Reduce in-degree and add to queue if zero
+            in_degree[succ] -= 1
+            if in_degree[succ] == 0:
+                queue.append(succ)
+
+    # Among output nodes, find the max distance from inputs
+    max_length = max(
+        (dist[nid] for nid in output_nodes if dist[nid] != -float("inf")), default=0
+    )
+    return max_length
+
+
+"""
 def longest_path_length(cg):
     input_nodes = [node.node_id for node in cg.nodes.values() if node.type == "input"]
     output_nodes = [node.node_id for node in cg.nodes.values() if node.type == "output"]
@@ -55,6 +105,7 @@ def longest_path_length(cg):
                 dist[node_id] = max(dist[node_id], dist[successor] + 1)
 
     return max(dist[node] for node in input_nodes if dist[node] != -float("inf"))
+"""
 
 
 def analyze_circuit_function(name, setup_fn, bit_len=4):
@@ -62,6 +113,7 @@ def analyze_circuit_function(name, setup_fn, bit_len=4):
     setup_fn(cg, bit_len)
     num_nodes = len(cg.nodes)
     num_edges = len(cg.edges)
+    # depth = 0
     depth = longest_path_length(cg)
     return {
         "name": name,
@@ -168,6 +220,45 @@ def plot_metrics_for_adders():
     plt.show()
 
 
+def plot_metrics_for_lemma_4_1():
+    results = []
+    functions = {"lemma_4_1": setup_lemma_4_1}
+    # functions = {"ripple_carry_adder": setup_ripple_carry_adder}
+    bit_lengths = [4, 8, 16, 32]
+
+    plt.figure(figsize=(8, 5))
+    for key, value in functions.items():
+        depths = []
+        node_nums = []
+        edge_nums = []
+        for i in bit_lengths:
+            # result = analyze_circuit_function("n_bit_comparator", setup_n_bit_comparator, i)
+            result = analyze_circuit_function(key, value, i)
+            depths.append(result["depth"])
+            node_nums.append(result["num_nodes"])
+            edge_nums.append(result["num_edges"])
+            results.append(result)
+
+        plt.plot(
+            bit_lengths,
+            depths,
+            marker="o",
+            label="Circuit Depth",
+            linestyle="--",
+            color="blue",
+        )
+        # plt.plot(bit_lengths, node_nums, marker='x', label='Node Count', linestyle='-.', color='purple')
+        # plt.plot(bit_lengths, edge_nums, marker='x', label='Edge Count', linestyle='-.', color="green")
+
+    plt.title("Circuit Characteristics")
+    plt.xlabel("Bit Length (Number representation size)")
+    plt.ylabel("Values")
+    plt.grid(True)
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+
+
 def compare_sam_ml_depth():
     results = []
     functions = {
@@ -175,7 +266,7 @@ def compare_sam_ml_depth():
         "montgomery_ladder": setup_montgomery_ladder,
     }
 
-    bit_lengths = [4]
+    bit_lengths = [4, 8, 16]
     colors = ["blue", "red", "green"]
 
     plt.figure(figsize=(8, 5))
@@ -221,9 +312,132 @@ def compare_sam_ml_depth():
         print(f"Max depth: {r['depth']}")"""
 
 
+def plot_circuit_metrics(experiments, metric="depth", title="Circuit Characteristics"):
+    plt.figure(figsize=(8, 5))
+    results = []
+
+    for idx, exp in enumerate(experiments):
+        name = exp["name"]
+        setup_fn = exp["setup_fn"]
+        bit_lengths = exp["bit_lengths"]
+        color = exp.get("color", f"C{idx}")
+        style = exp.get("style", "--")
+        label = exp.get("label", f"{metric.capitalize()} of {name}")
+
+        metric_values = []
+
+        for bit_len in bit_lengths:
+            print(f"analysing circuit: {name} with bit width: {bit_len} ...")
+            result = analyze_circuit_function(name, setup_fn, bit_len)
+            results.append(result)
+            metric_values.append(result[metric])
+
+        print(bit_lengths)
+        print(metric_values)
+
+        plt.plot(
+            bit_lengths,
+            metric_values,
+            marker="o",
+            label=label,
+            linestyle=style,
+            color=color,
+        )
+
+    plt.title(title)
+    plt.xlabel("Bit Length (Number representation size)")
+    plt.ylabel(metric.capitalize())
+    plt.grid(True)
+    plt.legend()
+    plt.tight_layout()
+    plt.show()
+
+
+def run_selected_plot():
+    """experiments_to_run = [
+        {
+            "name": "carry_look_ahead_adder",
+            "setup_fn": setup_carry_look_ahead_adder,
+            "bit_lengths": [4, 8, 16, 32, 64, 128, 256],
+            "color": "blue",
+            "style": "--",
+            "label": "Carry Lookahead Adder",
+        },
+    ]"""
+
+    experiments = [
+        {
+            "name": "n_bit_comparator",
+            "setup_fn": setup_n_bit_comparator,
+            "bit_lengths": [4, 8, 16],
+            "color": "blue",
+            "style": "--",
+            "label": "N-bit Comparator",
+        }
+    ]
+
+    """{
+            "name": "lemma_4_1_compute_y",
+            "setup_fn": setup_lemma_4_1_compute_y,
+            "bit_lengths": [4, 8, 16, 32],
+            "color": "blue",
+            "style": "--",
+            "label": "lemma_4_1_compute_y",
+        },"""
+
+    experiments = [
+        {
+            "name": "lemma_4_1_reduce_in_parallel",
+            "setup_fn": setup_lemma_4_1_reduce_in_parallel,
+            "bit_lengths": [4, 8, 16, 32],
+            "color": "blue",
+            "style": "--",
+            "label": "lemma_4_1_reduce_in_parallel",
+        },
+        {
+            "name": "lemma_4_1_compute_diffs",
+            "setup_fn": setup_lemma_4_1_compute_diffs,
+            "bit_lengths": [4, 8, 16, 32],
+            "color": "red",
+            "style": "--",
+            "label": "lemma_4_1_compute_diffs",
+        },
+    ]
+    """
+    experiments = [
+        {
+            "name": "wallace_tree_multiplier",
+            "setup_fn": setup_wallace_tree_multiplier,
+            "bit_lengths": [4, 8, 16, 32, 64, 128, 256, 512],
+            "color": "blue",
+            "style": "--",
+            "label": "wallace_tree_multiplier",
+        },
+    ]"""
+
+    experiments = [
+        {
+            "name": "lemma_4_1",
+            "setup_fn": setup_lemma_4_1,
+            "bit_lengths": [4, 8, 16, 32, 64],
+            "color": "blue",
+            "style": "--",
+            "label": "lemma_4_1",
+        },
+    ]
+
+    plot_circuit_metrics(
+        experiments,
+        metric="depth",  # or "num_nodes", "num_edges"
+        title="Comparison of Circuit Depths",
+    )
+
+
 if __name__ == "__main__":
 
     # plot_metrics_for_adders()
     # plot_metrics_for_modulo_functions()
     # analyze_all_functions()
-    compare_sam_ml_depth()
+    # compare_sam_ml_depth()
+    # plot_metrics_for_lemma_4_1()
+    run_selected_plot()

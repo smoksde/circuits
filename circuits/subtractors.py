@@ -11,9 +11,12 @@ def subtract(circuit, a_bits, b_bits, parent_group=None) -> List[Port]:
     sub_group.set_parent(parent_group)
     zero = constant_zero(circuit, a_bits[0], parent_group=sub_group)
     b_complement = two_complement(circuit, b_bits, parent_group=sub_group)
-    result, carry = ripple_carry_adder(
+    result, carry = carry_look_ahead_adder(
         circuit, a_bits, b_complement, zero, parent_group=sub_group
     )
+    # result, carry = ripple_carry_adder(
+    #    circuit, a_bits, b_complement, zero, parent_group=sub_group
+    # )
     return result
 
 

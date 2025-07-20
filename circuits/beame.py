@@ -116,11 +116,16 @@ def lemma_4_1_compute_diffs(
     diff_list = []
 
     for i in range(n):
-        acc = [zero for k in range(n)]
-        for _ in range(i):
-            acc, _ = carry_look_ahead_adder(
-                circuit, acc, m, zero, parent_group=cd_group
-            )
+        if i == 0:
+            acc = [zero for k in range(n)]
+        else:
+            summands = [m for _ in range(i)]
+            acc = adder_tree_iterative(circuit, summands, zero, parent_group=cd_group)
+        # acc = [zero for k in range(n)]
+        # for _ in range(i):
+        #    acc, _ = carry_look_ahead_adder(
+        #        circuit, acc, m, zero, parent_group=cd_group
+        #    )
         diff = subtract(circuit, y, acc, parent_group=cd_group)
         diff_list.append(diff)
 
@@ -210,3 +215,24 @@ def lemma_4_1(
         conditional_zeroing(cirucit, )
     return
 """
+
+
+def wheel_factorize(n: int):
+    factorization = []
+    while n % 2 == 0:
+        factorization.append(2)
+        n //= 2
+    d = 3
+    while d * d <= n:
+        while n % d == 0:
+            factorization.append(d)
+            n //= d
+        d += 2
+    if n > 1:
+        factorization.append(n)
+    return factorization
+
+
+def is_prime_power(n: int):
+    factors = wheel_factorize(n)
+    return len(set(factors)) == 1

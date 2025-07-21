@@ -3,7 +3,7 @@ import numpy as np
 from typing import Iterable
 from functools import reduce
 import operator
-from utils import int2binlist
+from utils import int2binlist, is_prime_power, wheel_factorize
 
 # Software level implementations of sections out of Log Depth Circuits for Division and Related Problems
 
@@ -120,6 +120,39 @@ def get_binary_list_lsb_first(x):
 
 def compute_mod_lemma_4_1(x, m, n):
     x_list = get_binary_list_lsb_first(x)
+
+
+# returns list for [1, n]
+def theorem_4_2_precompute_lookup_is_prime_power(n: int):
+    return [is_prime_power(i + 1) for i in range(n)]
+
+
+def theorem_4_2_precompute_lookup_p_l(n: int):
+    result = []
+    for i in range(1, n + 1):
+        if is_prime_power(i):
+            factorization = wheel_factorize(i)
+            p = factorization[0]
+            l = len(factorization)
+            result.append((p, l))
+        else:
+            result.append((0, 0))
+    return result
+
+
+def theorem_4_2_precompute_lookup_powers(n: int):
+    result = []
+    for p in range(1, n + 1):
+        powers_of_p = []
+        for e in range(n):
+            if e > math.log2(n) or p**e > n:
+                # power is larger than n, just fill with 0
+                power = 0
+            else:
+                power = p**e
+            powers_of_p.append(power)
+        result.append(powers_of_p)
+    return result
 
 
 if __name__ == "__main__":

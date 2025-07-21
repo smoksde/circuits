@@ -1,6 +1,7 @@
 import unittest
 from circuits import *
 from graph import *
+from formula import *
 from utils import int2binlist, iter_random_bin_list
 from node import Node
 from port import Port
@@ -35,6 +36,7 @@ class TestCircuitSimulation(unittest.TestCase):
     def test_half_adder(self):
         circuit = CircuitGraph()
         a, b, sum_out, carry_out = setup_half_adder(circuit)
+
         expected = {
             (0, 0): (0, 0),
             (0, 1): (1, 0),
@@ -887,6 +889,54 @@ class TestCircuitSimulation(unittest.TestCase):
                     f"rand_m: {rand_m}",
                 ),
             )
+
+    def test_theorem_4_2_precompute_lookup_is_prime_power(self):
+        circuit = CircuitGraph()
+        for n in [4, 8]:
+            sb_o = sb.theorem_4_2_precompute_lookup_is_prime_power(n)
+            O = setup_theorem_4_2_precompute_lookup_is_prime_power(circuit, bit_len=n)
+            circuit.simulate()
+            o_ports = circuit.get_output_nodes_ports(O)
+            for idx, port in enumerate(o_ports):
+                self.assertEqual(circuit.get_port_value(port), sb_o[idx])
+
+    def test_theorem_4_2_precompute_lookup_p_l(self):
+        circuit = CircuitGraph()
+        for n in [4, 8]:
+            sb_o = sb.theorem_4_2_precompute_lookup_p_l(n)
+            O = setup_theorem_4_2_precompute_lookup_p_l(circuit, bit_len=n)
+            circuit.simulate()
+            O_PORTS = []
+            for p_nodes, l_nodes in O:
+                p_ports = circuit.get_output_nodes_ports(p_nodes)
+                l_ports = circuit.get_output_nodes_ports(l_nodes)
+                O_PORTS.append((p_ports, l_ports))
+            for idx, (p_ports, l_ports) in enumerate(O_PORTS):
+                p_value = circuit.compute_value_from_ports(p_ports)
+                l_value = circuit.compute_value_from_ports(l_ports)
+                p_expect = sb_o[idx][0]
+                l_expect = sb_o[idx][1]
+                self.assertEqual(p_value, p_expect)
+                self.assertEqual(l_value, l_expect)
+
+    def test_theorem_4_2_precompute_lookup_powers(self):
+        circuit = CircuitGraph()
+        for n in [4, 8]:
+            sb_o = sb.theorem_4_2_precompute_lookup_powers(n)
+            O = setup_theorem_4_2_precompute_lookup_powers(circuit, bit_len=n)
+            circuit.simulate()
+            O_PORTS = []
+            for powers_of_p_nodes in O:
+                powers_of_p_ports = []
+                for p_nodes in powers_of_p_nodes:
+                    p_ports = circuit.get_output_nodes_ports(p_nodes)
+                    powers_of_p_ports.append(p_ports)
+                O_PORTS.append(powers_of_p_ports)
+            for i, powers_for_p in enumerate(O_PORTS):
+                for j, power in enumerate(powers_for_p):
+                    got = circuit.compute_value_from_ports(power)
+                    expect = sb_o[i][j]
+                    self.assertEqual(got, expect)
 
 
 class TestUtilsFunctions(unittest.TestCase):

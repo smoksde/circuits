@@ -1,7 +1,7 @@
 from typing import List, Optional
 from graph import *
 from .constants import *
-from utils import int2binlist
+from utils import int2binlist, is_prime_power, wheel_factorize
 from .multipliers import *
 from .manipulators import conditional_zeroing
 from .multiplexers import tensor_multiplexer
@@ -9,7 +9,7 @@ from .adders import carry_look_ahead_adder
 from .trees import adder_tree_iterative, or_tree_iterative
 from .subtractors import subtract
 from .comparators import n_bit_comparator
-
+import math
 
 from asserts import *
 
@@ -23,7 +23,7 @@ def precompute_aim(
     one: Port,
     n: int,
     parent_group: Optional[Group] = None,
-) -> Port:
+):
     pa_group = circuit.add_group("PRE_AIM")
     pa_group.set_parent(parent_group)
 
@@ -217,22 +217,90 @@ def lemma_4_1(
 """
 
 
-def wheel_factorize(n: int):
-    factorization = []
-    while n % 2 == 0:
-        factorization.append(2)
-        n //= 2
-    d = 3
-    while d * d <= n:
-        while n % d == 0:
-            factorization.append(d)
-            n //= d
-        d += 2
-    if n > 1:
-        factorization.append(n)
-    return factorization
+def theorem_4_2_precompute_lookup_is_prime_power(
+    circuit: CircuitGraph,
+    zero: Port,
+    one: Port,
+    n: int,
+    parent_group: Optional[Group] = None,
+):
+    plipp_group = circuit.add_group(label="PRECOMPUTE_LOOKUP_IS_PRIME_POWER")
+    plipp_group.set_parent(parent_group)
+
+    result = []
+    for i in range(1, n + 1):
+        if is_prime_power(i):
+            result.append(one)
+        else:
+            result.append(zero)
+    return result
 
 
-def is_prime_power(n: int):
-    factors = wheel_factorize(n)
-    return len(set(factors)) == 1
+def theorem_4_2_precompute_lookup_p_l(
+    circuit: CircuitGraph,
+    zero: Port,
+    one: Port,
+    n: int,
+    parent_group: Optional[Group] = None,
+):
+    plpl_group = circuit.add_group(label="PRECOMPUTE_LOOKUP_P_L")
+    plpl_group.set_parent(parent_group)
+
+    result = []
+    for i in range(1, n + 1):
+        if is_prime_power(i):
+            factorization = wheel_factorize(i)
+            p = factorization[0]
+            l = len(factorization)
+            # FILL
+            p_bits = int2binlist(p, bit_len=n)
+            l_bits = int2binlist(l, bit_len=n)
+            P_PORTS = []
+            for p_bit in p_bits:
+                if p_bit:
+                    P_PORTS.append(one)
+                else:
+                    P_PORTS.append(zero)
+            L_PORTS = []
+            for l_bit in l_bits:
+                if l_bit:
+                    L_PORTS.append(one)
+                else:
+                    L_PORTS.append(zero)
+            result.append((P_PORTS, L_PORTS))
+        else:
+            P_PORTS = [zero for _ in range(n)]
+            L_PORTS = [zero for _ in range(n)]
+            result.append((P_PORTS, L_PORTS))
+    return result
+
+
+def theorem_4_2_precompute_lookup_powers(
+    circuit: CircuitGraph,
+    zero: Port,
+    one: Port,
+    n: int,
+    parent_group: Optional[Group] = None,
+):
+    plp_group = circuit.add_group("THEOREM_4_2_PRECOMPUTE_LOOKUP_POWERS")
+    plp_group.set_parent(parent_group)
+
+    result = []
+    for p in range(1, n + 1):
+        powers_of_p = []
+        for e in range(n):
+            if e > math.log2(n) or p**e > n:
+                power = 0
+            else:
+                power = p**e
+            power_bits = int2binlist(power, bit_len=n)
+            power_ports = []
+            for bit in power_bits:
+                if bit:
+                    power_ports.append(one)
+                else:
+                    power_ports.append(zero)
+            powers_of_p.append(power_ports)
+        result.append(powers_of_p)
+
+    return result

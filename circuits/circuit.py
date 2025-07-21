@@ -357,6 +357,49 @@ CIRCUIT_FUNCTIONS = {
 }
 
 
+def setup_theorem_4_2_precompute_lookup_powers(cg: CircuitGraph, bit_len=4):
+    n = bit_len
+    input_node = cg.add_input_nodes(1, "INPUT")[0]
+    input_port = cg.get_input_node_port(input_node)
+    zero_port = constant_zero(cg, input_port)
+    one_port = constant_one(cg, input_port)
+    O = theorem_4_2_precompute_lookup_powers(cg, zero_port, one_port, n)
+    O_NODES = []
+    for o in O:
+        powers_of_p_nodes = []
+        for power in o:
+            power_nodes = cg.generate_output_nodes_from_ports(power, label="OUTPUT")
+            powers_of_p_nodes.append(power_nodes)
+        O_NODES.append(powers_of_p_nodes)
+    return O_NODES
+
+
+def setup_theorem_4_2_precompute_lookup_is_prime_power(cg: CircuitGraph, bit_len=4):
+    n = bit_len
+    input_node = cg.add_input_nodes(1, "INPUT")[0]
+    input_port = cg.get_input_node_port(input_node)
+    zero_port = constant_zero(cg, input_port)
+    one_port = constant_one(cg, input_port)
+    O = theorem_4_2_precompute_lookup_is_prime_power(cg, zero_port, one_port, n)
+    O_NODES = cg.generate_output_nodes_from_ports(O, label="OUTPUT")
+    return O_NODES
+
+
+def setup_theorem_4_2_precompute_lookup_p_l(cg: CircuitGraph, bit_len=4):
+    n = bit_len
+    input_node = cg.add_input_nodes(1, "INPUT")[0]
+    input_port = cg.get_input_node_port(input_node)
+    zero_port = constant_zero(cg, input_port)
+    one_port = constant_one(cg, input_port)
+    O = theorem_4_2_precompute_lookup_p_l(cg, zero_port, one_port, n)
+    O_NODES = []
+    for p, l in O:
+        p_nodes = cg.generate_output_nodes_from_ports(p)
+        l_nodes = cg.generate_output_nodes_from_ports(l)
+        O_NODES.append((p_nodes, l_nodes))
+    return O_NODES
+
+
 def setup_adder_tree_iterative(cg: CircuitGraph, num_amount=4, bit_len=4):
     SUMMANDS = []
     SUMMANDS_PORTS = []

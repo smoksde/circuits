@@ -1,4 +1,5 @@
 from typing import List, Optional
+from collections import defaultdict, deque
 
 from node import Node
 from port import Port
@@ -72,6 +73,28 @@ class CircuitGraph:
         else:
             raise ValueError(f"Node type: {node.type} is unsupported here.")
 
+    # returns a list
+    def get_input_ports_of_node(self, node: Node):
+        if node.type in ["xor", "and", "or"]:
+            return node.ports[:2]
+        elif node.type == "output":
+            return [node.ports[0]]
+        elif node.type == "not":
+            return [node.ports[0]]
+        else:
+            return []
+
+    # returns the found port or None
+    def get_output_port_of_node(self, node: Node):
+        if node.type in ["xor", "and", "or"]:
+            return node.ports[2]
+        elif node.type == "input":
+            return node.ports[0]
+        elif node.type == "not":
+            return node.ports[1]
+        else:
+            return None
+
     # Returns the output port of an input node and by that the only port this node has
     def get_input_node_port(self, node: Node):
         if node.type == "input":
@@ -120,6 +143,61 @@ class CircuitGraph:
             port_value = self.get_port_value(port)
             bin_list.append(port_value)
         return binlist2int(bin_list)
+
+    def get_node_of_port(self, port: Port):
+        return self.nodes[str(port.node_id)]
+
+    def compute_target_to_source_port_map(self):
+        ports_map = {}
+        for edge in self.edges:
+            ports_map[edge.target_port_id] = edge.source_port_id
+        return ports_map
+
+    def find_port_by_port_id(self, port_id: int) -> Port:
+        for node in self.nodes.values():
+            for port in node.ports:
+                if port.id == port_id:
+                    return port
+        raise ValueError(f"Port {port_id} not found")
+
+    def compute_port_to_node_mapping(self):
+        port_to_node = {}
+        for node in self.nodes.values():
+            for port in node.ports:
+                port_to_node[port.id] = node.node_id
+        return port_to_node
+
+    # Returns nodes topologically sorted
+    def topological_sort(self):
+        port_to_node = self.compute_port_to_node_mapping()
+
+        graph = defaultdict(list)
+        in_degree = defaultdict(int)
+
+        for node_id in self.nodes:
+            in_degree[node_id] = 0
+
+        for edge in self.edges:
+            src_node_id = port_to_node[edge.source_port_id]
+            tgt_node_id = port_to_node[edge.target_port_id]
+            graph[src_node_id].append(tgt_node_id)
+            in_degree[tgt_node_id] += 1
+
+        queue = deque([nid for nid, deg in in_degree.items() if deg == 0])
+        sorted_nodes = []
+
+        while queue:
+            nid = queue.popleft()
+            sorted_nodes.append(self.nodes[nid])
+            for neighbor in graph[nid]:
+                in_degree[neighbor] -= 1
+                if in_degree[neighbor] == 0:
+                    queue.append(neighbor)
+
+        if len(sorted_nodes) != len(self.nodes):
+            raise ValueError("Graph has a cycle or is malformed.")
+
+        return sorted_nodes
 
     def add_edge(self, source_port, target_port):
         edge = Edge(source_port.id, target_port.id)

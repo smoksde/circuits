@@ -155,6 +155,68 @@ def theorem_4_2_precompute_lookup_powers(n: int):
     return result
 
 
+def theorem_4_2_precompute_lookup_generator_powers(n: int):
+    result = []
+    primitive_roots = find_primitive_roots(n)
+    p_l_lookup = theorem_4_2_precompute_lookup_p_l(n)
+    for pexpl_idx, pexpl in enumerate(range(1, n + 1)):
+        p, l = p_l_lookup[pexpl_idx]
+        tresh = int(math.pow(p, l)) - int(math.pow(p, l - 1))
+        g = primitive_roots[pexpl_idx]
+        pows_of_g = compute_powers_up_to(g, tresh)
+        pows_of_g = [power % pexpl for power in pows_of_g]
+        while len(pows_of_g) < n:
+            pows_of_g.append(0)
+        # here all pows_of_g lists are n entries long
+        result.append(pows_of_g)
+    return result
+
+
+def is_primitive_root(g, n):
+    if math.gcd(g, n) != 1:
+        return False
+    totient = len([i for i in range(1, n) if math.gcd(i, n) == 1])
+    powers = set([pow(g, i, n) for i in range(1, totient + 1)])
+    group = set([i for i in range(1, n) if math.gcd(i, n) == 1])
+    return powers == group
+
+
+# Finds the smallest primitve root for each p in [1, n] and returns the list
+def find_primitive_roots(n):
+    roots = []
+    for p in range(1, n + 1):
+        found = False
+        value = 0
+        for g in range(1, p):
+            if is_primitive_root(g, p):
+                found = True
+                value = g
+            if found:
+                break
+        roots.append(value)
+    return roots
+
+
+def compute_powers_up_to(g, thresh):
+    powers = []
+    i = 0
+    while True:
+        power = int(math.pow(g, i))
+        i += 1
+        if power <= thresh:
+            powers.append(power)
+        else:
+            break
+    return powers
+
+
+# def theorem_4_2_precompute_lookup_powers_of_g()
+
 if __name__ == "__main__":
     # test_theorem_5_2()
-    print("hello")
+    n = 16
+    roots = find_primitive_roots(n)
+    print(roots)
+    powers = compute_powers_up_to(5, 500)
+    print(powers)
+    theorem_4_2_precompute_lookup_generator_powers(n)

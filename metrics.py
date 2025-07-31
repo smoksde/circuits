@@ -23,19 +23,33 @@ def compute_node_edges(cg):
     return node_edges
 
 
+def circuit_depth(circuit: CircuitGraph) -> int:
+    port_map = circuit.compute_target_to_source_port_map()
+    port_to_node = circuit.compute_port_to_node_mapping()
+    depth = {}
+    topo_order = circuit.topological_sort()
+    for node in topo_order:
+        in_ports = circuit.get_input_ports_of_node(node)
+        source_ports_ids = [port_map[in_port.id] for in_port in in_ports]
+        preds = [port_to_node[source_port] for source_port in source_ports_ids]
+        if not preds or len(preds) < 1:
+            depth[node.node_id] = 0
+        else:
+            depth[node.node_id] = 1 + max(depth[p] for p in preds)
+    return max(depth.values(), default=0)
+
+
 def longest_path_length(cg):
     input_nodes = [node.node_id for node in cg.nodes.values() if node.type == "input"]
     output_nodes = set(
         node.node_id for node in cg.nodes.values() if node.type == "output"
     )
 
-    node_edges = compute_node_edges(cg)  # returns list of (source, target) edges
+    node_edges = compute_node_edges(cg)
 
-    # Build adjacency list and in-degree count
     graph = defaultdict(list)
     in_degree = defaultdict(int)
 
-    # Register all nodes in in_degree (even if no incoming edges)
     for node in cg.nodes.values():
         in_degree[node.node_id] = 0
 
@@ -43,28 +57,21 @@ def longest_path_length(cg):
         graph[source].append(target)
         in_degree[target] += 1
 
-    # Queue of nodes with zero in-degree (starting points)
     queue = deque([nid for nid, deg in in_degree.items() if deg == 0])
 
-    # Distance dict: longest distance from input node to current node
     dist = defaultdict(lambda: -float("inf"))
 
-    # Initialize distance for input nodes to 0
     for nid in input_nodes:
         dist[nid] = 0
 
-    # Topological traversal
     while queue:
         node = queue.popleft()
         for succ in graph[node]:
-            # Update longest distance for successor
             dist[succ] = max(dist[succ], dist[node] + 1)
-            # Reduce in-degree and add to queue if zero
             in_degree[succ] -= 1
             if in_degree[succ] == 0:
                 queue.append(succ)
 
-    # Among output nodes, find the max distance from inputs
     max_length = max(
         (dist[nid] for nid in output_nodes if dist[nid] != -float("inf")), default=0
     )
@@ -114,6 +121,7 @@ def analyze_circuit_function(name, setup_fn, bit_len=4):
     num_nodes = len(cg.nodes)
     num_edges = len(cg.edges)
     # depth = 0
+    # depth = circuit_depth(cg)
     depth = longest_path_length(cg)
     return {
         "name": name,
@@ -424,12 +432,41 @@ def run_selected_plot():
             "style": "--",
             "label": "lemma_4_1",
         },
+        {
+            "name": "square_and_multiply",
+            "setup_fn": setup_modular_exponentiation,
+            "bit_lengths": [4, 8, 16, 32],
+            "color": "red",
+            "style": "--",
+            "label": "square_and_multiply",
+        },
+        {
+            "name": "montgomery_ladder",
+            "setup_fn": setup_montgomery_ladder,
+            "bit_lengths": [4, 8, 16, 32],
+            "color": "green",
+            "style": "--",
+            "label": "montgomery_ladder",
+        },
     ]
+
+    experiments = [
+        {
+            "name": "lemma_4_1",
+            "setup_fn": setup_lemma_4_1,
+            "bit_lengths": [4, 8, 16, 32, 64],
+            "color": "blue",
+            "style": "--",
+            "label": "lemma_4_1",
+        },
+    ]
+
+    metric = "num_nodes"  # depth, num_nodes or num_edges
 
     plot_circuit_metrics(
         experiments,
-        metric="depth",  # or "num_nodes", "num_edges"
-        title="Comparison of Circuit Depths",
+        metric=metric,
+        title=f"Comparison of Circuits {metric}",
     )
 
 

@@ -161,10 +161,12 @@ def theorem_4_2_precompute_lookup_generator_powers(n: int):
     p_l_lookup = theorem_4_2_precompute_lookup_p_l(n)
     for pexpl_idx, pexpl in enumerate(range(1, n + 1)):
         p, l = p_l_lookup[pexpl_idx]
-        tresh = int(math.pow(p, l)) - int(math.pow(p, l - 1))
+        if p == 0 or l == 0:
+            tresh = 0
+        else:
+            tresh = int(math.pow(p, l)) - int(math.pow(p, l - 1))
         g = primitive_roots[pexpl_idx]
-        pows_of_g = compute_powers_up_to(g, tresh)
-        pows_of_g = [power % pexpl for power in pows_of_g]
+        pows_of_g = compute_powers_mod_up_to(g, pexpl, tresh)
         while len(pows_of_g) < n:
             pows_of_g.append(0)
         # here all pows_of_g lists are n entries long
@@ -199,9 +201,29 @@ def find_primitive_roots(n):
 
 def compute_powers_up_to(g, thresh):
     powers = []
+    if g == 1 or g == 0:
+        return [0]
     i = 0
     while True:
         power = int(math.pow(g, i))
+        i += 1
+        # print(f"g: {g}, i: {i}, power: {power}, thresh: {thresh}")
+        if power <= thresh:
+            powers.append(power)
+        else:
+            break
+    return powers
+
+
+def compute_powers_mod_up_to(g, m, thresh):
+    powers = []
+    if g == 1 or g == 0:
+        return [0]
+    i = 0
+    while True:
+        if i > m:  # check this statement
+            break
+        power = int(pow(g, i, m))
         i += 1
         if power <= thresh:
             powers.append(power)

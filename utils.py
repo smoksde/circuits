@@ -49,3 +49,37 @@ def wheel_factorize(n: int):
 def is_prime_power(n: int):
     factors = wheel_factorize(n)
     return len(set(factors)) == 1
+
+
+def generate_test_values_for_theorem_4_2(n: int):
+
+    while True:
+
+        values = [random.randrange(1, n) for _ in range(n + 1)]
+        pexpl = max(values) + 1
+        values.remove(max(values))
+        x_list = values
+
+        product = 1
+        for x in x_list:
+            product *= x
+        # print(f"product: {product}")
+
+        factors = wheel_factorize(pexpl)
+        l = len(factors)
+        p = factors[0]
+
+        expectation = product % p**l
+
+        if expectation == 0:
+            continue
+
+        # Reject test case if any x_i is divisible by p
+        if any(x % pexpl == 0 for x in x_list):
+            continue
+
+        if not is_prime_power(pexpl):
+            continue
+
+        break
+    return x_list, pexpl, p, l, expectation

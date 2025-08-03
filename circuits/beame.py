@@ -3,7 +3,7 @@ from graph import *
 from .constants import *
 from utils import int2binlist, is_prime_power, wheel_factorize
 from .multipliers import *
-from .manipulators import conditional_zeroing
+from .manipulators import conditional_zeroing, max_tree_iterative
 from .multiplexers import tensor_multiplexer
 from .adders import carry_look_ahead_adder
 from .trees import adder_tree_iterative, or_tree_iterative
@@ -193,7 +193,6 @@ def lemma_4_1(
     lemma_group.set_parent(parent_group)
 
     n = len(x)
-    print("n: ", n)
     y = lemma_4_1_compute_y(circuit, x, m_decr, parent_group=lemma_group)
     result = lemma_4_1_reduce_in_parallel(circuit, y, m, n, parent_group=lemma_group)
     return result
@@ -304,3 +303,126 @@ def theorem_4_2_precompute_lookup_powers(
         result.append(powers_of_p)
 
     return result
+
+
+def theorem_4_2_precompute_lookup_powers_decr(
+    circuit: CircuitGraph,
+    zero: Port,
+    one: Port,
+    n: int,
+    parent_group: Optional[Group] = None,
+):
+    plp_group = circuit.add_group("THEOREM_4_2_PRECOMPUTE_LOOKUP_POWERS_DECR")
+    plp_group.set_parent(parent_group)
+
+    result = []
+    for p in range(1, n + 1):
+        powers_of_p = []
+        for e in range(n):
+            if e > math.log2(n) or p**e > n:
+                power = 0
+            else:
+                power = (p**e) - 1
+            power_bits = int2binlist(power, bit_len=n)
+            power_ports = []
+            for bit in power_bits:
+                if bit:
+                    power_ports.append(one)
+                else:
+                    power_ports.append(zero)
+            powers_of_p.append(power_ports)
+        result.append(powers_of_p)
+
+    return result
+
+
+def theorem_4_2_precompute_lookup_generator_powers():
+    return
+
+
+def theorem_4_2_precompute_lookup_tables_B():
+    return
+
+
+def theorem_4_2_step_1(
+    circuit: CircuitGraph,
+    x_list: List[List[Port]],
+    p: List[Port],
+    p_decr: List[Port],
+    pexpl: List[Port],
+) -> List[List[Port]]:
+    n = len(x_list)
+
+    this_group = circuit.add_group("THEOREM_4_2_STEP_1")
+    zero = constant_zero(circuit, p[0], parent_group=this_group)
+    one = constant_one(circuit, p[0], parent_group=this_group)
+
+    lookup_powers = theorem_4_2_precompute_lookup_powers(
+        circuit, zero, one, len(x_list), parent_group=this_group
+    )
+
+    lookup_powers_decr = theorem_4_2_precompute_lookup_powers_decr(
+        circuit, zero, one, len(x_list), parent_group=this_group
+    )
+
+    p_powers = tensor_multiplexer(circuit, lookup_powers, p_decr)
+    p_powers_decr = tensor_multiplexer(circuit, lookup_powers_decr, p_decr)
+
+    exponents = []
+
+    for x in x_list:
+        res_list = []
+        for i in range(int(math.log2(n))):
+            less, equal, greater = n_bit_comparator(
+                circuit, p_powers[i], pexpl, parent_group=this_group
+            )
+
+            goreq = circuit.add_node(
+                "not", "NOT", inputs=[less], group_id=this_group.id
+            ).ports[1]
+
+            remainder = lemma_4_1(
+                circuit, x, p_powers[i], p_powers_decr[i], parent_group=this_group
+            )
+
+            is_remainder_not_zero = or_tree_iterative(
+                circuit, remainder, parent_group=this_group
+            )
+
+            p_powers_is_not_zero = or_tree_iterative(
+                circuit, p_powers[i], parent_group=this_group
+            )
+            p_powers_is_zero = circuit.add_node(
+                "not", "NOT", inputs=[p_powers_is_not_zero], group_id=this_group.id
+            ).ports[1]
+
+            cond = circuit.add_node(
+                "or",
+                "OR",
+                inputs=[is_remainder_not_zero, goreq],
+                group_id=this_group.id,
+            ).ports[2]
+
+            cond = circuit.add_node(
+                "or", "OR", inputs=[cond, p_powers_is_zero], group_id=this_group.id
+            ).ports[2]
+
+            exponent = generate_number(i, n, zero, one)
+
+            res = conditional_zeroing(circuit, exponent, cond, parent_group=this_group)
+            res_list.append(res)
+        exponent = max_tree_iterative(circuit, res_list, parent_group=this_group)
+        exponents.append(exponent)
+
+    return exponents
+
+
+def generate_number(n: int, bit_len: int, zero: Port, one: Port) -> List[Port]:
+    bits = int2binlist(n, bit_len=bit_len)
+    ports = []
+    for bit in bits:
+        if bit:
+            ports.append(one)
+        else:
+            ports.append(zero)
+    return ports

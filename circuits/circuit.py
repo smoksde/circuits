@@ -13,7 +13,7 @@ from .subtractors import *
 from .modular import *
 from .montgomery_ladder import montgomery_ladder
 from .beame import *
-from .manipulators import conditional_zeroing
+from .manipulators import conditional_zeroing, max_tree_iterative
 
 
 def binary_list_to_int(binary_list):
@@ -357,6 +357,28 @@ CIRCUIT_FUNCTIONS = {
 }
 
 
+def setup_theorem_4_2_step_1(cg: CircuitGraph, bit_len=4):
+    n = bit_len
+    X_LIST_NODES = [cg.add_input_nodes(n, "INPUT") for _ in range(n)]
+    P_NODES = cg.add_input_nodes(n, "INPUT")
+    P_DECR_NODES = cg.add_input_nodes(n, "INPUT")
+    PEXPL_NODES = cg.add_input_nodes(n, "INPUT")
+
+    X_LIST_PORTS = [cg.get_input_nodes_ports(nodes) for nodes in X_LIST_NODES]
+    P_PORTS = cg.get_input_nodes_ports(P_NODES)
+    P_DECR_PORTS = cg.get_input_nodes_ports(P_DECR_NODES)
+    PEXPL_PORTS = cg.get_input_nodes_ports(PEXPL_NODES)
+
+    EXPONENTS_PORTS = theorem_4_2_step_1(
+        cg, X_LIST_PORTS, P_PORTS, P_DECR_PORTS, PEXPL_PORTS
+    )
+
+    EXPONENTS_NODES = [
+        cg.generate_output_nodes_from_ports(ports) for ports in EXPONENTS_PORTS
+    ]
+    return X_LIST_NODES, P_NODES, P_DECR_NODES, PEXPL_NODES, EXPONENTS_NODES
+
+
 def setup_theorem_4_2_precompute_lookup_powers(cg: CircuitGraph, bit_len=4):
     n = bit_len
     input_node = cg.add_input_nodes(1, "INPUT")[0]
@@ -398,6 +420,20 @@ def setup_theorem_4_2_precompute_lookup_p_l(cg: CircuitGraph, bit_len=4):
         l_nodes = cg.generate_output_nodes_from_ports(l)
         O_NODES.append((p_nodes, l_nodes))
     return O_NODES
+
+
+def setup_max_tree_iterative(cg: CircuitGraph, num_amount=4, bit_len=4):
+    VALUES_NODES = []
+    VALUES_PORTS = []
+
+    for i in range(num_amount):
+        X = cg.add_input_nodes(bit_len, label=f"X_{i}")
+        X_PORTS = cg.get_input_nodes_ports(X)
+        VALUES_NODES.append(X)
+        VALUES_PORTS.append(X_PORTS)
+    MAX_PORTS = max_tree_iterative(cg, VALUES_PORTS)
+    MAX_NODES = cg.generate_output_nodes_from_ports(MAX_PORTS, label="OUTPUT")
+    return VALUES_NODES, MAX_NODES
 
 
 def setup_adder_tree_iterative(cg: CircuitGraph, num_amount=4, bit_len=4):
@@ -744,20 +780,6 @@ def setup_constant_one(cg, bit_len=4):
     X = cg.add_node("input", "X")
     one_port = constant_one(cg, X.ports[0])
     one_node = cg.add_node("output", "CONSTANT ONE", inputs=[one_port])
-    return
-
-
-def setup_and_tree_recursive(cg, bit_len=4):
-    X = [cg.add_node("input", f"X{i}") for i in range(bit_len)]
-    out = and_tree_recursive(cg, [x.ports[0] for x in X])
-    cg.add_node("output", "OUTPUT", inputs=[out])
-    return
-
-
-def setup_or_tree_recursive(cg, bit_len=4):
-    X = [cg.add_node("input", f"X{i}") for i in range(bit_len)]
-    out = or_tree_recursive(cg, [x.ports[0] for x in X])
-    cg.add_node("output", "OUTPUT", inputs=[out])
     return
 
 

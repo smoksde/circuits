@@ -3,6 +3,7 @@ from circuits import *
 from graph import *
 from formula import *
 from utils import int2binlist, iter_random_bin_list
+import sanity
 from node import Node
 from port import Port
 from edge import Edge
@@ -828,6 +829,29 @@ class TestCircuitSimulation(unittest.TestCase):
             value = circuit.compute_value_from_ports(circuit.get_output_nodes_ports(O))
             self.assertEqual(expect_num, value)
 
+    def test_max_tree_iterative(self):
+
+        circuit = CircuitGraph()
+        bit_len = 4
+        num_amount = 4
+        n = bit_len
+        VALUES, O = setup_max_tree_iterative(
+            circuit, num_amount=num_amount, bit_len=bit_len
+        )
+        for i in range(20):
+            nums = []
+            nums_bits = []
+            for j in range(num_amount):
+                rand_x = random.randrange(int((2 ** (n - 1) - 1)))
+                rand_x_bits = int2binlist(rand_x, bit_len=bit_len)
+                nums.append(rand_x)
+                nums_bits.append(nums_bits)
+                circuit.fill_node_values(VALUES[j], rand_x_bits)
+            circuit.simulate()
+            expect_num = max(nums)
+            value = circuit.compute_value_from_ports(circuit.get_output_nodes_ports(O))
+            self.assertEqual(expect_num, value)
+
     def test_lemma_4_1_compute_y(self):
         circuit = CircuitGraph()
         bit_len = 4
@@ -937,6 +961,57 @@ class TestCircuitSimulation(unittest.TestCase):
                     got = circuit.compute_value_from_ports(power)
                     expect = sb_o[i][j]
                     self.assertEqual(got, expect)
+
+    def test_theorem_4_2_step_1(self):
+        circuit = CircuitGraph()
+        n = 8
+        X_LIST, P, P_DECR, PEXPL, EXPONENTS = setup_theorem_4_2_step_1(
+            circuit, bit_len=n
+        )
+
+        for _ in range(3):
+            # FILL
+            x_list, pexpl, p, _, _ = utils.generate_test_values_for_theorem_4_2(n)
+            expected_exponents_list = (
+                sanity.theorem_4_2_step_1_compute_largest_power_of_p(x_list, p)
+            )
+
+            for x, nodes in zip(x_list, X_LIST):
+                x_bits = int2binlist(x, bit_len=n)
+                circuit.fill_node_values(nodes, x_bits)
+
+            pexpl_bits = int2binlist(pexpl, bit_len=n)
+            p_bits = int2binlist(p, bit_len=n)
+            p_decr_bits = int2binlist(p - 1, bit_len=n)
+            # l_bits = int2binlist(l, bit_len=n)
+
+            circuit.fill_node_values(P, p_bits)
+            circuit.fill_node_values(P_DECR, p_decr_bits)
+            circuit.fill_node_values(PEXPL, pexpl_bits)
+
+            circuit.simulate()
+
+            EXPONENTS_PORTS = []
+            for nodes in EXPONENTS:
+                EXPONENTS_PORTS.append(circuit.get_output_nodes_ports(nodes))
+
+            for i in range(len(expected_exponents_list)):
+                got_ports = EXPONENTS_PORTS[i]
+                got_value = circuit.compute_value_from_ports(got_ports)
+                print(f"got: {got_value}")
+                print(f"expect: {expected_exponents_list[i]}")
+
+            print("STEP_1 TEST WITH")
+            print(f"x_list: {x_list}, pexpl: {pexpl}, p: {p}")
+
+            for i, expect_expo in enumerate(expected_exponents_list):
+                got_ports = EXPONENTS_PORTS[i]
+                got_value = circuit.compute_value_from_ports(got_ports)
+                self.assertEqual(
+                    got_value,
+                    expect_expo,
+                    msg=(f"got: {got_value}", f"expect: {expect_expo}"),
+                )
 
 
 class TestUtilsFunctions(unittest.TestCase):

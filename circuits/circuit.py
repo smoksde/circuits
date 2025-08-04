@@ -379,6 +379,64 @@ def setup_theorem_4_2_step_1(cg: CircuitGraph, bit_len=4):
     return X_LIST_NODES, P_NODES, P_DECR_NODES, PEXPL_NODES, EXPONENTS_NODES
 
 
+def setup_theorem_4_2_step_2(cg: CircuitGraph, bit_len=4):
+    n = bit_len
+    X_LIST_NODES = [cg.add_input_nodes(n, "INPUT") for _ in range(n)]
+    P_NODES = cg.add_input_nodes(n, "INPUT")
+    P_DECR_NODES = cg.add_input_nodes(n, "INPUT")
+    J_LIST_NODES = [cg.add_input_nodes(n, "INPUT") for _ in range(n)]
+
+    X_LIST_PORTS = [cg.get_input_nodes_ports(nodes) for nodes in X_LIST_NODES]
+    P_PORTS = cg.get_input_nodes_ports(P_NODES)
+    P_DECR_PORTS = cg.get_input_nodes_ports(P_DECR_NODES)
+    J_LIST_PORTS = [cg.get_input_nodes_ports(nodes) for nodes in J_LIST_NODES]
+
+    Y_LIST_PORTS = theorem_4_2_step_2(
+        cg, X_LIST_PORTS, P_PORTS, P_DECR_PORTS, J_LIST_PORTS
+    )
+
+    Y_LIST_NODES = [
+        cg.generate_output_nodes_from_ports(ports) for ports in Y_LIST_PORTS
+    ]
+    return X_LIST_NODES, P_NODES, P_DECR_NODES, J_LIST_NODES, Y_LIST_NODES
+
+
+def setup_theorem_4_2_compute_sum(cg: CircuitGraph, bit_len=4):
+    n = bit_len
+    J_LIST_NODES = [cg.add_input_nodes(n, "INPUT") for _ in range(n)]
+    J_LIST_PORTS = [cg.get_input_nodes_ports(nodes) for nodes in J_LIST_NODES]
+    J_PORTS = theorem_4_2_compute_sum(cg, J_LIST_PORTS)
+    J_NODES = cg.generate_output_nodes_from_ports(J_PORTS)
+    return J_LIST_NODES, J_NODES
+
+
+def setup_theorem_4_2_step_4(cg: CircuitGraph, bit_len=4):
+    n = bit_len
+    P_NODES = cg.add_input_nodes(n, "INPUT")
+    PEXPL_NODES = cg.add_input_nodes(n, "INPUT")
+    P_PORTS = cg.get_input_nodes_ports(P_NODES)
+    PEXPL_PORTS = cg.get_input_nodes_ports(PEXPL_NODES)
+    FLAG = theorem_4_2_step_4(cg, P_PORTS, PEXPL_PORTS)
+    FLAG_NODE = cg.generate_output_node_from_port(FLAG)
+    return P_NODES, PEXPL_NODES, FLAG_NODE
+
+
+def setup_theorem_4_2_precompute_lookup_division(cg: CircuitGraph, bit_len=4):
+    n = bit_len
+    input_node = cg.add_input_nodes(1, "INPUT")[0]
+    input_port = cg.get_input_node_port(input_node)
+    zero_port = constant_zero(cg, input_port)
+    one_port = constant_one(cg, input_port)
+    TABLE = theorem_4_2_precompute_lookup_division(cg, zero_port, one_port, n)
+    TABLE_NODES = []
+    for row in TABLE:
+        nodes = [
+            cg.generate_output_nodes_from_ports(entry, label="OUTPUT") for entry in row
+        ]
+        TABLE_NODES.append(nodes)
+    return TABLE_NODES
+
+
 def setup_theorem_4_2_precompute_lookup_powers(cg: CircuitGraph, bit_len=4):
     n = bit_len
     input_node = cg.add_input_nodes(1, "INPUT")[0]

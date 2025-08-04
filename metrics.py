@@ -461,6 +461,25 @@ def run_selected_plot():
         },
     ]
 
+    experiments = [
+        {
+            "name": "lemma_4_1",
+            "setup_fn": setup_lemma_4_1,
+            "bit_lengths": [2, 4, 8, 16],
+            "color": "blue",
+            "style": "--",
+            "label": "lemma_4_1",
+        },
+        {
+            "name": "theorem_4_2_step_1",
+            "setup_fn": setup_theorem_4_2_step_1,
+            "bit_lengths": [2, 4, 8],
+            "color": "red",
+            "style": "--",
+            "label": "theorem_4_2_step_1",
+        },
+    ]
+
     metric = "num_nodes"  # depth, num_nodes or num_edges
 
     plot_circuit_metrics(
@@ -473,7 +492,7 @@ def run_selected_plot():
 if __name__ == "__main__":
 
     # plot_metrics_for_adders()
-    # plot_metrics_for_modulo_functions()
+    # plot_metrics_for_modulo_functions()d"  # dep
     # analyze_all_functions()
     # compare_sam_ml_depth()
     # plot_metrics_for_lemma_4_1()

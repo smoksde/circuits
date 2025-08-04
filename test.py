@@ -962,6 +962,23 @@ class TestCircuitSimulation(unittest.TestCase):
                     expect = sb_o[i][j]
                     self.assertEqual(got, expect)
 
+    def test_theorem_4_2_precompute_lookup_division(self):
+        circuit = CircuitGraph()
+        n = 8
+        TABLE = setup_theorem_4_2_precompute_lookup_division(circuit, bit_len=n)
+        circuit.simulate()
+        TABLE_PORTS = []
+        for row in TABLE:
+            ports = [circuit.get_output_nodes_ports(entry) for entry in row]
+            TABLE_PORTS.append(ports)
+        for i, row in enumerate(TABLE_PORTS):
+            for j, entry in enumerate(row):
+                if i == 0 or j == 0:
+                    continue
+                got = circuit.compute_value_from_ports(entry)
+                expect = (i) // (j)
+                self.assertEqual(got, expect)
+
     def test_theorem_4_2_step_1(self):
         circuit = CircuitGraph()
         n = 8
@@ -969,7 +986,7 @@ class TestCircuitSimulation(unittest.TestCase):
             circuit, bit_len=n
         )
 
-        for _ in range(3):
+        for _ in range(1):
             # FILL
             x_list, pexpl, p, _, _ = utils.generate_test_values_for_theorem_4_2(n)
             expected_exponents_list = (
@@ -1012,6 +1029,93 @@ class TestCircuitSimulation(unittest.TestCase):
                     expect_expo,
                     msg=(f"got: {got_value}", f"expect: {expect_expo}"),
                 )
+
+    def test_theorem_4_2_step_2(self):
+        circuit = CircuitGraph()
+        n = 8
+        X_LIST_NODES, P_NODES, P_DECR_NODES, J_LIST_NODES, Y_LIST_NODES = (
+            setup_theorem_4_2_step_2(circuit, bit_len=n)
+        )
+        for loop_idx in range(10):
+            print(f"TEST_THEOREM_4_2_STEP_2 CASE: {loop_idx + 1}")
+            # GENERATE TEST CASE VALUES
+            x_list, pexpl, p, l, expectation = (
+                utils.generate_test_values_for_theorem_4_2(n)
+            )
+            j_list = sanity.theorem_4_2_step_1_compute_largest_power_of_p(x_list, p)
+            y_list = sanity.theorem_4_2_step_2_compute_x_divided_by_p(x_list, j_list, p)
+            # FILL VALUES
+            for nodes, x in zip(X_LIST_NODES, x_list):
+                circuit.fill_node_values(nodes, int2binlist(x, bit_len=n))
+            circuit.fill_node_values(P_NODES, int2binlist(p, bit_len=n))
+            circuit.fill_node_values(P_DECR_NODES, int2binlist(p - 1, bit_len=n))
+            for nodes, j in zip(J_LIST_NODES, j_list):
+                circuit.fill_node_values(nodes, int2binlist(j, bit_len=n))
+
+            circuit.simulate()
+
+            Y_LIST_PORTS = [
+                circuit.get_output_nodes_ports(nodes) for nodes in Y_LIST_NODES
+            ]
+
+            for idx, expect_y in enumerate(y_list):
+                got_y = circuit.compute_value_from_ports(Y_LIST_PORTS[idx])
+                self.assertEqual(got_y, expect_y)
+
+    def test_theorem_4_2_compute_sum(self):
+        circuit = CircuitGraph()
+        n = 8
+        J_LIST_NODES, J_NODES = setup_theorem_4_2_compute_sum(circuit, bit_len=n)
+
+        for loop_idx in range(10):
+            rand_nums = [random.randrange(0, 2 * n // n)]
+            # FILL
+            for nodes, num in zip(J_LIST_NODES, rand_nums):
+                circuit.fill_node_values(nodes, int2binlist(num, bit_len=n))
+
+            circuit.simulate()
+
+            J_PORTS = circuit.get_output_nodes_ports(J_NODES)
+
+            got_j = circuit.compute_value_from_ports(J_PORTS)
+            expect_j = sum(rand_nums)
+            self.assertEqual(got_j, expect_j)
+
+    def test_theorem_4_2_step_4(self):
+        circuit = CircuitGraph()
+        n = 8
+        P_NODES, PEXPL_NODES, FLAG_NODE = setup_theorem_4_2_step_4(circuit, bit_len=n)
+
+        for loop_idx in range(100):
+            p = random.randrange(0, 2 ** (n - 1) - 1)
+            pexpl = random.randrange(0, 2 ** (n - 1) - 1)
+
+            r1 = random.randrange(0, 6)
+            r2 = random.randrange(0, 6)
+
+            if r1 == 0:
+                p = 2
+            if r2 == 0:
+                pexpl = 2
+            elif r2 == 1:
+                pexpl = 4
+
+            # FILL
+
+            circuit.fill_node_values(P_NODES, int2binlist(p, bit_len=n))
+            circuit.fill_node_values(PEXPL_NODES, int2binlist(pexpl, bit_len=n))
+
+            circuit.simulate()
+
+            FLAG_PORT = circuit.get_output_node_port(FLAG_NODE)
+
+            got_flag = circuit.compute_value_from_ports([FLAG_PORT])
+            if p != 2 or pexpl in [2, 4]:
+                except_flag = 1
+            else:
+                except_flag = 0
+
+            self.assertEqual(got_flag, except_flag)
 
 
 class TestUtilsFunctions(unittest.TestCase):

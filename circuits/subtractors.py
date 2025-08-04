@@ -20,6 +20,25 @@ def subtract(circuit, a_bits, b_bits, parent_group=None) -> List[Port]:
     return result
 
 
+"""
+def subtract_one(circuit, bits, parent_group: Optional[Group] = None) -> List[Port]:
+    this_group = circuit.add_group("SUBTRACT_ONE")
+    this_group.set_parent(parent_group)
+
+    n = len(bits)
+
+    zero = constant_zero(circuit, bits[0], parent_group=this_group)
+    one = constant_one(circuit, bits[0], parent_group=this_group)
+
+    # BUILD NUMBER ONE
+    num_one = [zero for _ in range(n)]
+    num_one[0] = one
+
+    result = subtract(circuit, bits, num_one, parent_group=this_group)
+    return result
+"""
+
+
 def conditional_subtract(circuit, x_bits, m_bits, select, parent_group=None):
     cs_group = circuit.add_group("CONDITIONAL_SUBTRACT")
     cs_group.set_parent(parent_group)

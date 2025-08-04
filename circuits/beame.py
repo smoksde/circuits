@@ -4,11 +4,12 @@ from .constants import *
 from utils import int2binlist, is_prime_power, wheel_factorize
 from .multipliers import *
 from .manipulators import conditional_zeroing, max_tree_iterative
-from .multiplexers import tensor_multiplexer
+from .multiplexers import tensor_multiplexer, bus_multiplexer
 from .adders import carry_look_ahead_adder
 from .trees import adder_tree_iterative, or_tree_iterative
 from .subtractors import subtract
 from .comparators import n_bit_comparator
+from .shifters import one_left_shift
 import math
 
 from asserts import *
@@ -115,10 +116,23 @@ def lemma_4_1_compute_diffs(
 
     diff_list = []
 
+    # m_powers = [m]
+
+    # for i in range(int(math.log2(n))):
+    #    current_len = len(m_powers)
+    #    current = m_powers[current_len - 1]
+    #    next = one_left_shift(circuit, current, parent_group=cd_group)
+    #    m_powers.append(next)
+
     for i in range(n):
         if i == 0:
             acc = [zero for k in range(n)]
         else:
+            # summands = []
+            # i_bits = int2binlist(i, bit_len=n)
+            # for idx, bit in enumerate(i_bits):
+            #    if bit:
+            #        summands.append(m_powers[idx])
             summands = [m for _ in range(i)]
             acc = adder_tree_iterative(circuit, summands, zero, parent_group=cd_group)
         # acc = [zero for k in range(n)]
@@ -280,7 +294,7 @@ def theorem_4_2_precompute_lookup_powers(
     one: Port,
     n: int,
     parent_group: Optional[Group] = None,
-):
+) -> List[List[List[Port]]]:
     plp_group = circuit.add_group("THEOREM_4_2_PRECOMPUTE_LOOKUP_POWERS")
     plp_group.set_parent(parent_group)
 
@@ -350,10 +364,13 @@ def theorem_4_2_step_1(
     p: List[Port],
     p_decr: List[Port],
     pexpl: List[Port],
+    parent_group: Optional[Group] = None,
 ) -> List[List[Port]]:
     n = len(x_list)
 
     this_group = circuit.add_group("THEOREM_4_2_STEP_1")
+    this_group.set_parent(parent_group)
+
     zero = constant_zero(circuit, p[0], parent_group=this_group)
     one = constant_one(circuit, p[0], parent_group=this_group)
 
@@ -415,6 +432,142 @@ def theorem_4_2_step_1(
         exponents.append(exponent)
 
     return exponents
+
+
+def theorem_4_2_step_2(
+    circuit: CircuitGraph,
+    x_list: List[List[Port]],
+    p: List[Port],
+    p_decr: List[Port],
+    j_list: List[List[Port]],
+    parent_group: Optional[Group] = None,
+):
+
+    this_group = circuit.add_group("THEOREM_4_2_STEP_2")
+    this_group.set_parent(parent_group)
+
+    n = len(x_list)
+
+    zero = constant_zero(circuit, p[0], parent_group=this_group)
+    one = constant_one(circuit, p[0], parent_group=this_group)
+
+    powers_lookup = theorem_4_2_precompute_lookup_powers(
+        circuit, zero, one, n, parent_group=this_group
+    )
+
+    division_lookup = theorem_4_2_precompute_lookup_division(
+        circuit, zero, one, n, parent_group=this_group
+    )
+
+    powers_of_p_bus = tensor_multiplexer(
+        circuit, powers_lookup, p_decr, parent_group=this_group
+    )
+
+    y_list = []
+    for i in range(n):
+        x = x_list[i]
+
+        power = bus_multiplexer(
+            circuit, powers_of_p_bus, j_list[i], parent_group=this_group
+        )
+        quotient_bus = tensor_multiplexer(
+            circuit, division_lookup, x, parent_group=this_group
+        )
+        quotient = bus_multiplexer(
+            circuit, quotient_bus, power, parent_group=this_group
+        )
+        y_list.append(quotient)
+    return y_list
+
+
+# This is used for Theorem 4.2 Step 3, 6
+def theorem_4_2_compute_sum(
+    circuit: CircuitGraph,
+    j_list: List[List[Port]],
+    parent_group: Optional[Group] = None,
+):
+    this_group = circuit.add_group("THEOREM_4_2_STEP_3")
+    this_group.set_parent(parent_group)
+
+    zero = constant_zero(circuit, j_list[0][0], parent_group=this_group)
+    j = adder_tree_iterative(circuit, j_list, zero, parent_group=this_group)
+    return j
+
+
+def theorem_4_2_step_4(
+    circuit: CircuitGraph,
+    p: List[Port],
+    pexpl: List[Port],
+    parent_group: Optional[Group] = None,
+):
+    this_group = circuit.add_group("THEOREM_4_2_STEP_4")
+    this_group.set_parent(parent_group)
+
+    n = len(p)
+
+    zero = constant_zero(circuit, p[0], parent_group=this_group)
+    one = constant_one(circuit, p[0], parent_group=this_group)
+
+    # BUILD NUM TWO
+    num_two = [zero for _ in range(n)]
+    num_two[1] = one
+
+    # BUILD NUM FOUR
+    num_four = [zero for _ in range(n)]
+    num_four[2] = one
+
+    _, p_equals_two, _ = n_bit_comparator(circuit, p, num_two, parent_group=this_group)
+    p_not_equals_two = circuit.add_node(
+        "not", "NOT", inputs=[p_equals_two], group_id=this_group.id
+    ).ports[1]
+
+    _, pexpl_equals_two, _ = n_bit_comparator(
+        circuit, pexpl, num_two, parent_group=this_group
+    )
+    _, pexpl_equals_four, _ = n_bit_comparator(
+        circuit, pexpl, num_four, parent_group=this_group
+    )
+
+    two_or_four = circuit.add_node(
+        "or", "OR", inputs=[pexpl_equals_two, pexpl_equals_four], group_id=this_group.id
+    ).ports[2]
+
+    flag = circuit.add_node(
+        "or", "OR", inputs=[p_not_equals_two, two_or_four], group_id=this_group.id
+    ).ports[2]
+
+    return flag
+
+
+# WITH INDEX PADDING -> NO NEED FOR VARIABLE_DECR
+def theorem_4_2_precompute_lookup_division(
+    circuit: CircuitGraph,
+    zero: Port,
+    one: Port,
+    n: int,
+    parent_group: Optional[Group] = None,
+):
+    this_group = circuit.add_group("THEOREM_4_2_PRECOMPUTE_LOOKUP_DIVISION")
+    this_group.set_parent(parent_group)
+
+    table = []
+    for x in range(n + 1):
+        row = []
+        for y in range(n + 1):
+            ports = []
+            if x == 0 or y == 0:
+                ports = [zero for _ in range(n)]
+            else:
+                value = x // y
+                value_bits = int2binlist(value, bit_len=n)
+                for bit in value_bits:
+                    if bit:
+                        ports.append(one)
+                    else:
+                        ports.append(zero)
+            row.append(ports)
+        table.append(row)
+    return table
 
 
 def generate_number(n: int, bit_len: int, zero: Port, one: Port) -> List[Port]:

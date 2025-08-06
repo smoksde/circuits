@@ -55,13 +55,17 @@ def theorem_4_2_step_4_test_condition(p, l):
 def theorem_4_2_A_step_5_find_discrete_logarithms(disc_log_lookup, pexpl_idx, y_list):
     powers_list = disc_log_lookup[pexpl_idx]
     a_list = []
+    print("pexpl_idx: ", pexpl_idx)
     for y in y_list:
         if y not in powers_list:
             print("powers_list:")
             print(powers_list)
             print("y:")
             print(y)
-        a = powers_list.index(y)
+        a = powers_list.index(
+            y
+        )  # usual way, but not compatible with how the index in the circuit part is calculated
+        # a = len(powers_list) - 1 - powers_list[::-1].index(y)
         a_list.append(a)
     return a_list
 
@@ -145,7 +149,7 @@ def theorem_4_2_compute(x_list, p, l, debug=False):
     if not do_b:
         print("Start of Part A")
         a_list = theorem_4_2_A_step_5_find_discrete_logarithms(
-            disc_log_lookup, pexpl_idx, y_list
+            disc_log_lookup, pexpl, y_list
         )
         print("a_list: ")
         print(a_list)
@@ -157,7 +161,7 @@ def theorem_4_2_compute(x_list, p, l, debug=False):
         print(a_hat)
         a_hat_idx = a_hat  # - 1????
         y_product = theorem_4_2_A_step_8_read_reverse_log(
-            disc_log_lookup, pexpl_idx, a_hat_idx
+            disc_log_lookup, pexpl, a_hat_idx
         )
     else:
         print("Start of Part B")

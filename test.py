@@ -340,6 +340,30 @@ class TestCircuitSimulation(unittest.TestCase):
             self.assertEqual(circuit.get_port_value(E.ports[0]), expect_E)
             self.assertEqual(circuit.get_port_value(G.ports[0]), expect_G)
 
+    def test_n_bit_equality(self):
+        circuit = CircuitGraph()
+        bit_len = 8
+        n = bit_len
+        A, B, EQUALS = setup_n_bit_equality(circuit, bit_len=bit_len)
+        for _ in range(40):
+            rand_a = random.randrange(2**n - 1)
+            rand_b = random.randrange(2**n - 1)
+            rand_set_equals = random.randrange(2)
+            if rand_set_equals:
+                rand_b = rand_a
+            circuit.fill_node_values(A, int2binlist(rand_a, bit_len=n))
+            circuit.fill_node_values(B, int2binlist(rand_b, bit_len=n))
+
+            circuit.simulate()
+
+            EQUALS_PORT = circuit.get_output_node_port(EQUALS)
+            got = circuit.compute_value_from_ports([EQUALS_PORT])
+            if rand_a == rand_b:
+                expect = 1
+            else:
+                expect = 0
+            self.assertEqual(got, expect)
+
     def test_modulo_circuit(self):
         circuit = CircuitGraph()
         bit_len = 4
@@ -928,10 +952,12 @@ class TestCircuitSimulation(unittest.TestCase):
         circuit = CircuitGraph()
         for n in [4, 8]:
             sb_o = sb.theorem_4_2_precompute_lookup_p_l(n)
-            O = setup_theorem_4_2_precompute_lookup_p_l(circuit, bit_len=n)
+            P_TABLE_NODES, L_TABLE_NODES = setup_theorem_4_2_precompute_lookup_p_l(
+                circuit, bit_len=n
+            )
             circuit.simulate()
             O_PORTS = []
-            for p_nodes, l_nodes in O:
+            for p_nodes, l_nodes in zip(P_TABLE_NODES, L_TABLE_NODES):
                 p_ports = circuit.get_output_nodes_ports(p_nodes)
                 l_ports = circuit.get_output_nodes_ports(l_nodes)
                 O_PORTS.append((p_ports, l_ports))
@@ -978,6 +1004,92 @@ class TestCircuitSimulation(unittest.TestCase):
                 got = circuit.compute_value_from_ports(entry)
                 expect = (i) // (j)
                 self.assertEqual(got, expect)
+
+    def test_theorem_4_2_precompute_lookup_generator_powers(self):
+        circuit = CircuitGraph()
+        n = 8
+        TABLE = setup_theorem_4_2_precompute_lookup_generator_powers(circuit, bit_len=n)
+        circuit.simulate()
+        TABLE_PORTS = []
+        for row in TABLE:
+            ports = [circuit.get_output_nodes_ports(entry) for entry in row]
+            TABLE_PORTS.append(ports)
+
+        software_generator_powers = sb.theorem_4_2_precompute_lookup_generator_powers(n)
+
+        for i, row in enumerate(TABLE_PORTS):
+            for j, entry in enumerate(row):
+                if i == 0:
+                    continue
+                got = circuit.compute_value_from_ports(entry)
+                expect = software_generator_powers[i][j]
+                self.assertEqual(got, expect)
+
+    def test_theorem_4_2_precompute_lookup_tables_B(self):
+        circuit = CircuitGraph()
+        n = 8
+        TABLE_ZERO, TABLE_ONE = setup_theorem_4_2_precompute_lookup_tables_B(
+            circuit, bit_len=n
+        )
+
+        circuit.simulate()
+
+        TABLE_ZERO_PORTS = []
+        for row in TABLE_ZERO:
+            ports = [circuit.get_output_nodes_ports(entry) for entry in row]
+            TABLE_ZERO_PORTS.append(ports)
+        TABLE_ONE_PORTS = []
+        for row in TABLE_ONE:
+            ports = [circuit.get_output_nodes_ports(entry) for entry in row]
+            TABLE_ONE_PORTS.append(ports)
+
+        for i, row in enumerate(TABLE_ZERO_PORTS):
+            for j, entry in enumerate(row):
+                try:
+                    expect = sanity.compute_a_b_l_formula(0, j, i)
+                except:
+                    expect = 0
+                if expect > (2**n) - 1:
+                    expect = 0
+                got = circuit.compute_value_from_ports(entry)
+                self.assertEqual(
+                    got, expect, msg=(f"got: {got}, expect: {expect}, i: {i}, j: {j}")
+                )
+
+        for i, row in enumerate(TABLE_ONE_PORTS):
+            for j, entry in enumerate(row):
+                try:
+                    expect = sanity.compute_a_b_l_formula(1, j, i)
+                except:
+                    expect = 0
+                if expect > (2**n) - 1:
+                    expect = 0
+                got = circuit.compute_value_from_ports(entry)
+                self.assertEqual(
+                    got, expect, msg=(f"got: {got}, expect: {expect}, i: {i}, j: {j}")
+                )
+
+    def test_theorem_4_2_precompute_lookup_pexpl_minus_pexpl_minus_one(self):
+        circuit = CircuitGraph()
+        n = 8
+        TABLE = setup_theorem_4_2_precompute_lookup_pexpl_minus_pexpl_minus_one(
+            circuit, bit_len=n
+        )
+        circuit.simulate()
+        TABLE_PORTS = []
+        for nodes in TABLE:
+            ports = circuit.get_output_nodes_ports(nodes)
+            TABLE_PORTS.append(ports)
+
+        p_l_lookup = sb.theorem_4_2_precompute_lookup_p_l(n)
+        for idx, ports in enumerate(TABLE_PORTS):
+            p, l = p_l_lookup[idx]
+            got = circuit.compute_value_from_ports(ports)
+            if l - 1 < 0:
+                expect = 0
+            else:
+                expect = idx - (p ** (l - 1))
+            self.assertEqual(got, expect)
 
     def test_theorem_4_2_step_1(self):
         circuit = CircuitGraph()
@@ -1116,6 +1228,56 @@ class TestCircuitSimulation(unittest.TestCase):
                 except_flag = 0
 
             self.assertEqual(got_flag, except_flag)
+
+    def test_theorem_4_2_step_5(self):
+        circuit = CircuitGraph()
+        n = 8
+        Y_LIST_NODES, PEXPL_NODES, A_LIST_NODES = setup_theorem_4_2_A_step_5(
+            circuit, bit_len=n
+        )
+
+        sw_disc_log_lookup = sanity.theorem_4_2_precompute_lookup_generator_powers(n)
+
+        for loop_idx in range(3):
+
+            while True:
+                x_list, pexpl, p, l, expectation = (
+                    utils.generate_test_values_for_theorem_4_2(n)
+                )
+                if p != 2 or pexpl in [2, 4]:
+                    break
+            print(f"loop_idx: {loop_idx}")
+            print(f"x_list: {x_list}")
+            print(f"pexpl: {pexpl}")
+            print(f"p: {p}")
+            print(f"l: {l}")
+            j_list = sanity.theorem_4_2_step_1_compute_largest_power_of_p(x_list, p)
+            print("x_list: ")
+            print(x_list)
+            y_list = sanity.theorem_4_2_step_2_compute_x_divided_by_p(x_list, j_list, p)
+            print("y_list: ")
+            print(y_list)
+            a_list = sanity.theorem_4_2_A_step_5_find_discrete_logarithms(
+                sw_disc_log_lookup, pexpl, y_list
+            )
+
+            # FILL
+            for idx, nodes in enumerate(Y_LIST_NODES):
+                circuit.fill_node_values(nodes, int2binlist(y_list[idx], bit_len=n))
+
+            circuit.fill_node_values(PEXPL_NODES, int2binlist(pexpl, bit_len=n))
+
+            circuit.simulate()
+
+            A_LIST_PORTS = [
+                circuit.get_output_nodes_ports(nodes) for nodes in A_LIST_NODES
+            ]
+
+            for idx, a_ports in enumerate(A_LIST_PORTS):
+                got = circuit.compute_value_from_ports(a_ports)
+                expect = a_list[idx]
+                print(f"got: {got}, expect: {expect}")
+                self.assertEqual(got, expect)
 
 
 class TestUtilsFunctions(unittest.TestCase):

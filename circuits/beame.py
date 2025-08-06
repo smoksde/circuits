@@ -1,16 +1,25 @@
-from typing import List, Optional
+from typing import List, Optional, Tuple
 from graph import *
 from .constants import *
 from utils import int2binlist, is_prime_power, wheel_factorize
+from .utils import generate_number
 from .multipliers import *
-from .manipulators import conditional_zeroing, max_tree_iterative
+from .manipulators import (
+    conditional_zeroing,
+    max_tree_iterative,
+    smallest_non_zero_tree_iterative,
+    min_tree_iterative,
+)
 from .multiplexers import tensor_multiplexer, bus_multiplexer
 from .adders import carry_look_ahead_adder
 from .trees import adder_tree_iterative, or_tree_iterative
 from .subtractors import subtract
-from .comparators import n_bit_comparator
+from .comparators import n_bit_comparator, n_bit_equality
 from .shifters import one_left_shift
 import math
+
+import software_beame as sb
+import sanity
 
 from asserts import *
 
@@ -259,9 +268,10 @@ def theorem_4_2_precompute_lookup_p_l(
     plpl_group = circuit.add_group(label="PRECOMPUTE_LOOKUP_P_L")
     plpl_group.set_parent(parent_group)
 
-    result = []
-    for i in range(1, n + 1):
-        if is_prime_power(i):
+    p_result = []
+    l_result = []
+    for i in range(0, n + 1):
+        if is_prime_power(i) and i != 0:
             factorization = wheel_factorize(i)
             p = factorization[0]
             l = len(factorization)
@@ -280,12 +290,14 @@ def theorem_4_2_precompute_lookup_p_l(
                     L_PORTS.append(one)
                 else:
                     L_PORTS.append(zero)
-            result.append((P_PORTS, L_PORTS))
+            p_result.append(P_PORTS)
+            l_result.append(L_PORTS)
         else:
             P_PORTS = [zero for _ in range(n)]
             L_PORTS = [zero for _ in range(n)]
-            result.append((P_PORTS, L_PORTS))
-    return result
+            p_result.append(P_PORTS)
+            l_result.append(L_PORTS)
+    return p_result, l_result
 
 
 def theorem_4_2_precompute_lookup_powers(
@@ -350,12 +362,106 @@ def theorem_4_2_precompute_lookup_powers_decr(
     return result
 
 
-def theorem_4_2_precompute_lookup_generator_powers():
-    return
+# WITH DUMMY ROW FOR SIMPLER INDEXING
+def theorem_4_2_precompute_lookup_generator_powers(
+    circuit: CircuitGraph,
+    zero: Port,
+    one: Port,
+    n: int,
+    parent_group: Optional[Group] = None,
+):
+    this_group = circuit.add_group("THEOREM_4_2_PRECOMPUTE_LOOKUP_GENERATOR_POWERS")
+    this_group.set_parent(parent_group)
+
+    result = []
+    software_primitive_roots = sb.find_primitive_roots(n)
+    software_p_l_lookup = sb.theorem_4_2_precompute_lookup_p_l(n)
+
+    dummy_row = []
+    for i in range(n):
+        dummy_row.append([zero for _ in range(n)])
+    result.append(dummy_row)
+
+    for pexpl_idx, pexpl in enumerate(range(1, n + 1)):
+        row = []
+        p, l = software_p_l_lookup[pexpl]
+        if p == 0 or l == 0:
+            thresh = 0
+        else:
+            thresh = int(math.pow(p, l)) - int(math.pow(p, l - 1))
+        g = software_primitive_roots[pexpl_idx]
+        software_pows_of_g = sb.compute_powers_mod_up_to(g, pexpl, thresh)
+        while len(software_pows_of_g) < n:
+            software_pows_of_g.append(0)
+
+        # FILL ROW
+        for entry in software_pows_of_g:
+            bits = int2binlist(entry, bit_len=n)
+            num_ports = []
+            for bit in bits:
+                if bit:
+                    num_ports.append(one)
+                else:
+                    num_ports.append(zero)
+            row.append(num_ports)
+        result.append(row)
+    return result
 
 
-def theorem_4_2_precompute_lookup_tables_B():
-    return
+def theorem_4_2_precompute_lookup_tables_B(
+    circuit: CircuitGraph,
+    zero: Port,
+    one: Port,
+    n: int,
+    parent_group: Optional[Group] = None,
+):
+    this_group = circuit.add_group("THEOREM_4_2_PRECOMPUTE_LOOKUP_TABLES_B")
+    this_group.set_parent(parent_group)
+    # TABLE for a == 0
+    TABLE_ZERO = []
+    for l in range(0, int(math.log2(n)) + 1):
+        row = []
+        for b in range(0, n + 1):
+            try:
+                value = sanity.compute_a_b_l_formula(0, b, l)
+            except:
+                value = 0
+            if value > 2**n - 1:
+                value = 0
+            value_bits = int2binlist(value, bit_len=n)
+
+            num = []
+            for bit in value_bits:
+                if bit:
+                    num.append(one)
+                else:
+                    num.append(zero)
+            row.append(num)
+        TABLE_ZERO.append(row)
+
+    # TABLE for a == 1
+    TABLE_ONE = []
+    for l in range(0, int(math.log2(n)) + 1):
+        row = []
+        for b in range(0, n + 1):
+            try:
+                value = sanity.compute_a_b_l_formula(1, b, l)
+            except:
+                value = 0
+            if value > (2**n) - 1:
+                value = 0
+            value_bits = int2binlist(value, bit_len=n)
+
+            num = []
+            for bit in value_bits:
+                if bit:
+                    num.append(one)
+                else:
+                    num.append(zero)
+            row.append(num)
+        TABLE_ONE.append(row)
+
+    return TABLE_ZERO, TABLE_ONE
 
 
 def theorem_4_2_step_1(
@@ -539,6 +645,108 @@ def theorem_4_2_step_4(
     return flag
 
 
+def theorem_4_2_A_step_5(
+    circuit: CircuitGraph,
+    y_list: List[List[Port]],
+    pexpl: List[Port],
+    parent_group: Optional[Group] = None,
+):
+
+    this_group = circuit.add_group("THEOREM_4_2_A_STEP_5")
+    this_group.set_parent(parent_group)
+
+    n = len(y_list[0])
+
+    zero = constant_zero(circuit, y_list[0][0], parent_group=this_group)
+    one = constant_one(circuit, y_list[0][0], parent_group=this_group)
+
+    generator_powers_lookup = theorem_4_2_precompute_lookup_generator_powers(
+        circuit, zero, one, n, parent_group=this_group
+    )
+
+    generator_powers_bus = tensor_multiplexer(
+        circuit, generator_powers_lookup, pexpl, parent_group=this_group
+    )
+
+    a_list = []
+
+    supremum_num = len(generator_powers_bus)
+    supremum = generate_number(supremum_num, n, zero, one)
+
+    for y in y_list:
+        e_candidates = []
+        for idx, num in enumerate(generator_powers_bus):
+            # check for equality with y
+            # generate number from idx
+            # pass only the correct idx number via conditional zeroing, max_tree_iterative
+            equals = n_bit_equality(circuit, y, num, parent_group=this_group)
+            # not_equals = circuit.add_node(
+            #    "not", "NOT", inputs=[equals], group_id=this_group.id
+            # ).ports[1]
+            e_num = generate_number(idx, n, zero, one)
+            # e_num = conditional_zeroing(
+            #    circuit, e_num, not_equals, parent_group=this_group
+            # )
+            e_num = bus_multiplexer(
+                circuit, [supremum, e_num], [equals], parent_group=this_group
+            )
+            e_candidates.append(e_num)
+        a = min_tree_iterative(circuit, e_candidates, parent_group=this_group)
+        a_list.append(a)
+    return a_list
+
+
+"""
+# Circuit for a_hat = a mod (p^l - p^(l-1))
+def theorem_4_2_A_step_7(
+    circuit: CircuitGraph,
+    a: List[Port],
+    pexpl: List[Port],
+    p_lookup: List[List[Port]],
+    l_lookup: List[List[Port]],
+    m_lookup: List[List[Port]],
+    parent_group: Optional[Group] = None,
+) -> List[Port]:
+
+    this_group = circuit.add_group("THEOREM_4_2_A_STEP_7")
+    this_group.set_parent(parent_group)
+
+    a_hat = lemma_4_1(circuit, a, m, m_decr, parent_group=this_group)
+"""
+
+
+def theorem_4_2_precompute_lookup_pexpl_minus_pexpl_minus_one(
+    circuit: CircuitGraph,
+    zero: Port,
+    one: Port,
+    n: int,
+    parent_group: Optional[Group] = None,
+):
+    this_group = circuit.add_group(
+        "THEOREM_4_2_PRECOMPUTE_LOOKUP_PEXPL_MINUS_PEXPL_MINUS_ONE"
+    )
+    this_group.set_parent(parent_group)
+
+    p_l_lookup = sb.theorem_4_2_precompute_lookup_p_l(n)
+
+    table = []
+    for pexpl in range(0, n + 1):
+        p, l = p_l_lookup[pexpl]
+        if l - 1 < 0:
+            term = 0
+        else:
+            term = pexpl - p ** (l - 1)
+        term_bits = int2binlist(term, bit_len=n)
+        num = []
+        for bit in term_bits:
+            if bit:
+                num.append(one)
+            else:
+                num.append(zero)
+        table.append(num)
+    return table
+
+
 # WITH INDEX PADDING -> NO NEED FOR VARIABLE_DECR
 def theorem_4_2_precompute_lookup_division(
     circuit: CircuitGraph,
@@ -568,14 +776,3 @@ def theorem_4_2_precompute_lookup_division(
             row.append(ports)
         table.append(row)
     return table
-
-
-def generate_number(n: int, bit_len: int, zero: Port, one: Port) -> List[Port]:
-    bits = int2binlist(n, bit_len=bit_len)
-    ports = []
-    for bit in bits:
-        if bit:
-            ports.append(one)
-        else:
-            ports.append(zero)
-    return ports

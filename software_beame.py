@@ -3,33 +3,9 @@ import numpy as np
 from typing import Iterable
 from functools import reduce
 import operator
-from utils import int2binlist, is_prime_power, wheel_factorize
+import utils
 
 # Software level implementations of sections out of Log Depth Circuits for Division and Related Problems
-
-
-def compute_first_n_primes(n):
-    if n <= 0:
-        return []
-
-    # Estimate upper bound using n-th prime approximation: p_n = n log n
-    if n < 6:
-        upper_bound = 15
-    else:
-        upper_bound = int(n * (math.log(n) + math.log(math.log(n)))) + 10
-
-    sieve = [True] * (upper_bound + 1)
-    sieve[0:2] = [False, False]
-    primes = []
-
-    for num in range(2, upper_bound + 1):
-        if sieve[num]:
-            primes.append(num)
-            if len(primes) == n:
-                break
-            for multiple in range(num * num, upper_bound + 1, num):
-                sieve[multiple] = False
-    return primes
 
 
 def compute_product(l: Iterable[int]) -> int:
@@ -66,7 +42,7 @@ def test_theorem_5_2():
     X = [5, 6, 7]
     n = 4
     s = n**2
-    primes = compute_first_n_primes(n**2)
+    primes = utils.compute_first_n_primes(n**2)
     M_n2 = compute_product(primes)
     b_i_j = compute_b_i_j(X, primes, n, s)
     b_j = compute_b_j(b_i_j, primes, n, s)
@@ -101,7 +77,7 @@ def compute_y_lemma_4_1(X, A, m, n):
 
 
 def lemma_4_1_compute_y(x: int, m: int, n: int):
-    x_bits = int2binlist(x, bit_len=n)
+    x_bits = utils.int2binlist(x, bit_len=n)
     aims = precompute_aim(n)
     y = 0
     print("aims:")
@@ -124,14 +100,14 @@ def compute_mod_lemma_4_1(x, m, n):
 
 # returns list for [1, n]
 def theorem_4_2_precompute_lookup_is_prime_power(n: int):
-    return [is_prime_power(i + 1) for i in range(n)]
+    return [utils.is_prime_power(i + 1) for i in range(n)]
 
 
 def theorem_4_2_precompute_lookup_p_l(n: int):
     result = []
-    for i in range(1, n + 1):
-        if is_prime_power(i):
-            factorization = wheel_factorize(i)
+    for i in range(0, n + 1):
+        if utils.is_prime_power(i):
+            factorization = utils.wheel_factorize(i)
             p = factorization[0]
             l = len(factorization)
             result.append((p, l))
@@ -159,16 +135,21 @@ def theorem_4_2_precompute_lookup_generator_powers(n: int):
     result = []
     primitive_roots = find_primitive_roots(n)
     p_l_lookup = theorem_4_2_precompute_lookup_p_l(n)
+
+    result.append([0 for _ in range(n)])
+
     for pexpl_idx, pexpl in enumerate(range(1, n + 1)):
-        p, l = p_l_lookup[pexpl_idx]
+        p, l = p_l_lookup[pexpl]
         if p == 0 or l == 0:
             tresh = 0
         else:
             tresh = int(math.pow(p, l)) - int(math.pow(p, l - 1))
         g = primitive_roots[pexpl_idx]
+        print(f"g: {g}, pexpl: {pexpl}, thresh: {tresh}")
         pows_of_g = compute_powers_mod_up_to(g, pexpl, tresh)
         while len(pows_of_g) < n:
             pows_of_g.append(0)
+        print(f"pows_of_g: {pows_of_g}")
         # here all pows_of_g lists are n entries long
         result.append(pows_of_g)
     return result

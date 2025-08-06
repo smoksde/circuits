@@ -421,6 +421,59 @@ def setup_theorem_4_2_step_4(cg: CircuitGraph, bit_len=4):
     return P_NODES, PEXPL_NODES, FLAG_NODE
 
 
+def setup_theorem_4_2_A_step_5(cg: CircuitGraph, bit_len=4):
+    n = bit_len
+    Y_LIST_NODES = [cg.add_input_nodes(n, "INPUT") for _ in range(n)]
+    PEXPL_NODES = cg.add_input_nodes(n, "INPUT")
+    Y_LIST_PORTS = [cg.get_input_nodes_ports(nodes) for nodes in Y_LIST_NODES]
+    PEXPL_PORTS = cg.get_input_nodes_ports(PEXPL_NODES)
+    A_LIST_PORTS = theorem_4_2_A_step_5(cg, Y_LIST_PORTS, PEXPL_PORTS)
+    A_LIST_NODES = [
+        cg.generate_output_nodes_from_ports(ports) for ports in A_LIST_PORTS
+    ]
+    return Y_LIST_NODES, PEXPL_NODES, A_LIST_NODES
+
+
+def setup_theorem_4_2_precompute_lookup_tables_B(cg: CircuitGraph, bit_len=4):
+    n = bit_len
+    input_node = cg.add_input_nodes(1, "INPUT")[0]
+    input_port = cg.get_input_node_port(input_node)
+    zero_port = constant_zero(cg, input_port)
+    one_port = constant_one(cg, input_port)
+    TABLE_ZERO, TABLE_ONE = theorem_4_2_precompute_lookup_tables_B(
+        cg, zero_port, one_port, n
+    )
+    TABLE_ZERO_NODES = []
+    for row in TABLE_ZERO:
+        nodes = [
+            cg.generate_output_nodes_from_ports(entry, label="OUTPUT") for entry in row
+        ]
+        TABLE_ZERO_NODES.append(nodes)
+    TABLE_ONE_NODES = []
+    for row in TABLE_ONE:
+        nodes = [
+            cg.generate_output_nodes_from_ports(entry, label="OUTPUT") for entry in row
+        ]
+        TABLE_ONE_NODES.append(nodes)
+    return TABLE_ZERO_NODES, TABLE_ONE_NODES
+
+
+def setup_theorem_4_2_precompute_lookup_generator_powers(cg: CircuitGraph, bit_len=4):
+    n = bit_len
+    input_node = cg.add_input_nodes(1, "INPUT")[0]
+    input_port = cg.get_input_node_port(input_node)
+    zero_port = constant_zero(cg, input_port)
+    one_port = constant_one(cg, input_port)
+    TABLE = theorem_4_2_precompute_lookup_generator_powers(cg, zero_port, one_port, n)
+    TABLE_NODES = []
+    for row in TABLE:
+        nodes = [
+            cg.generate_output_nodes_from_ports(entry, label="OUTPUT") for entry in row
+        ]
+        TABLE_NODES.append(nodes)
+    return TABLE_NODES
+
+
 def setup_theorem_4_2_precompute_lookup_division(cg: CircuitGraph, bit_len=4):
     n = bit_len
     input_node = cg.add_input_nodes(1, "INPUT")[0]
@@ -471,13 +524,33 @@ def setup_theorem_4_2_precompute_lookup_p_l(cg: CircuitGraph, bit_len=4):
     input_port = cg.get_input_node_port(input_node)
     zero_port = constant_zero(cg, input_port)
     one_port = constant_one(cg, input_port)
-    O = theorem_4_2_precompute_lookup_p_l(cg, zero_port, one_port, n)
-    O_NODES = []
-    for p, l in O:
+    P_TABLE, L_TABLE = theorem_4_2_precompute_lookup_p_l(cg, zero_port, one_port, n)
+    P_TABLE_NODES = []
+    L_TABLE_NODES = []
+    for p, l in zip(P_TABLE, L_TABLE):
         p_nodes = cg.generate_output_nodes_from_ports(p)
         l_nodes = cg.generate_output_nodes_from_ports(l)
-        O_NODES.append((p_nodes, l_nodes))
-    return O_NODES
+        P_TABLE_NODES.append(p_nodes)
+        L_TABLE_NODES.append(l_nodes)
+    return P_TABLE_NODES, L_TABLE_NODES
+
+
+def setup_theorem_4_2_precompute_lookup_pexpl_minus_pexpl_minus_one(
+    cg: CircuitGraph, bit_len=4
+):
+    n = bit_len
+    input_node = cg.add_input_nodes(1, "INPUT")[0]
+    input_port = cg.get_input_node_port(input_node)
+    zero_port = constant_zero(cg, input_port)
+    one_port = constant_one(cg, input_port)
+    TABLE = theorem_4_2_precompute_lookup_pexpl_minus_pexpl_minus_one(
+        cg, zero_port, one_port, n
+    )
+    TABLE_NODES = []
+    for ports in TABLE:
+        nodes = cg.generate_output_nodes_from_ports(ports)
+        TABLE_NODES.append(nodes)
+    return TABLE_NODES
 
 
 def setup_max_tree_iterative(cg: CircuitGraph, num_amount=4, bit_len=4):
@@ -818,6 +891,17 @@ def setup_n_bit_comparator(cg, bit_len=4):
     E = cg.add_node("output", "EQUALS", inputs=[equals])
     G = cg.add_node("output", "GREATER", inputs=[greater])
     return A, B, L, E, G
+
+
+def setup_n_bit_equality(cg: CircuitGraph, bit_len=4):
+    n = bit_len
+    A = cg.add_input_nodes(n)
+    B = cg.add_input_nodes(n)
+    A_PORTS = cg.get_input_nodes_ports(A)
+    B_PORTS = cg.get_input_nodes_ports(B)
+    equals = n_bit_equality(cg, A_PORTS, B_PORTS)
+    equals_node = cg.generate_output_node_from_port(equals)
+    return A, B, equals_node
 
 
 def setup_xnor_gate(cg, bit_len=4):

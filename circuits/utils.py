@@ -2,6 +2,8 @@ from .constants import *
 from .adders import *
 from .trees import *
 
+from utils import int2binlist
+
 
 def sign_detector(circuit, x_list):
     msb = x_list[-1]
@@ -106,3 +108,14 @@ def next_power_of_two(circuit: CircuitGraph, x, parent_group=None):
         next_power.append(and_port.ports[2])
 
     return next_power"""
+
+
+def generate_number(n: int, bit_len: int, zero: Port, one: Port) -> List[Port]:
+    bits = int2binlist(n, bit_len=bit_len)
+    ports = []
+    for bit in bits:
+        if bit:
+            ports.append(one)
+        else:
+            ports.append(zero)
+    return ports

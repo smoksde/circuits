@@ -125,6 +125,29 @@ def n_bit_comparator(circuit, x_list, y_list, parent_group=None):
     return n_less, n_equals, n_greater
 
 
+def n_bit_equality(
+    circuit: CircuitGraph,
+    a: List[Port],
+    b: List[Port],
+    parent_group: Optional[Group] = None,
+) -> Port:
+
+    this_group = circuit.add_group("N_BIT_EQUALITY")
+    this_group.set_parent(parent_group)
+
+    xnor_bits = []
+    for a_bit, b_bit in zip(a, b):
+        xor = circuit.add_node(
+            "xor", "XOR", inputs=[a_bit, b_bit], group_id=this_group.id
+        ).ports[2]
+        not_xor = circuit.add_node(
+            "not", "NOT", inputs=[xor], group_id=this_group.id
+        ).ports[1]
+        xnor_bits.append(not_xor)
+
+    return and_tree_iterative(circuit, xnor_bits, parent_group=this_group)
+
+
 """
 def one_bit_comparator(circuit, x, y, parent_group=None):
     obc_group = circuit.add_group("ONE_BIT_COMPARATOR")

@@ -587,11 +587,9 @@ def setup_lemma_4_1(cg: CircuitGraph, bit_len=4):
     X_PORTS = cg.get_input_nodes_ports(X)
     M = cg.add_input_nodes(bit_len, label="M")
     M_PORTS = cg.get_input_nodes_ports(M)
-    M_DECR = cg.add_input_nodes(bit_len, label="M")
-    M_DECR_PORTS = cg.get_input_nodes_ports(M_DECR)
-    O = lemma_4_1(cg, X_PORTS, M_PORTS, M_DECR_PORTS)
+    O = lemma_4_1(cg, X_PORTS, M_PORTS)
     O_NODES = cg.generate_output_nodes_from_ports(O, label="OUTPUT")
-    return X, M, M_DECR, O_NODES
+    return X, M, O_NODES
 
 
 def setup_lemma_4_1_reduce_in_parallel(cg: CircuitGraph, bit_len=4):

@@ -75,7 +75,7 @@ def wheel_factorize(n: int):
 
 def is_prime_power(n: int):
     factors = wheel_factorize(n)
-    print("is_prime_power, factors", factors)
+    # print("is_prime_power, factors", factors)
     if len(set(factors)) == 1 and (factors[0] in compute_first_n_primes(n)):
         return True
     return False

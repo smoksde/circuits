@@ -39,11 +39,14 @@ def precompute_aim(
 
     lis = []
 
-    for m in range(1, n + 1):
+    for m in range(0, n + 1):
         fix_m_entries = []
         for i in range(n):
             aim_entry = []
-            aim_value = int((2**i) % m)
+            if m == 0:
+                aim_value = 0
+            else:
+                aim_value = int((2**i) % m)
             b_list = int2binlist(aim_value, bit_len=n)
             for bit in b_list:
                 if bit:
@@ -209,14 +212,13 @@ def lemma_4_1(
     circuit: CircuitGraph,
     x: List[Port],
     m: List[Port],
-    m_decr: List[Port],
     parent_group: Optional[Group] = None,
 ) -> List[Port]:
     lemma_group = circuit.add_group("LEMMA_4_1")
     lemma_group.set_parent(parent_group)
 
     n = len(x)
-    y = lemma_4_1_compute_y(circuit, x, m_decr, parent_group=lemma_group)
+    y = lemma_4_1_compute_y(circuit, x, m, parent_group=lemma_group)
     result = lemma_4_1_reduce_in_parallel(circuit, y, m, n, parent_group=lemma_group)
     return result
 
@@ -504,9 +506,7 @@ def theorem_4_2_step_1(
                 "not", "NOT", inputs=[less], group_id=this_group.id
             ).ports[1]
 
-            remainder = lemma_4_1(
-                circuit, x, p_powers[i], p_powers_decr[i], parent_group=this_group
-            )
+            remainder = lemma_4_1(circuit, x, p_powers[i], parent_group=this_group)
 
             is_remainder_not_zero = or_tree_iterative(
                 circuit, remainder, parent_group=this_group

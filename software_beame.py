@@ -54,10 +54,13 @@ def test_theorem_5_2():
 
 # Works fine
 def precompute_aim(n):
-    aims = np.zeros((n, n), dtype=int)
-    for m in range(1, n + 1):
+    aims = np.zeros((n + 1, n), dtype=int)
+    for m in range(0, n + 1):
         for i in range(n):
-            aims[m - 1, i] = int((2**i) % m)
+            if m == 0:
+                aims[m, i] = 0
+            else:
+                aims[m, i] = int((2**i) % m)
     return aims
 
 
@@ -80,13 +83,13 @@ def lemma_4_1_compute_y(x: int, m: int, n: int):
     x_bits = utils.int2binlist(x, bit_len=n)
     aims = precompute_aim(n)
     y = 0
-    print("aims:")
-    print(aims)
-    print("x_bits")
-    print(x_bits)
+    # print("aims:")
+    # print(aims)
+    # print("x_bits")
+    # print(x_bits)
     for j in range(n):
         y += x_bits[j] * aims[m - 1][j]
-        print(f"product y: {y}")
+        # print(f"product y: {y}")
     return y
 
 
@@ -145,11 +148,11 @@ def theorem_4_2_precompute_lookup_generator_powers(n: int):
         else:
             tresh = int(math.pow(p, l)) - int(math.pow(p, l - 1))
         g = primitive_roots[pexpl_idx]
-        print(f"g: {g}, pexpl: {pexpl}, thresh: {tresh}")
+        # print(f"g: {g}, pexpl: {pexpl}, thresh: {tresh}")
         pows_of_g = compute_powers_mod_up_to(g, pexpl, tresh)
         while len(pows_of_g) < n:
             pows_of_g.append(0)
-        print(f"pows_of_g: {pows_of_g}")
+        # print(f"pows_of_g: {pows_of_g}")
         # here all pows_of_g lists are n entries long
         result.append(pows_of_g)
     return result

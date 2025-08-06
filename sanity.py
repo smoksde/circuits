@@ -55,7 +55,7 @@ def theorem_4_2_step_4_test_condition(p, l):
 def theorem_4_2_A_step_5_find_discrete_logarithms(disc_log_lookup, pexpl_idx, y_list):
     powers_list = disc_log_lookup[pexpl_idx]
     a_list = []
-    print("pexpl_idx: ", pexpl_idx)
+    # print("pexpl_idx: ", pexpl_idx)
     for y in y_list:
         if y not in powers_list:
             print("powers_list:")
@@ -86,12 +86,12 @@ def theorem_4_2_B_step_5_find_values(l, y_list):
     zero_a_values = [compute_a_b_l_formula(0, b, l) for b in range(2 ** (l - 2))]
     one_a_values = [compute_a_b_l_formula(1, b, l) for b in range(2 ** (l - 2))]
 
-    print("B step 5")
-    print(f"l: {l}")
-    print("zero_a_values")
-    print(zero_a_values)
-    print("one_a_values")
-    print(one_a_values)
+    # print("B step 5")
+    # print(f"l: {l}")
+    # print("zero_a_values")
+    # print(zero_a_values)
+    # print("one_a_values")
+    # print(one_a_values)
 
     a_b_list = []
     for y in y_list:

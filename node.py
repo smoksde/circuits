@@ -26,4 +26,5 @@ class Node:
         }
 
     def __repr__(self):
-        return f"label: {self.label}"
+        return f"value: {self.value}"
+        # return f"label: {self.label}"

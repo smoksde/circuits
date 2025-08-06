@@ -70,6 +70,7 @@ def modulo_circuit(circuit, x_bits, m_bits):
 """
 
 
+# Individual subtractions and by that slow / large
 def slow_modulo_circuit(circuit, x_bits, m_bits, parent_group=None):
     smc_group = circuit.add_group("SLOW_MODULO_CIRCUIT")
     smc_group.set_parent(parent_group)
@@ -86,17 +87,15 @@ def slow_modulo_circuit(circuit, x_bits, m_bits, parent_group=None):
 
     # Unroll a fixed number of subtractions (enough to handle worst case)
     # For n-bit numbers, we need at most 2^(n-m_len) subtractions
-    max_subtractions = 2 ** (n - 4)  # Cap at 32 for practicality
+    max_subtractions = 2 ** n
 
     for step in range(max_subtractions):
-        # Check if current_remainder >= padded_m
         less, equal, greater = n_bit_comparator(
             circuit, current_remainder, padded_m, parent_group=smc_group
         )
         can_subtract = circuit.add_node(
             "or", "OR", inputs=[equal, greater], group_id=smc_group.id
         ).ports[2]
-        # Conditionally subtract
         current_remainder = conditional_subtract(
             circuit, current_remainder, padded_m, can_subtract, parent_group=smc_group
         )
@@ -104,10 +103,14 @@ def slow_modulo_circuit(circuit, x_bits, m_bits, parent_group=None):
     return current_remainder
 
 
-def modulo_circuit_optimized(circuit, x_bits, m_bits):
+# Subtracts the shifted moduli, loop within log(n)
+def modulo_circuit_optimized(circuit, x_bits, m_bits, parent_group=None):
     """
     Most efficient version: processes multiple bit positions when possible.
     """
+    mco_group = circuit.add_group("MODULO_CIRCUIT_OPTIMIZED")
+    mco_group.set_parent(parent_group)
+
     n = len(x_bits)
     m_len = len(m_bits)
     assert m_len <= n, "Modulus must not be wider than dividend"
@@ -144,4 +147,5 @@ def modulo_circuit_optimized(circuit, x_bits, m_bits):
 def modulo_circuit(circuit, x_bits, m_bits, parent_group=None):
     m_group = circuit.add_group("MODULO")
     m_group.set_parent(parent_group)
-    return slow_modulo_circuit(circuit, x_bits, m_bits, parent_group=m_group)
+    return modulo_circuit_optimized(circuit, x_bits, m_bits, parent_group=m_group)
+    # return slow_modulo_circuit(circuit, x_bits, m_bits, parent_group=m_group)

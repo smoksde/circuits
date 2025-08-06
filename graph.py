@@ -1,7 +1,12 @@
+from typing import List, Optional
+from collections import defaultdict, deque
+
 from node import Node
 from port import Port
 from edge import Edge
 from group import Group
+
+from utils import binlist2int
 
 
 class CircuitGraph:
@@ -14,7 +19,13 @@ class CircuitGraph:
         self.port_count = 0
         self.group_count = 0
 
-    def add_node(self, node_type, label, inputs=[], group_id=-1):
+    def add_node(
+        self,
+        node_type: str,
+        label: str,
+        inputs: Optional[List[Port]] = [],
+        group_id: Optional[int] = -1,
+    ) -> Node:
         node_id = self.node_count
         self.node_count += 1
         node = Node(node_id, node_type, label, group_id=group_id)
@@ -51,6 +62,142 @@ class CircuitGraph:
         self.nodes[str(node_id)] = node
         self.node_values[str(node_id)] = 0
         return node
+
+    def add_input_nodes(self, amount, label: Optional[str] = "INPUT"):
+        return [self.add_node("input", f"{label}_{i}") for i in range(amount)]
+
+    # Returns the output port for gates and input nodes but raises error for i.e. output nodes
+    def get_output_port_of_gate(self, node: Node):
+        if node.type in ["xor", "and", "or"]:
+            return node.ports[2]
+        else:
+            raise ValueError(f"Node type: {node.type} is unsupported here.")
+
+    # returns a list
+    def get_input_ports_of_node(self, node: Node):
+        if node.type in ["xor", "and", "or"]:
+            return node.ports[:2]
+        elif node.type == "output":
+            return [node.ports[0]]
+        elif node.type == "not":
+            return [node.ports[0]]
+        else:
+            return []
+
+    # returns the found port or None
+    def get_output_port_of_node(self, node: Node):
+        if node.type in ["xor", "and", "or"]:
+            return node.ports[2]
+        elif node.type == "input":
+            return node.ports[0]
+        elif node.type == "not":
+            return node.ports[1]
+        else:
+            return None
+
+    # Returns the output port of an input node and by that the only port this node has
+    def get_input_node_port(self, node: Node):
+        if node.type == "input":
+            return node.ports[0]
+        else:
+            raise ValueError(f"Node type: {node.type} is unsupported here.")
+
+    # Returns the output ports for all nodes of a input node list
+    def get_input_nodes_ports(self, nodes: List[Node]):
+        return [self.get_input_node_port(node) for node in nodes]
+
+    # Returns the input port of an output node and by that the only port this node has
+    def get_output_node_port(self, node: Node):
+        if node.type == "output":
+            return node.ports[0]
+        else:
+            raise ValueError(f"Node type: {node.type} is unsupported here.")
+
+    # Returns the input ports for all nodes of a output node list
+    def get_output_nodes_ports(self, nodes: List[Node]):
+        return [self.get_output_node_port(node) for node in nodes]
+
+    def generate_output_node_from_port(self, port: Port, label="OUTPUT"):
+        node = self.add_node("output", label, inputs=[port])
+        return node
+
+    def generate_output_nodes_from_ports(self, ports: List[Port], label="OUTPUT"):
+        nodes = []
+        for i, port in enumerate(ports):
+            nodes.append(
+                self.generate_output_node_from_port(port, label=f"{label}_{i}")
+            )
+        return nodes
+
+    def fill_node_values(self, nodes: List[Node], bin_list: List[int]):
+        for idx, node in enumerate(nodes):
+            self.node_values[str(node.node_id)] = bin_list[idx]
+
+    def fill_node_values_via_ports(self, ports: List[Port], bin_list: List[int]):
+        for idx, port in enumerate(ports):
+            self.node_values[str(port.node_id)] = bin_list[idx]
+
+    def compute_value_from_ports(self, ports: List[Port]):
+        bin_list = []
+        for port in ports:
+            port_value = self.get_port_value(port)
+            bin_list.append(port_value)
+        return binlist2int(bin_list)
+
+    def get_node_of_port(self, port: Port):
+        return self.nodes[str(port.node_id)]
+
+    def compute_target_to_source_port_map(self):
+        ports_map = {}
+        for edge in self.edges:
+            ports_map[edge.target_port_id] = edge.source_port_id
+        return ports_map
+
+    def find_port_by_port_id(self, port_id: int) -> Port:
+        for node in self.nodes.values():
+            for port in node.ports:
+                if port.id == port_id:
+                    return port
+        raise ValueError(f"Port {port_id} not found")
+
+    def compute_port_to_node_mapping(self):
+        port_to_node = {}
+        for node in self.nodes.values():
+            for port in node.ports:
+                port_to_node[port.id] = node.node_id
+        return port_to_node
+
+    # Returns nodes topologically sorted
+    def topological_sort(self):
+        port_to_node = self.compute_port_to_node_mapping()
+
+        graph = defaultdict(list)
+        in_degree = defaultdict(int)
+
+        for node_id in self.nodes:
+            in_degree[node_id] = 0
+
+        for edge in self.edges:
+            src_node_id = port_to_node[edge.source_port_id]
+            tgt_node_id = port_to_node[edge.target_port_id]
+            graph[src_node_id].append(tgt_node_id)
+            in_degree[tgt_node_id] += 1
+
+        queue = deque([nid for nid, deg in in_degree.items() if deg == 0])
+        sorted_nodes = []
+
+        while queue:
+            nid = queue.popleft()
+            sorted_nodes.append(self.nodes[nid])
+            for neighbor in graph[nid]:
+                in_degree[neighbor] -= 1
+                if in_degree[neighbor] == 0:
+                    queue.append(neighbor)
+
+        if len(sorted_nodes) != len(self.nodes):
+            raise ValueError("Graph has a cycle or is malformed.")
+
+        return sorted_nodes
 
     def add_edge(self, source_port, target_port):
         edge = Edge(source_port.id, target_port.id)

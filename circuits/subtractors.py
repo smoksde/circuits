@@ -1,18 +1,42 @@
+from typing import List
+
 from .constants import *
 from .adders import *
 from .utils import *
 
 
-def subtract(circuit, a_bits, b_bits, parent_group=None):
+def subtract(circuit, a_bits, b_bits, parent_group=None) -> List[Port]:
     # a - b
     sub_group = circuit.add_group("SUBTRACT")
     sub_group.set_parent(parent_group)
     zero = constant_zero(circuit, a_bits[0], parent_group=sub_group)
     b_complement = two_complement(circuit, b_bits, parent_group=sub_group)
-    result, carry = ripple_carry_adder(
+    result, carry = carry_look_ahead_adder(
         circuit, a_bits, b_complement, zero, parent_group=sub_group
     )
+    # result, carry = ripple_carry_adder(
+    #    circuit, a_bits, b_complement, zero, parent_group=sub_group
+    # )
     return result
+
+
+"""
+def subtract_one(circuit, bits, parent_group: Optional[Group] = None) -> List[Port]:
+    this_group = circuit.add_group("SUBTRACT_ONE")
+    this_group.set_parent(parent_group)
+
+    n = len(bits)
+
+    zero = constant_zero(circuit, bits[0], parent_group=this_group)
+    one = constant_one(circuit, bits[0], parent_group=this_group)
+
+    # BUILD NUMBER ONE
+    num_one = [zero for _ in range(n)]
+    num_one[0] = one
+
+    result = subtract(circuit, bits, num_one, parent_group=this_group)
+    return result
+"""
 
 
 def conditional_subtract(circuit, x_bits, m_bits, select, parent_group=None):

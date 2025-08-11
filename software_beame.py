@@ -121,10 +121,10 @@ def theorem_4_2_precompute_lookup_p_l(n: int):
 
 def theorem_4_2_precompute_lookup_powers(n: int):
     result = []
-    for p in range(1, n + 1):
+    for p in range(0, n + 1):
         powers_of_p = []
         for e in range(n):
-            if e > math.log2(n) or p**e > n:
+            if e > math.log2(n) or p**e > n or p == 0:
                 # power is larger than n, just fill with 0
                 power = 0
             else:

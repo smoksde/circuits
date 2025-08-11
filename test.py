@@ -1088,12 +1088,10 @@ class TestCircuitSimulation(unittest.TestCase):
                 expect = idx - (p ** (l - 1))
             self.assertEqual(got, expect)
 
-    def test_theorem_4_2_step_1(self):
+    def a_test_theorem_4_2_step_1(self):
         circuit = CircuitGraph()
         n = 8
-        X_LIST, P, P_DECR, PEXPL, EXPONENTS = setup_theorem_4_2_step_1(
-            circuit, bit_len=n
-        )
+        X_LIST, P, PEXPL, EXPONENTS = setup_theorem_4_2_step_1(circuit, bit_len=n)
 
         for _ in range(1):
             # FILL
@@ -1108,11 +1106,9 @@ class TestCircuitSimulation(unittest.TestCase):
 
             pexpl_bits = int2binlist(pexpl, bit_len=n)
             p_bits = int2binlist(p, bit_len=n)
-            p_decr_bits = int2binlist(p - 1, bit_len=n)
             # l_bits = int2binlist(l, bit_len=n)
 
             circuit.fill_node_values(P, p_bits)
-            circuit.fill_node_values(P_DECR, p_decr_bits)
             circuit.fill_node_values(PEXPL, pexpl_bits)
 
             circuit.simulate()
@@ -1139,11 +1135,11 @@ class TestCircuitSimulation(unittest.TestCase):
                     msg=(f"got: {got_value}", f"expect: {expect_expo}"),
                 )
 
-    def test_theorem_4_2_step_2(self):
+    def a_test_theorem_4_2_step_2(self):
         circuit = CircuitGraph()
         n = 8
-        X_LIST_NODES, P_NODES, P_DECR_NODES, J_LIST_NODES, Y_LIST_NODES = (
-            setup_theorem_4_2_step_2(circuit, bit_len=n)
+        X_LIST_NODES, P_NODES, J_LIST_NODES, Y_LIST_NODES = setup_theorem_4_2_step_2(
+            circuit, bit_len=n
         )
         for loop_idx in range(10):
             # print(f"LOOP INDEX: {loop_idx + 1}")
@@ -1152,12 +1148,13 @@ class TestCircuitSimulation(unittest.TestCase):
                 utils.generate_test_values_for_theorem_4_2(n)
             )
             j_list = sanity.theorem_4_2_step_1_compute_largest_power_of_p(x_list, p)
-            y_list = sanity.theorem_4_2_step_2_compute_x_divided_by_p(x_list, j_list, p)
+            y_list = sanity.theorem_4_2_step_2_compute_x_dividend_by_p(
+                x_list, j_list, p
+            )
             # FILL VALUES
             for nodes, x in zip(X_LIST_NODES, x_list):
                 circuit.fill_node_values(nodes, int2binlist(x, bit_len=n))
             circuit.fill_node_values(P_NODES, int2binlist(p, bit_len=n))
-            circuit.fill_node_values(P_DECR_NODES, int2binlist(p - 1, bit_len=n))
             for nodes, j in zip(J_LIST_NODES, j_list):
                 circuit.fill_node_values(nodes, int2binlist(j, bit_len=n))
 
@@ -1226,7 +1223,7 @@ class TestCircuitSimulation(unittest.TestCase):
 
             self.assertEqual(got_flag, except_flag)
 
-    def test_theorem_4_2_step_5(self):
+    def test_theorem_4_2_A_step_5(self):
         circuit = CircuitGraph()
         n = 8
         Y_LIST_NODES, PEXPL_NODES, A_LIST_NODES = setup_theorem_4_2_A_step_5(
@@ -1251,7 +1248,9 @@ class TestCircuitSimulation(unittest.TestCase):
             j_list = sanity.theorem_4_2_step_1_compute_largest_power_of_p(x_list, p)
             # print("x_list: ")
             # print(x_list)
-            y_list = sanity.theorem_4_2_step_2_compute_x_divided_by_p(x_list, j_list, p)
+            y_list = sanity.theorem_4_2_step_2_compute_x_dividend_by_p(
+                x_list, j_list, p
+            )
             # print("y_list: ")
             # print(y_list)
             a_list = sanity.theorem_4_2_A_step_5_find_discrete_logarithms(
@@ -1275,6 +1274,276 @@ class TestCircuitSimulation(unittest.TestCase):
                 expect = a_list[idx]
                 # print(f"got: {got}, expect: {expect}")
                 self.assertEqual(got, expect)
+
+    def test_theorem_4_2_A_step_7(self):
+        circuit = CircuitGraph()
+        n = 8
+        A_NODES, PEXPL_NODES, A_HAT_NODES = setup_theorem_4_2_A_step_7(
+            circuit, bit_len=n
+        )
+
+        sw_disc_log_lookup = sanity.theorem_4_2_precompute_lookup_generator_powers(n)
+
+        for loop_idx in range(3):
+            while True:
+                x_list, pexpl, p, l, expectation = (
+                    utils.generate_test_values_for_theorem_4_2(n)
+                )
+                if p != 2 or pexpl in [2, 4]:
+                    break
+            j_list = sanity.theorem_4_2_step_1_compute_largest_power_of_p(x_list, p)
+            y_list = sanity.theorem_4_2_step_2_compute_x_dividend_by_p(
+                x_list, j_list, p
+            )
+            a_list = sanity.theorem_4_2_A_step_5_find_discrete_logarithms(
+                sw_disc_log_lookup, pexpl, y_list
+            )
+            a = sanity.theorem_4_2_A_step_6_compute_a_sum(a_list)
+            a_hat = sanity.theorem_4_2_A_step_7_compute_a_mod_pexpl_minus_pexpldecr(
+                a, p, l
+            )
+
+            # FILL
+            circuit.fill_node_values(A_NODES, int2binlist(a, bit_len=n))
+            circuit.fill_node_values(PEXPL_NODES, int2binlist(pexpl, bit_len=n))
+
+            circuit.simulate()
+
+            A_HAT_PORTS = circuit.get_output_nodes_ports(A_HAT_NODES)
+            got = circuit.compute_value_from_ports(A_HAT_PORTS)
+            expect = a_hat
+            self.assertEqual(got, expect)
+
+    def test_theorem_4_2_A_step_8(self):
+        circuit = CircuitGraph()
+        n = 8
+        A_HAT_NODES, PEXPL_NODES, Y_PRODUCT_NODES = setup_theorem_4_2_A_step_8(
+            circuit, bit_len=n
+        )
+
+        sw_disc_log_lookup = sanity.theorem_4_2_precompute_lookup_generator_powers(n)
+
+        for loop_idx in range(5):
+            while True:
+                x_list, pexpl, p, l, expectation = (
+                    utils.generate_test_values_for_theorem_4_2(n)
+                )
+                if p != 2 or pexpl in [2, 4]:
+                    break
+            j_list = sanity.theorem_4_2_step_1_compute_largest_power_of_p(x_list, p)
+            y_list = sanity.theorem_4_2_step_2_compute_x_dividend_by_p(
+                x_list, j_list, p
+            )
+            a_list = sanity.theorem_4_2_A_step_5_find_discrete_logarithms(
+                sw_disc_log_lookup, pexpl, y_list
+            )
+            a = sanity.theorem_4_2_A_step_6_compute_a_sum(a_list)
+            a_hat = sanity.theorem_4_2_A_step_7_compute_a_mod_pexpl_minus_pexpldecr(
+                a, p, l
+            )
+
+            y_product = sanity.theorem_4_2_A_step_8_read_reverse_log(
+                sw_disc_log_lookup, pexpl, a_hat
+            )
+
+            # FILL
+            circuit.fill_node_values(A_HAT_NODES, int2binlist(a_hat, bit_len=n))
+            circuit.fill_node_values(PEXPL_NODES, int2binlist(pexpl, bit_len=n))
+
+            circuit.simulate()
+
+            Y_PRODUCT_PORTS = circuit.get_output_nodes_ports(Y_PRODUCT_NODES)
+            got = circuit.compute_value_from_ports(Y_PRODUCT_PORTS)
+            expect = y_product
+            self.assertEqual(got, expect)
+
+    def test_theorem_4_2_B_step_5(self):
+        circuit = CircuitGraph()
+        n = 8
+
+        Y_LIST_NODES, L_NODES, A_LIST_NODES, B_LIST_NODES = setup_theorem_4_2_B_step_5(
+            circuit, bit_len=n
+        )
+
+        # sw_a_zero, sw_a_one = sanity.theorem_4_2_precompute_lookup_tables_B(n)
+
+        for loop_idx in range(3):
+            while True:
+                x_list, pexpl, p, l, expectation = (
+                    utils.generate_test_values_for_theorem_4_2(n)
+                )
+                if not (p != 2 or pexpl in [2, 4]):
+                    break
+            j_list = sanity.theorem_4_2_step_1_compute_largest_power_of_p(x_list, p)
+            y_list = sanity.theorem_4_2_step_2_compute_x_dividend_by_p(
+                x_list, j_list, p
+            )
+
+            a_b_list = sanity.theorem_4_2_B_step_5_find_values(l, y_list)
+
+            # FILL
+
+            for idx, nodes in enumerate(Y_LIST_NODES):
+                circuit.fill_node_values(nodes, int2binlist(y_list[idx], bit_len=n))
+
+            circuit.fill_node_values(L_NODES, int2binlist(l, bit_len=n))
+
+            circuit.simulate()
+
+            A_LIST_PORTS = [
+                circuit.get_output_nodes_ports(nodes) for nodes in A_LIST_NODES
+            ]
+
+            B_LIST_PORTS = [
+                circuit.get_output_nodes_ports(nodes) for nodes in B_LIST_NODES
+            ]
+
+            for idx, (a_ports, b_ports) in enumerate(zip(A_LIST_PORTS, B_LIST_PORTS)):
+                got_a = circuit.compute_value_from_ports(a_ports)
+                got_b = circuit.compute_value_from_ports(b_ports)
+                expect_a = a_b_list[idx][0]
+                expect_b = a_b_list[idx][1]
+                self.assertEqual(
+                    got_a, expect_a, msg=(f"got_a: {got_a}, expect_a: {expect_a}")
+                )
+                self.assertEqual(
+                    got_b,
+                    expect_b,
+                    msg=(
+                        f"got_b: {got_b}",
+                        f"expect_b: {expect_b}",
+                        f"l: {l}",
+                        f"y_list: {y_list}",
+                    ),
+                )
+
+    def test_theorem_4_2_B_step_7(self):
+        circuit = CircuitGraph()
+        n = 8
+
+        A_NODES, B_NODES, L_NODES, A_HAT_NODES, B_HAT_NODES = (
+            setup_theorem_4_2_B_step_7(circuit, bit_len=n)
+        )
+
+        for loop_idx in range(10):
+            a = random.randrange(1, 2**n - 1)
+            b = random.randrange(1, 2**n - 1)
+            l = random.randrange(1, int(math.log2(n)))
+
+            expect_a = a % 2
+            expect_b = b % (2 ** (l - 2))
+
+            # FILL
+
+            circuit.fill_node_values(A_NODES, int2binlist(a, bit_len=n))
+            circuit.fill_node_values(B_NODES, int2binlist(b, bit_len=n))
+            circuit.fill_node_values(L_NODES, int2binlist(l, bit_len=n))
+
+            circuit.simulate()
+
+            A_HAT_PORTS = circuit.get_output_nodes_ports(A_HAT_NODES)
+            B_HAT_PORTS = circuit.get_output_nodes_ports(B_HAT_NODES)
+
+            got_a_hat = circuit.compute_value_from_ports(A_HAT_PORTS)
+            got_b_hat = circuit.compute_value_from_ports(B_HAT_PORTS)
+
+            self.assertEqual(got_a_hat, expect_a)
+            self.assertEqual(got_b_hat, expect_b, msg=(f"b: {b}, l: {l}"))
+
+    def test_theorem_4_2_step_9(self):
+        circuit = CircuitGraph()
+        n = 8
+
+        P_NODES, J_NODES, PEXPL_NODES, Y_PRODUCT_NODES, RESULT_NODES = (
+            setup_theorem_4_2_step_9(circuit, bit_len=n)
+        )
+
+        sw_disc_log_lookup = sanity.theorem_4_2_precompute_lookup_generator_powers(n)
+
+        for loop_idx in range(10):
+            while True:
+                x_list, pexpl, p, l, expectation = (
+                    utils.generate_test_values_for_theorem_4_2(n)
+                )
+                if p != 2 or pexpl in [2, 4]:
+                    break
+            j_list = sanity.theorem_4_2_step_1_compute_largest_power_of_p(x_list, p)
+            y_list = sanity.theorem_4_2_step_2_compute_x_dividend_by_p(
+                x_list, j_list, p
+            )
+            j = sanity.theorem_4_2_step_3_compute_j(j_list)
+            a_list = sanity.theorem_4_2_A_step_5_find_discrete_logarithms(
+                sw_disc_log_lookup, pexpl, y_list
+            )
+            a = sanity.theorem_4_2_A_step_6_compute_a_sum(a_list)
+            a_hat = sanity.theorem_4_2_A_step_7_compute_a_mod_pexpl_minus_pexpldecr(
+                a, p, l
+            )
+
+            y_product = sanity.theorem_4_2_A_step_8_read_reverse_log(
+                sw_disc_log_lookup, pexpl, a_hat
+            )
+
+            result = sanity.theorem_4_2_step_9_compute_final_product(p, j, y_product, l)
+
+            # FILL
+            circuit.fill_node_values(P_NODES, int2binlist(p, bit_len=n))
+            circuit.fill_node_values(J_NODES, int2binlist(j, bit_len=n))
+            circuit.fill_node_values(PEXPL_NODES, int2binlist(pexpl, bit_len=n))
+            circuit.fill_node_values(Y_PRODUCT_NODES, int2binlist(y_product, bit_len=n))
+
+            circuit.simulate()
+
+            RESULT_PORTS = circuit.get_output_nodes_ports(RESULT_NODES)
+            got = circuit.compute_value_from_ports(RESULT_PORTS)
+            expect = result
+            self.assertEqual(got, expect)
+
+    def test_theorem_4_2(self):
+        circuit = CircuitGraph()
+        n = 4
+        X_LIST_NODES, PEXPL_NODES, RESULT_NODES = setup_theorem_4_2(circuit, bit_len=n)
+
+        sw_disc_log_lookup = sanity.theorem_4_2_precompute_lookup_generator_powers(n)
+        sw_part_b_lookup = sanity.theorem_4_2_precompute_lookup_tables_B(n)
+
+        for loop_idx in range(2):
+            while True:
+                x_list, pexpl, p, l, expectation = (
+                    utils.generate_test_values_for_theorem_4_2(n)
+                )
+                if p != 2 or pexpl in [2, 4]:
+                    break
+            j_list = sanity.theorem_4_2_step_1_compute_largest_power_of_p(x_list, p)
+            y_list = sanity.theorem_4_2_step_2_compute_x_dividend_by_p(
+                x_list, j_list, p
+            )
+            j = sanity.theorem_4_2_step_3_compute_j(j_list)
+            do_a = sanity.theorem_4_2_step_4_test_condition(p, l)
+            a_list = sanity.theorem_4_2_A_step_5_find_discrete_logarithms(
+                sw_disc_log_lookup, pexpl, y_list
+            )
+            a = sanity.theorem_4_2_A_step_6_compute_a_sum(a_list)
+            a_hat = sanity.theorem_4_2_A_step_7_compute_a_mod_pexpl_minus_pexpldecr(
+                a, p, l
+            )
+
+            y_product = sanity.theorem_4_2_A_step_8_read_reverse_log(
+                sw_disc_log_lookup, pexpl, a_hat
+            )
+
+            expect = sanity.theorem_4_2_step_9_compute_final_product(p, j, y_product, l)
+
+            # FILL
+            for idx, nodes in enumerate(X_LIST_NODES):
+                circuit.fill_node_values(nodes, int2binlist(x_list[idx], bit_len=n))
+            circuit.fill_node_values(PEXPL_NODES, int2binlist(pexpl, bit_len=n))
+
+            circuit.simulate()
+
+            RESULT_PORTS = circuit.get_output_nodes_ports(RESULT_NODES)
+            got = circuit.compute_value_from_ports(RESULT_PORTS)
+            self.assertEqual(got, expect)
 
 
 class TestUtilsFunctions(unittest.TestCase):

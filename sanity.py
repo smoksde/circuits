@@ -1,6 +1,7 @@
 from software_beame import theorem_4_2_precompute_lookup_generator_powers
 from utils import is_prime_power, wheel_factorize
 
+import math
 import random
 
 
@@ -12,6 +13,36 @@ def compute_a_b_l_formula(a, b, l):
     raise ValueError(
         f"In a,b,l Formula of Theorem 4.2 a has to be in [0,1] but got a: {a}"
     )
+
+
+def theorem_4_2_precompute_lookup_tables_B(n: int):
+    table_zero = []
+    for l in range(0, int(math.log2(n)) + 1):
+        row = []
+        for b in range(0, n + 1):
+            try:
+                value = compute_a_b_l_formula(0, b, l)
+            except:
+                value = 0
+            if value > 2**n - 1:
+                value = 0
+            row.append(value)
+        table_zero.append(row)
+
+    table_one = []
+    for l in range(0, int(math.log2(n)) + 1):
+        row = []
+        for b in range(0, n + 1):
+            try:
+                value = compute_a_b_l_formula(1, b, l)
+            except:
+                value = 0
+            if value > (2**n) - 1:
+                value = 0
+            row.append(value)
+        table_one.append(row)
+
+    return table_zero, table_one
 
 
 def theorem_4_2_step_1_compute_largest_power_of_p(x_list, p):
@@ -31,7 +62,7 @@ def theorem_4_2_step_1_compute_largest_power_of_p(x_list, p):
     return largest_exp_list
 
 
-def theorem_4_2_step_2_compute_x_divided_by_p(x_list, j_list, p):
+def theorem_4_2_step_2_compute_x_dividend_by_p(x_list, j_list, p):
     y_list = []
     n = len(x_list)
     for i in range(n):
@@ -136,7 +167,7 @@ def theorem_4_2_compute(x_list, p, l, debug=False):
     if debug:
         print("Largest Exponent List")
         print(largest_exp_list)
-    y_list = theorem_4_2_step_2_compute_x_divided_by_p(x_list, largest_exp_list, p)
+    y_list = theorem_4_2_step_2_compute_x_dividend_by_p(x_list, largest_exp_list, p)
     if debug:
         print("Compute x divided by p")
         print("y_list: ")

@@ -15,7 +15,7 @@ from .adders import carry_look_ahead_adder
 from .trees import adder_tree_iterative, or_tree_iterative
 from .subtractors import subtract
 from .comparators import n_bit_comparator, n_bit_equality
-from .shifters import one_left_shift
+from .shifters import one_left_shift, n_left_shift, n_right_shift
 import math
 
 import software_beame as sb
@@ -313,10 +313,10 @@ def theorem_4_2_precompute_lookup_powers(
     plp_group.set_parent(parent_group)
 
     result = []
-    for p in range(1, n + 1):
+    for p in range(0, n + 1):
         powers_of_p = []
         for e in range(n):
-            if e > math.log2(n) or p**e > n:
+            if e > math.log2(n) or p**e > n or p == 0:
                 power = 0
             else:
                 power = p**e
@@ -470,7 +470,6 @@ def theorem_4_2_step_1(
     circuit: CircuitGraph,
     x_list: List[List[Port]],
     p: List[Port],
-    p_decr: List[Port],
     pexpl: List[Port],
     parent_group: Optional[Group] = None,
 ) -> List[List[Port]]:
@@ -490,8 +489,7 @@ def theorem_4_2_step_1(
         circuit, zero, one, len(x_list), parent_group=this_group
     )
 
-    p_powers = tensor_multiplexer(circuit, lookup_powers, p_decr)
-    p_powers_decr = tensor_multiplexer(circuit, lookup_powers_decr, p_decr)
+    p_powers = tensor_multiplexer(circuit, lookup_powers, p)
 
     exponents = []
 
@@ -544,7 +542,6 @@ def theorem_4_2_step_2(
     circuit: CircuitGraph,
     x_list: List[List[Port]],
     p: List[Port],
-    p_decr: List[Port],
     j_list: List[List[Port]],
     parent_group: Optional[Group] = None,
 ):
@@ -566,7 +563,7 @@ def theorem_4_2_step_2(
     )
 
     powers_of_p_bus = tensor_multiplexer(
-        circuit, powers_lookup, p_decr, parent_group=this_group
+        circuit, powers_lookup, p, parent_group=this_group
     )
 
     y_list = []
@@ -605,7 +602,7 @@ def theorem_4_2_step_4(
     p: List[Port],
     pexpl: List[Port],
     parent_group: Optional[Group] = None,
-):
+) -> Port:
     this_group = circuit.add_group("THEOREM_4_2_STEP_4")
     this_group.set_parent(parent_group)
 
@@ -696,23 +693,354 @@ def theorem_4_2_A_step_5(
     return a_list
 
 
-"""
 # Circuit for a_hat = a mod (p^l - p^(l-1))
 def theorem_4_2_A_step_7(
     circuit: CircuitGraph,
     a: List[Port],
     pexpl: List[Port],
-    p_lookup: List[List[Port]],
-    l_lookup: List[List[Port]],
-    m_lookup: List[List[Port]],
     parent_group: Optional[Group] = None,
 ) -> List[Port]:
 
     this_group = circuit.add_group("THEOREM_4_2_A_STEP_7")
     this_group.set_parent(parent_group)
 
-    a_hat = lemma_4_1(circuit, a, m, m_decr, parent_group=this_group)
-"""
+    n = len(pexpl)
+
+    zero_port = constant_zero(circuit, a[0], parent_group=this_group)
+    one_port = constant_one(circuit, a[0], parent_group=this_group)
+
+    pexpl_minus_pexpl_minus_one_lookup = (
+        theorem_4_2_precompute_lookup_pexpl_minus_pexpl_minus_one(
+            circuit, zero_port, one_port, n, parent_group=this_group
+        )
+    )
+
+    m = bus_multiplexer(
+        circuit, pexpl_minus_pexpl_minus_one_lookup, pexpl, parent_group=this_group
+    )
+
+    a_hat = lemma_4_1(circuit, a, m, parent_group=this_group)
+
+    return a_hat
+
+
+def theorem_4_2_A_step_8(
+    circuit: CircuitGraph,
+    a_hat: List[Port],
+    pexpl: List[Port],
+    parent_group: Optional[Group] = None,
+) -> List[Port]:
+
+    this_group = circuit.add_group("THEOREM_4_2_A_step_8")
+    this_group.set_parent(parent_group)
+
+    n = len(a_hat)
+
+    zero = constant_zero(circuit, a_hat[0], parent_group=this_group)
+    one = constant_one(circuit, a_hat[0], parent_group=this_group)
+
+    disc_log_lookup = theorem_4_2_precompute_lookup_generator_powers(
+        circuit, zero, one, n, parent_group=this_group
+    )
+
+    bus = tensor_multiplexer(circuit, disc_log_lookup, pexpl, parent_group=this_group)
+    y_product = bus_multiplexer(circuit, bus, a_hat, parent_group=this_group)
+    return y_product
+
+
+def theorem_4_2_B_step_5(
+    circuit: CircuitGraph,
+    y_list: List[List[Port]],
+    l: List[Port],
+    parent_group: Optional[Group] = None,
+) -> Tuple[List[List[Port]], List[List[Port]]]:
+
+    this_group = circuit.add_group("THEOREM_4_2_B_STEP_5")
+    this_group.set_parent(parent_group)
+
+    n = len(l)
+
+    zero = constant_zero(circuit, l[0], parent_group=this_group)
+    one = constant_one(circuit, l[0], parent_group=this_group)
+
+    table_a_zero, table_a_one = theorem_4_2_precompute_lookup_tables_B(
+        circuit, zero, one, n, parent_group=this_group
+    )
+
+    # Build number one ports
+    num_one = [zero for _ in range(n)]
+    num_one[0] = one
+
+    # Compute 2^l
+    # twoexpl = n_left_shift(circuit, num_one, l, parent_group=this_group)
+
+    table_a_zero_twoexpl_bus = tensor_multiplexer(
+        circuit, table_a_zero, l, parent_group=this_group
+    )
+
+    table_a_one_twoexpl_bus = tensor_multiplexer(
+        circuit, table_a_one, l, parent_group=this_group
+    )
+
+    len_a_zero_bus = len(table_a_zero_twoexpl_bus)
+    supremum_a_zero = generate_number(len_a_zero_bus, n, zero, one)
+
+    len_a_one_bus = len(table_a_one_twoexpl_bus)
+    supremum_a_one = generate_number(len_a_one_bus, n, zero, one)
+
+    a_list = []
+    b_list = []
+
+    for y_i in y_list:
+        index_a_zero = compute_value_index_from_bus(
+            circuit,
+            y_i,
+            table_a_zero_twoexpl_bus,
+            supremum_a_zero,
+            zero,
+            one,
+            parent_group=this_group,
+        )
+        index_a_one = compute_value_index_from_bus(
+            circuit,
+            y_i,
+            table_a_one_twoexpl_bus,
+            supremum_a_one,
+            zero,
+            one,
+            parent_group=this_group,
+        )
+
+        equals = n_bit_equality(
+            circuit, index_a_zero, supremum_a_zero, parent_group=this_group
+        )
+
+        index = bus_multiplexer(
+            circuit, [index_a_zero, index_a_one], [equals], parent_group=this_group
+        )
+
+        # Index is the b_i value and a_i can be generated by equals
+        b_i = index
+        a_i = [zero for _ in range(n)]
+        a_i[0] = equals
+
+        a_list.append(a_i)
+        b_list.append(b_i)
+
+    return (a_list, b_list)
+
+
+# Searches value in the bus and returns the index of the entry that matches the value
+# If the value was not found in the bus, supremum as the index value is returned, indicating value was not found
+def compute_value_index_from_bus(
+    circuit: CircuitGraph,
+    value: List[Port],
+    bus: List[List[Port]],
+    supremum: List[List[Port]],
+    zero: Port,
+    one: Port,
+    parent_group: Optional[Group] = None,
+) -> List[Port]:
+
+    this_group = circuit.add_group("COMPUTE_VALUE_INDEX_FROM_BUS")
+    this_group.set_parent(parent_group)
+
+    n = len(value)
+    index_candidates = []
+    for idx, num in enumerate(bus):
+        equals = n_bit_equality(circuit, value, num, parent_group=this_group)
+        index_num = generate_number(idx, n, zero, one)
+        index_num = bus_multiplexer(
+            circuit, [supremum, index_num], [equals], parent_group=this_group
+        )
+        index_candidates.append(index_num)
+    index_value = min_tree_iterative(circuit, index_candidates, parent_group=this_group)
+    return index_value
+
+
+def theorem_4_2_B_step_7(
+    circuit: CircuitGraph,
+    a: List[Port],
+    b: List[Port],
+    l: List[Port],
+    parent_group: Optional[Group] = None,
+) -> Tuple[List[Port], List[Port]]:
+    this_group = circuit.add_group("THEOREM_4_2_B_step_7")
+    this_group.set_parent(parent_group)
+
+    n = len(a)
+
+    zero = constant_zero(circuit, a[0], parent_group=this_group)
+    one = constant_one(circuit, a[0], parent_group=this_group)
+
+    a_hat = [zero for _ in range(n)]
+    a_hat[0] = a[0]
+
+    two_num = [zero for _ in range(n)]
+    two_num[1] = one
+    l_minus_two = subtract(circuit, l, two_num, parent_group=this_group)
+    one_num = [zero for _ in range(n)]
+    one_num[0] = one
+    m_for_b = n_left_shift(circuit, one_num, l_minus_two, parent_group=this_group)
+    b_hat = lemma_4_1(circuit, b, m_for_b, parent_group=this_group)
+
+    return a_hat, b_hat
+
+
+def theorem_4_2_B_step_8(
+    circuit: CircuitGraph,
+    a_hat: List[Port],
+    b_hat: List[Port],
+    l: List[Port],
+    parent_group: Optional[Group] = None,
+) -> List[Port]:
+    # after l
+    # after b_hat
+
+    this_group = circuit.add_group("THEOREM_4_2_B_step_8")
+    this_group.set_parent(parent_group)
+
+    n = len(a_hat)
+
+    zero = constant_zero(circuit, l[0], parent_group=this_group)
+    one = constant_one(circuit, l[0], parent_group=this_group)
+
+    num_one = [zero for _ in range(n)]
+    num_one[0] = one
+
+    table_a_zero, table_a_one = theorem_4_2_precompute_lookup_tables_B(
+        circuit, zero, one, n, parent_group=this_group
+    )
+
+    table_a_zero_twoexpl_bus = tensor_multiplexer(
+        circuit, table_a_zero, l, parent_group=this_group
+    )
+
+    table_a_one_twoexpl_bus = tensor_multiplexer(
+        circuit, table_a_one, l, parent_group=this_group
+    )
+
+    table_a_zero_result = bus_multiplexer(
+        circuit, table_a_zero_twoexpl_bus, b_hat, parent_group=this_group
+    )
+
+    table_a_one_result = bus_multiplexer(
+        circuit, table_a_one_twoexpl_bus, b_hat, parent_group=this_group
+    )
+
+    equals = n_bit_equality(circuit, a_hat, num_one, parent_group=this_group)
+
+    not_equals = circuit.add_node(
+        "not", "NOT", inputs=[equals], group_id=this_group.id
+    ).ports[1]
+
+    r1 = conditional_zeroing(
+        circuit, table_a_zero_result, equals, parent_group=this_group
+    )
+    r2 = conditional_zeroing(
+        circuit, table_a_one_result, not_equals, parent_group=this_group
+    )
+
+    sum, carry = carry_look_ahead_adder(circuit, r1, r2, zero, parent_group=this_group)
+
+    return sum
+
+
+def theorem_4_2_step_9(
+    circuit: CircuitGraph,
+    p: List[Port],
+    j: List[Port],
+    pexpl: List[Port],
+    y_product: List[Port],
+    parent_group: Optional[Group] = None,
+) -> List[Port]:
+
+    this_group = circuit.add_group("THEOREM_4_2_STEP_9")
+    this_group.set_parent(parent_group)
+
+    n = len(p)
+
+    zero_port = constant_zero(circuit, p[0], parent_group=this_group)
+    one_port = constant_one(circuit, p[0], parent_group=this_group)
+
+    power_lookup = theorem_4_2_precompute_lookup_powers(
+        circuit, zero_port, one_port, n, parent_group=this_group
+    )
+    p_powers = tensor_multiplexer(circuit, power_lookup, p, parent_group=this_group)
+
+    pexpj = bus_multiplexer(circuit, p_powers, j, parent_group=this_group)
+
+    product = wallace_tree_multiplier(
+        circuit, pexpj, y_product, parent_group=this_group
+    )
+
+    # Assume product does not need 2*n bits but still n
+    product = product[:n]
+
+    result = lemma_4_1(circuit, product, pexpl, parent_group=this_group)
+
+    return result
+
+
+def theorem_4_2(
+    circuit: CircuitGraph,
+    x_list: List[List[Port]],
+    pexpl: List[Port],
+    parent_group: Optional[Group] = None,
+) -> List[Port]:
+
+    this_group = circuit.add_group("THEOREM_4_2")
+    this_group.set_parent(parent_group)
+
+    n = len(pexpl)
+
+    zero = constant_zero(circuit, pexpl[0], parent_group=this_group)
+    one = constant_one(circuit, pexpl[0], parent_group=this_group)
+
+    p_lookup, l_lookup = theorem_4_2_precompute_lookup_p_l(
+        circuit, zero, one, n, parent_group=this_group
+    )
+
+    p = bus_multiplexer(circuit, p_lookup, pexpl)
+    l = bus_multiplexer(circuit, l_lookup, pexpl)
+
+    j_list = theorem_4_2_step_1(circuit, x_list, p, pexpl, parent_group=this_group)
+    y_list = theorem_4_2_step_2(circuit, x_list, p, j_list, parent_group=this_group)
+    j = theorem_4_2_compute_sum(circuit, j_list, parent_group=this_group)
+
+    # PART A
+    a_list = theorem_4_2_A_step_5(circuit, y_list, pexpl, parent_group=this_group)
+    a = theorem_4_2_compute_sum(circuit, a_list)
+    a_hat = theorem_4_2_A_step_7(circuit, a, pexpl, parent_group=this_group)
+    y_product_part_a = theorem_4_2_A_step_8(
+        circuit, a_hat, pexpl, parent_group=this_group
+    )
+
+    # PART B
+    a_list, b_list = theorem_4_2_B_step_5(circuit, y_list, l, parent_group=this_group)
+    a = theorem_4_2_compute_sum(circuit, a_list, parent_group=this_group)
+    b = theorem_4_2_compute_sum(circuit, b_list, parent_group=this_group)
+    a_hat, b_hat = theorem_4_2_B_step_7(circuit, a, b, l, parent_group=this_group)
+    print(len(a_hat), len(b_hat), len(l))
+    y_product_part_b = theorem_4_2_B_step_8(
+        circuit, a_hat, b_hat, l, parent_group=this_group
+    )
+
+    do_a = theorem_4_2_step_4(circuit, p, pexpl, parent_group=this_group)
+
+    print("HELLO")
+    print(type(y_product_part_a), len(y_product_part_a))
+    print(type(y_product_part_b), len(y_product_part_b))
+
+    y_product = bus_multiplexer(
+        circuit, [y_product_part_b, y_product_part_a], [do_a], parent_group=this_group
+    )
+
+    result = theorem_4_2_step_9(
+        circuit, p, j, pexpl, y_product, parent_group=this_group
+    )
+
+    return result
 
 
 def theorem_4_2_precompute_lookup_pexpl_minus_pexpl_minus_one(

@@ -1230,7 +1230,7 @@ class TestCircuitSimulation(unittest.TestCase):
             circuit, bit_len=n
         )
 
-        sw_disc_log_lookup = sanity.theorem_4_2_precompute_lookup_generator_powers(n)
+        sw_disc_log_lookup = sb.theorem_4_2_precompute_lookup_generator_powers(n)
 
         for loop_idx in range(3):
 

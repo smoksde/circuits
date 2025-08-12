@@ -58,7 +58,7 @@ def precompute_a_i(const_zero, const_one, int_m, n):
     return a_i_lists
 """
 
-
+"""
 def small_mod_lemma_4_1(circuit, x_list, m_list, int_m):
 
     n = len(x_list)
@@ -133,7 +133,7 @@ def small_mod_lemma_4_1(circuit, x_list, m_list, int_m):
     #    bit = or_tree_recursive(circuit, curr_list)
     #    final.append(bit)
     sums, carry = adder_tree_recursive(circuit, results, const_zero)
-    return sums
+    return sums"""
 
 
 def log2_estimate(circuit, x_list):
@@ -914,7 +914,7 @@ def setup_one_right_shift(cg, bit_len=4):
     return X, OUT_NODES
 
 
-def setup_small_mod_lemma_4_1(cg, bit_len=4):
+"""def setup_small_mod_lemma_4_1(cg, bit_len=4):
     X = [cg.add_node("input", f"X{i}") for i in range(4)]
     M = [cg.add_node("input", f"M{i}") for i in range(4)]
     # in_node = cg.add_node("input", f"IN")
@@ -928,7 +928,7 @@ def setup_small_mod_lemma_4_1(cg, bit_len=4):
     for out in outputs:
         out_node = cg.add_node("output", "REMAINDER", inputs=[out])
         out_nodes.append(out_node)
-    return X, out_nodes
+    return X, out_nodes"""
 
 
 def setup_adder_tree_recursive(cg, bit_len=4):

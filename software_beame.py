@@ -139,15 +139,18 @@ def theorem_4_2_precompute_lookup_generator_powers(n: int):
     primitive_roots = find_primitive_roots(n)
     p_l_lookup = theorem_4_2_precompute_lookup_p_l(n)
 
-    result.append([0 for _ in range(n)])
+    # result.append([0 for _ in range(n)])
 
-    for pexpl_idx, pexpl in enumerate(range(1, n + 1)):
+    for pexpl in range(
+        0, n + 1
+    ):  # this is supposed to be limited py p^l - p^(l-1), i think
         p, l = p_l_lookup[pexpl]
         if p == 0 or l == 0:
             tresh = 0
         else:
-            tresh = int(math.pow(p, l)) - int(math.pow(p, l - 1))
-        g = primitive_roots[pexpl_idx]
+            # tresh = int(math.pow(p, l)) - int(math.pow(p, l - 1))
+            tresh = int(math.pow(2, n))
+        g = primitive_roots[pexpl]
         # print(f"g: {g}, pexpl: {pexpl}, thresh: {tresh}")
         pows_of_g = compute_powers_mod_up_to(g, pexpl, tresh)
         while len(pows_of_g) < n:
@@ -170,7 +173,7 @@ def is_primitive_root(g, n):
 # Finds the smallest primitve root for each p in [1, n] and returns the list
 def find_primitive_roots(n):
     roots = []
-    for p in range(1, n + 1):
+    for p in range(0, n + 1):
         found = False
         value = 0
         for g in range(1, p):
@@ -220,9 +223,14 @@ def compute_powers_mod_up_to(g, m, thresh):
 
 if __name__ == "__main__":
     # test_theorem_5_2()
-    n = 16
+    n = 8
     roots = find_primitive_roots(n)
     print(roots)
     powers = compute_powers_up_to(5, 500)
     print(powers)
-    theorem_4_2_precompute_lookup_generator_powers(n)
+    print("p_l_lookup:")
+    print(theorem_4_2_precompute_lookup_p_l(n))
+    disc_log_lookup = theorem_4_2_precompute_lookup_generator_powers(n)
+    for idx, row in enumerate(disc_log_lookup):
+        print(f"idx: {idx}", end=" ")
+        print(row)

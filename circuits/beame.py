@@ -379,19 +379,20 @@ def theorem_4_2_precompute_lookup_generator_powers(
     software_primitive_roots = sb.find_primitive_roots(n)
     software_p_l_lookup = sb.theorem_4_2_precompute_lookup_p_l(n)
 
-    dummy_row = []
-    for i in range(n):
-        dummy_row.append([zero for _ in range(n)])
-    result.append(dummy_row)
+    # dummy_row = []
+    # for i in range(n):
+    #    dummy_row.append([zero for _ in range(n)])
+    # result.append(dummy_row)
 
-    for pexpl_idx, pexpl in enumerate(range(1, n + 1)):
+    for pexpl in range(0, n + 1):
         row = []
         p, l = software_p_l_lookup[pexpl]
         if p == 0 or l == 0:
             thresh = 0
         else:
-            thresh = int(math.pow(p, l)) - int(math.pow(p, l - 1))
-        g = software_primitive_roots[pexpl_idx]
+            # thresh = int(math.pow(p, l)) - int(math.pow(p, l - 1))
+            thresh = int(math.pow(2, n))
+        g = software_primitive_roots[pexpl]
         software_pows_of_g = sb.compute_powers_mod_up_to(g, pexpl, thresh)
         while len(software_pows_of_g) < n:
             software_pows_of_g.append(0)

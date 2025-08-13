@@ -1559,6 +1559,33 @@ class TestCircuitSimulation(unittest.TestCase):
             got = circuit.compute_value_from_ports(RESULT_PORTS)
             self.assertEqual(got, expect)
 
+    def test_theorem_5_3_precompute_good_modulus_sequence(self):
+        circuit = CircuitGraph()
+
+        tests = [(4, [2, 3, 5, 7], 210)]
+
+        for n, primes, product in tests:
+            big_n = n * n  # <- important
+            PRIMES_NODES, PRIMES_PRODUCT_NODES = (
+                setup_theorem_5_3_precompute_good_modulus_sequence(circuit, bit_len=n)
+            )
+            for idx, nodes in enumerate(PRIMES_NODES):
+                circuit.fill_node_values(nodes, int2binlist(primes[idx], bit_len=n))
+            circuit.fill_node_values(
+                PRIMES_PRODUCT_NODES, int2binlist(product, bit_len=big_n)
+            )
+            circuit.simulate()
+            PRIMES_PORTS = []
+            for nodes in PRIMES_NODES:
+                ports = circuit.get_output_nodes_ports(nodes)
+                PRIMES_PORTS.append(ports)
+            PRIMES_PRODUCT_PORTS = circuit.get_output_nodes_ports(PRIMES_PRODUCT_NODES)
+            for idx, p in enumerate(primes):
+                got_p = circuit.compute_value_from_ports(PRIMES_PORTS[idx])
+                self.assertEqual(got_p, p)
+            got_product = circuit.compute_value_from_ports(PRIMES_PRODUCT_PORTS)
+            self.assertEqual(got_product, product)
+
 
 class TestUtilsFunctions(unittest.TestCase):
     def test_int2binlist(self):

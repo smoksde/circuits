@@ -110,7 +110,9 @@ def next_power_of_two(circuit: CircuitGraph, x, parent_group=None):
     return next_power"""
 
 
-def generate_number(n: int, bit_len: int, zero: Port, one: Port) -> List[Port]:
+def generate_number(
+    n: int, bit_len: int, zero: Port, one: Port, parent_group: Optional[Group] = None
+) -> List[Port]:
     bits = int2binlist(n, bit_len=bit_len)
     ports = []
     for bit in bits:

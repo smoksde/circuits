@@ -13,6 +13,7 @@ from .manipulators import conditional_zeroing, max_tree_iterative
 
 from .beame import lemma_4_1
 from .beame import theorem_4_2
+from .beame import theorem_5_3
 
 
 def binary_list_to_int(binary_list):
@@ -633,6 +634,23 @@ def setup_theorem_4_2_precompute_lookup_pexpl_minus_pexpl_minus_one(
         nodes = cg.generate_output_nodes_from_ports(ports)
         TABLE_NODES.append(nodes)
     return TABLE_NODES
+
+
+def setup_theorem_5_3_precompute_good_modulus_sequence(cg: CircuitGraph, bit_len=4):
+    n = bit_len
+    input_node = cg.add_input_nodes(1)[0]
+    input_port = cg.get_input_node_port(input_node)
+    zero_port = constant_zero(cg, input_port)
+    one_port = constant_one(cg, input_port)
+    PRIMES_PORTS, PRIMES_PRODUCT_PORTS = theorem_5_3.precompute_good_modulus_sequence(
+        cg, zero_port, one_port, n
+    )
+    PRIMES_NODES = []
+    for ports in PRIMES_PORTS:
+        nodes = cg.generate_output_nodes_from_ports(ports)
+        PRIMES_NODES.append(nodes)
+    PRIMES_PRODUCT_NODES = cg.generate_output_nodes_from_ports(PRIMES_PRODUCT_PORTS)
+    return PRIMES_NODES, PRIMES_PRODUCT_NODES
 
 
 def setup_max_tree_iterative(cg: CircuitGraph, num_amount=4, bit_len=4):

@@ -1,3 +1,5 @@
+import random
+
 import theorem_5_3_sanity
 
 
@@ -62,3 +64,23 @@ def lemma_5_1(c_list, c, x_mod_c_i_list):
     y_t_list = step_6(y, n, c_list[-1], c)
     result = step_7(y_t_list, c)
     return result
+
+
+if __name__ == "__main__":
+    n = 4
+    x_list = []
+    x_product = 1
+    for _ in range(n):
+        x_i = random.randrange(1, 2**n - 1)
+        x_list.append(x_i)
+        x_product *= x_i
+    c_list, c = theorem_5_3_sanity.compute_good_modulus_sequence(n)
+    x_mod_c_i_list = []
+    for c_i in c_list:
+        x_mod_c_i_list.append(x_product % c_i)
+    v_list = step_2(c_list, c)
+    w_list = step_3(v_list, c_list)
+    u_list = step_4(v_list, w_list)
+    print(f"u_list: {u_list}")
+    y = step_5(u_list, x_mod_c_i_list)
+    print(f"y: {y}")

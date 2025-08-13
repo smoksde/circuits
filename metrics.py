@@ -480,7 +480,18 @@ def run_selected_plot():
         },
     ]
 
-    metric = "num_nodes"  # depth, num_nodes or num_edges
+    experiments = [
+        {
+            "name": "theorem_4_2",
+            "setup_fn": setup_theorem_4_2,
+            "bit_lengths": [4, 8, 16],
+            "color": "red",
+            "style": "--",
+            "label": "theorem_4_2",
+        },
+    ]
+
+    metric = "depth"  # depth, num_nodes or num_edges
 
     plot_circuit_metrics(
         experiments,

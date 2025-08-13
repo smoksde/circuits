@@ -1088,7 +1088,7 @@ class TestCircuitSimulation(unittest.TestCase):
                 expect = idx - (p ** (l - 1))
             self.assertEqual(got, expect)
 
-    def a_test_theorem_4_2_step_1(self):
+    def test_theorem_4_2_step_1(self):
         circuit = CircuitGraph()
         n = 8
         X_LIST, P, PEXPL, EXPONENTS = setup_theorem_4_2_step_1(circuit, bit_len=n)
@@ -1096,6 +1096,12 @@ class TestCircuitSimulation(unittest.TestCase):
         for _ in range(1):
             # FILL
             x_list, pexpl, p, _, _ = utils.generate_test_values_for_theorem_4_2(n)
+
+            # largest_power_lookup = sanity.theorem_4_2_precompute_lookup_step_1(n)
+            # expected_exponents_list = []
+            # for x in x_list:
+            #    expected_exponents_list.append(largest_power_lookup[x][p])
+
             expected_exponents_list = (
                 sanity.theorem_4_2_step_1_compute_largest_power_of_p(x_list, p)
             )

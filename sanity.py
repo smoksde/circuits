@@ -45,6 +45,20 @@ def theorem_4_2_precompute_lookup_tables_B(n: int):
     return table_zero, table_one
 
 
+def theorem_4_2_precompute_lookup_step_1(n: int):
+    table = []
+    for x in range(0, n + 1):
+        row = []
+        for p in range(0, n + 1):
+            if x == 0 or p == 0:
+                exp_list = [0]
+            else:
+                exp_list = theorem_4_2_step_1_compute_largest_power_of_p([x], p)
+            row.append(exp_list[0])
+        table.append(row)
+    return table
+
+
 def theorem_4_2_step_1_compute_largest_power_of_p(x_list, p):
     n = len(x_list)
     largest_exp_list = []

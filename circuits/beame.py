@@ -1022,16 +1022,16 @@ def theorem_4_2(
     a = theorem_4_2_compute_sum(circuit, a_list, parent_group=this_group)
     b = theorem_4_2_compute_sum(circuit, b_list, parent_group=this_group)
     a_hat, b_hat = theorem_4_2_B_step_7(circuit, a, b, l, parent_group=this_group)
-    print(len(a_hat), len(b_hat), len(l))
+    # print(len(a_hat), len(b_hat), len(l))
     y_product_part_b = theorem_4_2_B_step_8(
         circuit, a_hat, b_hat, l, parent_group=this_group
     )
 
     do_a = theorem_4_2_step_4(circuit, p, pexpl, parent_group=this_group)
 
-    print("HELLO")
-    print(type(y_product_part_a), len(y_product_part_a))
-    print(type(y_product_part_b), len(y_product_part_b))
+    # print("HELLO")
+    # print(type(y_product_part_a), len(y_product_part_a))
+    # print(type(y_product_part_b), len(y_product_part_b))
 
     y_product = bus_multiplexer(
         circuit, [y_product_part_b, y_product_part_a], [do_a], parent_group=this_group

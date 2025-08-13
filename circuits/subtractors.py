@@ -2,7 +2,7 @@ from typing import List
 
 from .constants import *
 from .adders import *
-from .utils import *
+from .circuit_utils import *
 
 
 def subtract(circuit, a_bits, b_bits, parent_group=None) -> List[Port]:

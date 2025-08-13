@@ -8,4 +8,4 @@ from .multiplexers import *
 from .trees import *
 from .comparators import *
 from .constants import *
-from .utils import *
+from .circuit_utils import *

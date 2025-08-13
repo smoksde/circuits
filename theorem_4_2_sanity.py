@@ -15,7 +15,7 @@ def compute_a_b_l_formula(a, b, l):
     )
 
 
-def theorem_4_2_precompute_lookup_tables_B(n: int):
+def precompute_lookup_tables_B(n: int):
     table_zero = []
     for l in range(0, int(math.log2(n)) + 1):
         row = []
@@ -45,7 +45,7 @@ def theorem_4_2_precompute_lookup_tables_B(n: int):
     return table_zero, table_one
 
 
-def theorem_4_2_precompute_lookup_step_1(n: int):
+def precompute_lookup_step_1(n: int):
     table = []
     for x in range(0, n + 1):
         row = []
@@ -53,13 +53,13 @@ def theorem_4_2_precompute_lookup_step_1(n: int):
             if x == 0 or p == 0:
                 exp_list = [0]
             else:
-                exp_list = theorem_4_2_step_1_compute_largest_power_of_p([x], p)
+                exp_list = step_1_compute_largest_power_of_p([x], p)
             row.append(exp_list[0])
         table.append(row)
     return table
 
 
-def theorem_4_2_step_1_compute_largest_power_of_p(x_list, p):
+def step_1_compute_largest_power_of_p(x_list, p):
     n = len(x_list)
     largest_exp_list = []
     for i in range(n):
@@ -76,7 +76,7 @@ def theorem_4_2_step_1_compute_largest_power_of_p(x_list, p):
     return largest_exp_list
 
 
-def theorem_4_2_step_2_compute_x_dividend_by_p(x_list, j_list, p):
+def step_2_compute_x_dividend_by_p(x_list, j_list, p):
     y_list = []
     n = len(x_list)
     for i in range(n):
@@ -85,19 +85,19 @@ def theorem_4_2_step_2_compute_x_dividend_by_p(x_list, j_list, p):
     return y_list
 
 
-def theorem_4_2_step_3_compute_j(j_list):
+def step_3_compute_j(j_list):
     return sum(j_list)
 
 
 # Do A if return is 0, do B if return is 1
-def theorem_4_2_step_4_test_condition(p, l):
+def step_4_test_condition(p, l):
     if p != 2 or p**l == 2 or p**l == 4:
         return 0
     else:
         return 1
 
 
-def theorem_4_2_A_step_5_find_discrete_logarithms(disc_log_lookup, pexpl, y_list):
+def A_step_5_find_discrete_logarithms(disc_log_lookup, pexpl, y_list):
     powers_list = disc_log_lookup[pexpl]
     a_list = []
     for y in y_list:
@@ -114,19 +114,19 @@ def theorem_4_2_A_step_5_find_discrete_logarithms(disc_log_lookup, pexpl, y_list
     return a_list
 
 
-def theorem_4_2_A_step_6_compute_a_sum(a_list):
+def A_step_6_compute_a_sum(a_list):
     return sum(a_list)
 
 
-def theorem_4_2_A_step_7_compute_a_mod_pexpl_minus_pexpldecr(a, p, l):
+def A_step_7_compute_a_mod_pexpl_minus_pexpldecr(a, p, l):
     return a % (p**l - p ** (l - 1))
 
 
-def theorem_4_2_A_step_8_read_reverse_log(disc_log_lookup, pexpl_idx, a_idx):
+def A_step_8_read_reverse_log(disc_log_lookup, pexpl_idx, a_idx):
     return disc_log_lookup[pexpl_idx][a_idx]
 
 
-def theorem_4_2_B_step_5_find_values(l, y_list):
+def B_step_5_find_values(l, y_list):
     zero_a_values = [compute_a_b_l_formula(0, b, l) for b in range(2 ** (l - 2))]
     one_a_values = [compute_a_b_l_formula(1, b, l) for b in range(2 ** (l - 2))]
 
@@ -151,69 +151,65 @@ def theorem_4_2_B_step_5_find_values(l, y_list):
     return a_b_list
 
 
-def theorem_4_2_B_step_6_compute_sums(a_b_list):
+def B_step_6_compute_sums(a_b_list):
     return sum([t[0] for t in a_b_list]), sum([t[1] for t in a_b_list])
 
 
-def theorem_4_2_B_step_7_compute_mods(a, b, l):
+def B_step_7_compute_mods(a, b, l):
     a_hat = a % 2
     b_hat = b % 2 ** (l - 2)
     return a_hat, b_hat
 
 
-def theorem_4_2_B_step_8_read_off_product(a, b, l):
+def B_step_8_read_off_product(a, b, l):
     y_product = compute_a_b_l_formula(a, b, l)
     return y_product
 
 
-def theorem_4_2_step_9_compute_final_product(p, j, y, l):
+def step_9_compute_final_product(p, j, y, l):
     return (p**j * y) % p**l
 
 
-def theorem_4_2_compute(x_list, p, l, debug=False):
+def compute(x_list, p, l, debug=False):
     if debug:
         print("--- Start of Theorem 4.2 Computation ---")
         print("x list:", end=" ")
         print(x_list)
         print(f"p: {p}, l: {l}")
-    largest_exp_list = theorem_4_2_step_1_compute_largest_power_of_p(x_list, p)
+    largest_exp_list = step_1_compute_largest_power_of_p(x_list, p)
     if debug:
         print("Largest Exponent List")
         print(largest_exp_list)
-    y_list = theorem_4_2_step_2_compute_x_dividend_by_p(x_list, largest_exp_list, p)
+    y_list = step_2_compute_x_dividend_by_p(x_list, largest_exp_list, p)
     if debug:
         print("Compute x divided by p")
         print("y_list: ")
         print(y_list)
-    j = theorem_4_2_step_3_compute_j(largest_exp_list)
-    do_b = theorem_4_2_step_4_test_condition(p, l)
+    j = step_3_compute_j(largest_exp_list)
+    do_b = step_4_test_condition(p, l)
     disc_log_lookup = theorem_4_2_precompute_lookup_generator_powers(len(x_list))
     pexpl = p**l
     if not do_b:
         print("Start of Part A")
-        a_list = theorem_4_2_A_step_5_find_discrete_logarithms(
-            disc_log_lookup, pexpl, y_list
-        )
+        a_list = A_step_5_find_discrete_logarithms(disc_log_lookup, pexpl, y_list)
         print("a_list: ")
         print(a_list)
-        a = theorem_4_2_A_step_6_compute_a_sum(a_list)
+        a = A_step_6_compute_a_sum(a_list)
         print("a")
         print(a)
-        a_hat = theorem_4_2_A_step_7_compute_a_mod_pexpl_minus_pexpldecr(a, p, l)
+        a_hat = A_step_7_compute_a_mod_pexpl_minus_pexpldecr(a, p, l)
         print("a_hat")
         print(a_hat)
         a_hat_idx = a_hat  # - 1????
-        y_product = theorem_4_2_A_step_8_read_reverse_log(
-            disc_log_lookup, pexpl, a_hat_idx
-        )
+        y_product = A_step_8_read_reverse_log(disc_log_lookup, pexpl, a_hat_idx)
     else:
         print("Start of Part B")
-        a_b_list = theorem_4_2_B_step_5_find_values(l, y_list)
-        a, b = theorem_4_2_B_step_6_compute_sums(a_b_list)
-        a_hat, b_hat = theorem_4_2_B_step_7_compute_mods(a, b, l)
-        y_product = theorem_4_2_B_step_8_read_off_product(a_hat, b_hat, l)
+        a_b_list = B_step_5_find_values(l, y_list)
+        a, b = B_step_6_compute_sums(a_b_list)
+        a_hat, b_hat = B_step_7_compute_mods(a, b, l)
+        y_product = B_step_8_read_off_product(a_hat, b_hat, l)
 
-    x_product = theorem_4_2_step_9_compute_final_product(p, j, y_product, l)
+    x_product = step_9_compute_final_product(p, j, y_product, l)
     if debug:
         print("--- End of Theorem 4.2 Computation ---")
     return x_product
@@ -269,7 +265,7 @@ if __name__ == "__main__":
             print(f"x_{i}: ", x_list[i])
         print(f"p: {p}")
         print(f"l: {l}")
-        result = theorem_4_2_compute(x_list, p, l, debug=True)
+        result = compute(x_list, p, l, debug=True)
         print(f"result: {result}")
 
         print(f"expectation: {expectation}")

@@ -1,8 +1,5 @@
 from .trees import *
-from .utils import *
-
-from .trees import *
-from .utils import *
+from .circuit_utils import *
 
 
 def one_bit_comparator(circuit, x, y, parent_group=None):

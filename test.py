@@ -3,7 +3,7 @@ from circuits import *
 from graph import *
 from formula import *
 from utils import int2binlist, iter_random_bin_list
-import sanity
+import theorem_4_2_sanity
 from node import Node
 from port import Port
 from edge import Edge
@@ -557,7 +557,7 @@ class TestCircuitSimulation(unittest.TestCase):
             # for idx, e in expect_list:
             #    self.assertEqual(circuit.get_port_value(O[idx].ports[0]), e)
             for i in range(num_amount):
-                expect = utils.binlist2int(NUMS_BITS[rand_selector][i])
+                expect = circuit_utils.binlist2int(NUMS_BITS[rand_selector][i])
                 value = circuit.compute_value_from_ports(
                     circuit.get_output_nodes_ports(O[i])
                 )
@@ -1043,7 +1043,7 @@ class TestCircuitSimulation(unittest.TestCase):
         for i, row in enumerate(TABLE_ZERO_PORTS):
             for j, entry in enumerate(row):
                 try:
-                    expect = sanity.compute_a_b_l_formula(0, j, i)
+                    expect = theorem_4_2_sanity.compute_a_b_l_formula(0, j, i)
                 except:
                     expect = 0
                 if expect > (2**n) - 1:
@@ -1056,7 +1056,7 @@ class TestCircuitSimulation(unittest.TestCase):
         for i, row in enumerate(TABLE_ONE_PORTS):
             for j, entry in enumerate(row):
                 try:
-                    expect = sanity.compute_a_b_l_formula(1, j, i)
+                    expect = theorem_4_2_sanity.compute_a_b_l_formula(1, j, i)
                 except:
                     expect = 0
                 if expect > (2**n) - 1:
@@ -1103,7 +1103,7 @@ class TestCircuitSimulation(unittest.TestCase):
             #    expected_exponents_list.append(largest_power_lookup[x][p])
 
             expected_exponents_list = (
-                sanity.theorem_4_2_step_1_compute_largest_power_of_p(x_list, p)
+                theorem_4_2_sanity.step_1_compute_largest_power_of_p(x_list, p)
             )
 
             for x, nodes in zip(x_list, X_LIST):
@@ -1153,8 +1153,8 @@ class TestCircuitSimulation(unittest.TestCase):
             x_list, pexpl, p, l, expectation = (
                 utils.generate_test_values_for_theorem_4_2(n)
             )
-            j_list = sanity.theorem_4_2_step_1_compute_largest_power_of_p(x_list, p)
-            y_list = sanity.theorem_4_2_step_2_compute_x_dividend_by_p(
+            j_list = theorem_4_2_sanity.step_1_compute_largest_power_of_p(x_list, p)
+            y_list = theorem_4_2_sanity.step_2_compute_x_dividend_by_p(
                 x_list, j_list, p
             )
             # FILL VALUES
@@ -1251,15 +1251,15 @@ class TestCircuitSimulation(unittest.TestCase):
             # print(f"pexpl: {pexpl}")
             # print(f"p: {p}")
             # print(f"l: {l}")
-            j_list = sanity.theorem_4_2_step_1_compute_largest_power_of_p(x_list, p)
+            j_list = theorem_4_2_sanity.step_1_compute_largest_power_of_p(x_list, p)
             # print("x_list: ")
             # print(x_list)
-            y_list = sanity.theorem_4_2_step_2_compute_x_dividend_by_p(
+            y_list = theorem_4_2_sanity.step_2_compute_x_dividend_by_p(
                 x_list, j_list, p
             )
             # print("y_list: ")
             # print(y_list)
-            a_list = sanity.theorem_4_2_A_step_5_find_discrete_logarithms(
+            a_list = theorem_4_2_sanity.A_step_5_find_discrete_logarithms(
                 sw_disc_log_lookup, pexpl, y_list
             )
 
@@ -1288,7 +1288,9 @@ class TestCircuitSimulation(unittest.TestCase):
             circuit, bit_len=n
         )
 
-        sw_disc_log_lookup = sanity.theorem_4_2_precompute_lookup_generator_powers(n)
+        sw_disc_log_lookup = (
+            theorem_4_2_sanity.theorem_4_2_precompute_lookup_generator_powers(n)
+        )
 
         for loop_idx in range(3):
             while True:
@@ -1297,15 +1299,15 @@ class TestCircuitSimulation(unittest.TestCase):
                 )
                 if p != 2 or pexpl in [2, 4]:
                     break
-            j_list = sanity.theorem_4_2_step_1_compute_largest_power_of_p(x_list, p)
-            y_list = sanity.theorem_4_2_step_2_compute_x_dividend_by_p(
+            j_list = theorem_4_2_sanity.step_1_compute_largest_power_of_p(x_list, p)
+            y_list = theorem_4_2_sanity.step_2_compute_x_dividend_by_p(
                 x_list, j_list, p
             )
-            a_list = sanity.theorem_4_2_A_step_5_find_discrete_logarithms(
+            a_list = theorem_4_2_sanity.A_step_5_find_discrete_logarithms(
                 sw_disc_log_lookup, pexpl, y_list
             )
-            a = sanity.theorem_4_2_A_step_6_compute_a_sum(a_list)
-            a_hat = sanity.theorem_4_2_A_step_7_compute_a_mod_pexpl_minus_pexpldecr(
+            a = theorem_4_2_sanity.A_step_6_compute_a_sum(a_list)
+            a_hat = theorem_4_2_sanity.A_step_7_compute_a_mod_pexpl_minus_pexpldecr(
                 a, p, l
             )
 
@@ -1327,7 +1329,9 @@ class TestCircuitSimulation(unittest.TestCase):
             circuit, bit_len=n
         )
 
-        sw_disc_log_lookup = sanity.theorem_4_2_precompute_lookup_generator_powers(n)
+        sw_disc_log_lookup = (
+            theorem_4_2_sanity.theorem_4_2_precompute_lookup_generator_powers(n)
+        )
 
         for loop_idx in range(5):
             while True:
@@ -1336,19 +1340,19 @@ class TestCircuitSimulation(unittest.TestCase):
                 )
                 if p != 2 or pexpl in [2, 4]:
                     break
-            j_list = sanity.theorem_4_2_step_1_compute_largest_power_of_p(x_list, p)
-            y_list = sanity.theorem_4_2_step_2_compute_x_dividend_by_p(
+            j_list = theorem_4_2_sanity.step_1_compute_largest_power_of_p(x_list, p)
+            y_list = theorem_4_2_sanity.step_2_compute_x_dividend_by_p(
                 x_list, j_list, p
             )
-            a_list = sanity.theorem_4_2_A_step_5_find_discrete_logarithms(
+            a_list = theorem_4_2_sanity.A_step_5_find_discrete_logarithms(
                 sw_disc_log_lookup, pexpl, y_list
             )
-            a = sanity.theorem_4_2_A_step_6_compute_a_sum(a_list)
-            a_hat = sanity.theorem_4_2_A_step_7_compute_a_mod_pexpl_minus_pexpldecr(
+            a = theorem_4_2_sanity.A_step_6_compute_a_sum(a_list)
+            a_hat = theorem_4_2_sanity.A_step_7_compute_a_mod_pexpl_minus_pexpldecr(
                 a, p, l
             )
 
-            y_product = sanity.theorem_4_2_A_step_8_read_reverse_log(
+            y_product = theorem_4_2_sanity.A_step_8_read_reverse_log(
                 sw_disc_log_lookup, pexpl, a_hat
             )
 
@@ -1380,12 +1384,12 @@ class TestCircuitSimulation(unittest.TestCase):
                 )
                 if not (p != 2 or pexpl in [2, 4]):
                     break
-            j_list = sanity.theorem_4_2_step_1_compute_largest_power_of_p(x_list, p)
-            y_list = sanity.theorem_4_2_step_2_compute_x_dividend_by_p(
+            j_list = theorem_4_2_sanity.step_1_compute_largest_power_of_p(x_list, p)
+            y_list = theorem_4_2_sanity.step_2_compute_x_dividend_by_p(
                 x_list, j_list, p
             )
 
-            a_b_list = sanity.theorem_4_2_B_step_5_find_values(l, y_list)
+            a_b_list = theorem_4_2_sanity.B_step_5_find_values(l, y_list)
 
             # FILL
 
@@ -1464,7 +1468,9 @@ class TestCircuitSimulation(unittest.TestCase):
             setup_theorem_4_2_step_9(circuit, bit_len=n)
         )
 
-        sw_disc_log_lookup = sanity.theorem_4_2_precompute_lookup_generator_powers(n)
+        sw_disc_log_lookup = (
+            theorem_4_2_sanity.theorem_4_2_precompute_lookup_generator_powers(n)
+        )
 
         for loop_idx in range(10):
             while True:
@@ -1473,24 +1479,24 @@ class TestCircuitSimulation(unittest.TestCase):
                 )
                 if p != 2 or pexpl in [2, 4]:
                     break
-            j_list = sanity.theorem_4_2_step_1_compute_largest_power_of_p(x_list, p)
-            y_list = sanity.theorem_4_2_step_2_compute_x_dividend_by_p(
+            j_list = theorem_4_2_sanity.step_1_compute_largest_power_of_p(x_list, p)
+            y_list = theorem_4_2_sanity.step_2_compute_x_dividend_by_p(
                 x_list, j_list, p
             )
-            j = sanity.theorem_4_2_step_3_compute_j(j_list)
-            a_list = sanity.theorem_4_2_A_step_5_find_discrete_logarithms(
+            j = theorem_4_2_sanity.step_3_compute_j(j_list)
+            a_list = theorem_4_2_sanity.A_step_5_find_discrete_logarithms(
                 sw_disc_log_lookup, pexpl, y_list
             )
-            a = sanity.theorem_4_2_A_step_6_compute_a_sum(a_list)
-            a_hat = sanity.theorem_4_2_A_step_7_compute_a_mod_pexpl_minus_pexpldecr(
+            a = theorem_4_2_sanity.A_step_6_compute_a_sum(a_list)
+            a_hat = theorem_4_2_sanity.A_step_7_compute_a_mod_pexpl_minus_pexpldecr(
                 a, p, l
             )
 
-            y_product = sanity.theorem_4_2_A_step_8_read_reverse_log(
+            y_product = theorem_4_2_sanity.A_step_8_read_reverse_log(
                 sw_disc_log_lookup, pexpl, a_hat
             )
 
-            result = sanity.theorem_4_2_step_9_compute_final_product(p, j, y_product, l)
+            result = theorem_4_2_sanity.step_9_compute_final_product(p, j, y_product, l)
 
             # FILL
             circuit.fill_node_values(P_NODES, int2binlist(p, bit_len=n))
@@ -1510,8 +1516,10 @@ class TestCircuitSimulation(unittest.TestCase):
         n = 4
         X_LIST_NODES, PEXPL_NODES, RESULT_NODES = setup_theorem_4_2(circuit, bit_len=n)
 
-        sw_disc_log_lookup = sanity.theorem_4_2_precompute_lookup_generator_powers(n)
-        sw_part_b_lookup = sanity.theorem_4_2_precompute_lookup_tables_B(n)
+        sw_disc_log_lookup = (
+            theorem_4_2_sanity.theorem_4_2_precompute_lookup_generator_powers(n)
+        )
+        sw_part_b_lookup = theorem_4_2_sanity.precompute_lookup_tables_B(n)
 
         for loop_idx in range(2):
             while True:
@@ -1520,25 +1528,25 @@ class TestCircuitSimulation(unittest.TestCase):
                 )
                 if p != 2 or pexpl in [2, 4]:
                     break
-            j_list = sanity.theorem_4_2_step_1_compute_largest_power_of_p(x_list, p)
-            y_list = sanity.theorem_4_2_step_2_compute_x_dividend_by_p(
+            j_list = theorem_4_2_sanity.step_1_compute_largest_power_of_p(x_list, p)
+            y_list = theorem_4_2_sanity.step_2_compute_x_dividend_by_p(
                 x_list, j_list, p
             )
-            j = sanity.theorem_4_2_step_3_compute_j(j_list)
-            do_a = sanity.theorem_4_2_step_4_test_condition(p, l)
-            a_list = sanity.theorem_4_2_A_step_5_find_discrete_logarithms(
+            j = theorem_4_2_sanity.step_3_compute_j(j_list)
+            do_a = theorem_4_2_sanity.step_4_test_condition(p, l)
+            a_list = theorem_4_2_sanity.A_step_5_find_discrete_logarithms(
                 sw_disc_log_lookup, pexpl, y_list
             )
-            a = sanity.theorem_4_2_A_step_6_compute_a_sum(a_list)
-            a_hat = sanity.theorem_4_2_A_step_7_compute_a_mod_pexpl_minus_pexpldecr(
+            a = theorem_4_2_sanity.A_step_6_compute_a_sum(a_list)
+            a_hat = theorem_4_2_sanity.A_step_7_compute_a_mod_pexpl_minus_pexpldecr(
                 a, p, l
             )
 
-            y_product = sanity.theorem_4_2_A_step_8_read_reverse_log(
+            y_product = theorem_4_2_sanity.A_step_8_read_reverse_log(
                 sw_disc_log_lookup, pexpl, a_hat
             )
 
-            expect = sanity.theorem_4_2_step_9_compute_final_product(p, j, y_product, l)
+            expect = theorem_4_2_sanity.step_9_compute_final_product(p, j, y_product, l)
 
             # FILL
             for idx, nodes in enumerate(X_LIST_NODES):

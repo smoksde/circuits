@@ -3,7 +3,7 @@ from typing import List, Optional
 from graph import *
 from .comparators import n_bit_comparator, n_bit_equality
 from .multiplexers import multiplexer, bus_multiplexer
-from .utils import generate_number
+from .circuit_utils import generate_number
 from .constants import constant_zero, constant_one
 
 

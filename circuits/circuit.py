@@ -12,6 +12,7 @@ from .montgomery_ladder import montgomery_ladder
 from .manipulators import conditional_zeroing, max_tree_iterative
 
 from .beame import lemma_4_1
+from .beame import lemma_5_1
 from .beame import theorem_4_2
 from .beame import theorem_5_3
 
@@ -651,6 +652,32 @@ def setup_theorem_5_3_precompute_good_modulus_sequence(cg: CircuitGraph, bit_len
         PRIMES_NODES.append(nodes)
     PRIMES_PRODUCT_NODES = cg.generate_output_nodes_from_ports(PRIMES_PRODUCT_PORTS)
     return PRIMES_NODES, PRIMES_PRODUCT_NODES
+
+
+def setup_lemma_5_1_precompute_u_list(cg: CircuitGraph, bit_len=4):
+    n = bit_len
+    input_node = cg.add_input_nodes(1)[0]
+    input_port = cg.get_input_node_port(input_node)
+    zero_port = constant_zero(cg, input_port)
+    one_port = constant_one(cg, input_port)
+    U_LIST_PORTS = lemma_5_1.precompute_u_list(cg, zero_port, one_port, n)
+    U_LIST_NODES = [
+        cg.generate_output_nodes_from_ports(ports) for ports in U_LIST_PORTS
+    ]
+    return U_LIST_NODES
+
+
+def setup_lemma_5_1(cg: CircuitGraph, bit_len=4):
+    n = bit_len
+    X_MOD_C_I_LIST_NODES = [cg.add_input_nodes(n * n) for _ in range(n)]
+    C_NODES = cg.add_input_nodes(n * n)
+    X_MOD_C_I_LIST_PORTS = [
+        cg.get_input_nodes_ports(nodes) for nodes in X_MOD_C_I_LIST_NODES
+    ]
+    C_PORTS = cg.get_input_nodes_ports(C_NODES)
+    RESULT_PORTS = lemma_5_1.lemma_5_1(cg, X_MOD_C_I_LIST_PORTS, C_PORTS)
+    RESULT_NODES = cg.generate_output_nodes_from_ports(RESULT_PORTS)
+    return X_MOD_C_I_LIST_NODES, C_NODES, RESULT_NODES
 
 
 def setup_max_tree_iterative(cg: CircuitGraph, num_amount=4, bit_len=4):

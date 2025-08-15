@@ -100,7 +100,7 @@ class TestTheorem_5_2_Sanity(unittest.TestCase):
             expect = 1
             for x in x_list:
                 expect *= x
-            _, c = theorem_5_3_sanity.compute_good_modulus_sequence(n)
+            _, c = theorem_5_3_sanity.compute_good_modulus_sequence(n * n)
             expect = expect % c
             got = theorem_5_2_sanity.theorem_5_2(x_list)
             self.assertEqual(got, expect)

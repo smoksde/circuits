@@ -4,6 +4,8 @@ from graph import *
 from formula import *
 from utils import int2binlist, iter_random_bin_list
 import theorem_4_2_sanity
+import theorem_5_3_sanity
+import lemma_5_1_sanity
 from node import Node
 from port import Port
 from edge import Edge
@@ -1569,11 +1571,11 @@ class TestCircuitSimulation(unittest.TestCase):
             PRIMES_NODES, PRIMES_PRODUCT_NODES = (
                 setup_theorem_5_3_precompute_good_modulus_sequence(circuit, bit_len=n)
             )
-            for idx, nodes in enumerate(PRIMES_NODES):
-                circuit.fill_node_values(nodes, int2binlist(primes[idx], bit_len=n))
-            circuit.fill_node_values(
-                PRIMES_PRODUCT_NODES, int2binlist(product, bit_len=big_n)
-            )
+            # for idx, nodes in enumerate(PRIMES_NODES):
+            #    circuit.fill_node_values(nodes, int2binlist(primes[idx], bit_len=n))
+            # circuit.fill_node_values(
+            #    PRIMES_PRODUCT_NODES, int2binlist(product, bit_len=big_n)
+            # )
             circuit.simulate()
             PRIMES_PORTS = []
             for nodes in PRIMES_NODES:
@@ -1585,6 +1587,66 @@ class TestCircuitSimulation(unittest.TestCase):
                 self.assertEqual(got_p, p)
             got_product = circuit.compute_value_from_ports(PRIMES_PRODUCT_PORTS)
             self.assertEqual(got_product, product)
+
+    def test_lemma_5_1_precompute_u_list(self):
+        circuit = CircuitGraph()
+        tests = [(4, [105, 70, 126, 120])]
+        for n, u_list in tests:
+            U_LIST_NODES = setup_lemma_5_1_precompute_u_list(circuit, bit_len=n)
+            circuit.simulate()
+            U_LIST_PORTS = [
+                circuit.get_output_nodes_ports(nodes) for nodes in U_LIST_NODES
+            ]
+            for idx, ports in enumerate(U_LIST_PORTS):
+                got = circuit.compute_value_from_ports(ports)
+                expect = u_list[idx]
+                self.assertEqual(got, expect)
+
+    def test_lemma_5_1(self):
+        circuit = CircuitGraph()
+        n = 4
+
+        X_MOD_C_I_NODES, C_NODES, RESULT_NODES = setup_lemma_5_1(circuit, bit_len=n)
+
+        for loop_idx in range(5):
+
+            # VARIABLE VALUES COMPUTATION
+
+            # x_pre = [5, 7, 4, 7]
+
+            x_list = []
+            x_product = 1
+            for idx in range(n):
+                x_i = random.randrange(1, n * n)
+                # x_i = x_pre[idx]
+                x_list.append(x_i)
+                x_product *= x_i
+            c_list, c = theorem_5_3_sanity.compute_good_modulus_sequence(n)
+            x_mod_c_i_list = []
+            for c_i in c_list:
+                x_mod_c_i_list.append(x_product % c_i)
+            print("x_mod_c_i_list")
+            print(x_mod_c_i_list)
+            v_list = lemma_5_1_sanity.step_2(c_list, c)
+            w_list = lemma_5_1_sanity.step_3(v_list, c_list)
+            u_list = lemma_5_1_sanity.step_4(v_list, w_list)
+            print(f"u_list {u_list}")
+
+            expect = x_product % c
+
+            # FILL
+            for idx, nodes in enumerate(X_MOD_C_I_NODES):
+                circuit.fill_node_values(
+                    nodes, int2binlist(x_mod_c_i_list[idx], bit_len=n * n)
+                )
+            circuit.fill_node_values(C_NODES, int2binlist(c, bit_len=n * n))
+
+            circuit.simulate()
+
+            RESULT_PORTS = circuit.get_output_nodes_ports(RESULT_NODES)
+            got = circuit.compute_value_from_ports(RESULT_PORTS)
+
+            self.assertEqual(got, expect)
 
 
 class TestUtilsFunctions(unittest.TestCase):

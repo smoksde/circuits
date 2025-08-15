@@ -3,11 +3,16 @@ from graph import *
 
 from ..multipliers import wallace_tree_multiplier
 from ..trees import adder_tree_iterative
-from ..constants import constant_zero
+from ..constants import constant_zero, constant_one
+from ..subtractors import subtract
+from ..manipulators import conditional_zeroing
+from ..comparators import n_bit_comparator
 import theorem_5_3_sanity
 import lemma_5_1_sanity
 
 from .. import circuit_utils
+
+import math
 
 # Usually Lemma 5.1 also consists of steps 1 - 4.
 # Though assuming only contextual usage of Lemma 5.1
@@ -35,7 +40,9 @@ def precompute_u_list(
 
     U_LIST = []
     for u_i in u_list:
-        U_I = circuit_utils.generate_number(u_i, n, zero, one, parent_group=this_group)
+        U_I = circuit_utils.generate_number(
+            u_i, n * n, zero, one, parent_group=this_group
+        )
         U_LIST.append(U_I)
     return U_LIST
 
@@ -64,3 +71,77 @@ def step_5(
         summands.append(summand)
     y = adder_tree_iterative(circuit, summands, zero, parent_group=this_group)
     return y
+
+
+# Expects inputs having already n = n^2 bits
+def step_6_and_7(
+    circuit: CircuitGraph,
+    y: List[Port],
+    c: List[Port],
+    zero: Port,
+    one: Port,
+    parent_group: Optional[Group] = None,
+):
+    this_group = circuit.add_group("LEMMA_5_1_STEP_6")
+    this_group.set_parent(parent_group)
+
+    n = len(y)
+
+    # Compute c_n given the strict assumptions
+    c_list, _ = theorem_5_3_sanity.compute_good_modulus_sequence(int(math.sqrt(n)))
+
+    inter_list = []
+
+    for t in range(0, n * c_list[-1] + 1):
+        t_ports = circuit_utils.generate_number(
+            t, n, zero, one, parent_group=this_group
+        )
+        prod = wallace_tree_multiplier(circuit, t_ports, c, parent_group=this_group)
+        prod = prod[:n]
+        y_t = subtract(circuit, y, prod, parent_group=this_group)
+
+        # check negativity
+        is_negative = y_t[len(y_t) - 1]
+
+        less, _, _ = n_bit_comparator(circuit, y_t, c, parent_group=this_group)
+
+        not_less = circuit.add_node(
+            "not", "NOT", inputs=[less], group_id=this_group.id
+        ).ports[1]
+
+        not_desired = circuit.add_node(
+            "or", label="OR", inputs=[not_less, is_negative], group_id=this_group.id
+        ).ports[2]
+
+        # conditional subtract
+        inter = conditional_zeroing(circuit, y_t, not_desired, parent_group=this_group)
+        inter_list.append(inter)
+
+    result = adder_tree_iterative(circuit, inter_list, zero, parent_group=this_group)
+    return result
+
+
+def lemma_5_1(
+    circuit: CircuitGraph,
+    x_mod_c_i_list: List[List[Port]],
+    c: List[Port],
+    parent_group: Optional[Group] = None,
+) -> List[Port]:
+
+    this_group = circuit.add_group("LEMMA_5_1")
+    this_group.set_parent(parent_group)
+
+    big_n = len(c)
+    n = int(math.sqrt(big_n))
+
+    zero = constant_zero(circuit, c[0], parent_group=this_group)
+    one = constant_one(circuit, c[0], parent_group=this_group)
+
+    u_list = precompute_u_list(circuit, zero, one, n, parent_group=this_group)
+
+    print(len(x_mod_c_i_list[0]))
+    print(len(u_list[0]))
+    y = step_5(circuit, x_mod_c_i_list, u_list, parent_group=this_group)
+
+    result = step_6_and_7(circuit, y, c, zero, one, parent_group=this_group)
+    return result

@@ -9,7 +9,6 @@ import theorem_5_3_sanity
 def step_3(x_list, c_list):
     n = len(x_list)
     s = len(c_list)
-    assert n == s
 
     matrix = []
     for j in range(1, s + 1):
@@ -34,7 +33,7 @@ def step_4(b_j_i_matrix, c_list):
 
 def theorem_5_2(x_list):
     n = len(x_list)
-    c_list, c = theorem_5_3_sanity.compute_good_modulus_sequence(n)
+    c_list, c = theorem_5_3_sanity.compute_good_modulus_sequence(n * n)
     b_j_i_matrix = step_3(x_list, c_list)
     b_list = step_4(b_j_i_matrix, c_list)
     result = lemma_5_1_sanity.lemma_5_1(c_list, c, b_list)

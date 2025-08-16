@@ -1648,6 +1648,28 @@ class TestCircuitSimulation(unittest.TestCase):
 
             self.assertEqual(got, expect)
 
+    def test_theorem_5_2(self):
+        circuit = CircuitGraph()
+        n = 4
+
+        X_LIST_NODES, RESULT_NODES = setup_theorem_5_2(circuit, bit_len=n)
+        
+        for _ in range(2):
+            x_list_values = [random.randrange(1, (2**n)-1) for _ in range(n)]
+            expect = 1
+            for x in x_list_values:
+                expect *= x
+            for idx, nodes in enumerate(X_LIST_NODES):
+                circuit.fill_node_values(
+                    nodes, int2binlist(x_list_values[idx], bit_len=n)
+                )
+            circuit.simulate()
+            RESULT_PORTS = circuit.get_output_nodes_ports(RESULT_NODES)
+            got = circuit.compute_value_from_ports(RESULT_PORTS)
+            self.assertEqual(got, expect, msg=(
+                f"x_list_values: {x_list_values}"
+            ))
+
 
 class TestUtilsFunctions(unittest.TestCase):
     def test_int2binlist(self):

@@ -454,13 +454,14 @@ def run_selected_plot():
         {
             "name": "lemma_4_1",
             "setup_fn": setup_lemma_4_1,
-            "bit_lengths": [4, 8, 16, 32, 64],
+            "bit_lengths": [4, 8, 16, 32],
             "color": "blue",
             "style": "--",
             "label": "lemma_4_1",
         },
     ]
 
+    """
     experiments = [
         {
             "name": "lemma_4_1",
@@ -489,7 +490,7 @@ def run_selected_plot():
             "style": "--",
             "label": "theorem_4_2",
         },
-    ]
+    ]"""
 
     metric = "depth"  # depth, num_nodes or num_edges
 

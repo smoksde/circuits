@@ -3,8 +3,10 @@ from .constants import *
 
 
 def wallace_tree_multiplier(circuit, x_list, y_list, parent_group=None):
-    wtm_group = circuit.add_group("WALLACE_TREE_MULTIPLIER")
-    wtm_group.set_parent(parent_group)
+    this_group = circuit.add_group("WALLACE_TREE_MULTIPLIER")
+    this_group_id = this_group.id if this_group is not None else -1
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
     assert len(x_list) == len(y_list), "Both inputs have to be equally long"
     n = len(x_list)
     partial_products = [[] for _ in range(2 * n)]
@@ -12,7 +14,7 @@ def wallace_tree_multiplier(circuit, x_list, y_list, parent_group=None):
     for i, x in enumerate(x_list):
         for j, y in enumerate(y_list):
             index = i + j
-            node = circuit.add_node("and", "AND", inputs=[x, y], group_id=wtm_group.id)
+            node = circuit.add_node("and", "AND", inputs=[x, y], group_id=this_group_id)
             partial_products[index].append(node.ports[2])
 
     while any(len(col) > 2 for col in partial_products):
@@ -24,7 +26,7 @@ def wallace_tree_multiplier(circuit, x_list, y_list, parent_group=None):
                 len(col) > j + 2
             ):  # as long as 3 or more partial products remain in the current column
                 sum, cout = full_adder(
-                    circuit, col[j], col[j + 1], col[j + 2], parent_group=wtm_group
+                    circuit, col[j], col[j + 1], col[j + 2], parent_group=this_group
                 )
                 new_products[i].append(sum)
                 new_products[i + 1].append(cout)
@@ -34,7 +36,7 @@ def wallace_tree_multiplier(circuit, x_list, y_list, parent_group=None):
                 len(col) > j + 1 and j > 0
             ):  # if 2 partial products remain in the current column and j > 0
                 sum, cout = half_adder(
-                    circuit, col[j], col[j + 1], parent_group=wtm_group
+                    circuit, col[j], col[j + 1], parent_group=this_group
                 )
                 new_products[i].append(sum)
                 new_products[i + 1].append(cout)
@@ -46,7 +48,7 @@ def wallace_tree_multiplier(circuit, x_list, y_list, parent_group=None):
 
         partial_products = new_products
 
-    zero_port = constant_zero(circuit, x_list[0], parent_group=wtm_group)
+    zero_port = constant_zero(circuit, x_list[0], parent_group=this_group)
 
     # Applying fast adder since all columns have at most 2 partial products
     x_addend = []
@@ -61,7 +63,7 @@ def wallace_tree_multiplier(circuit, x_list, y_list, parent_group=None):
             y_addend.append(zero_port)
 
     sum_outputs, carry = carry_look_ahead_adder(
-        circuit, x_addend, y_addend, zero_port, parent_group=wtm_group
+        circuit, x_addend, y_addend, zero_port, parent_group=this_group
     )
 
     outputs = sum_outputs

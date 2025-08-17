@@ -29,25 +29,29 @@ def and_tree_recursive(circuit, input_list, parent_group=None):
 def or_tree_recursive(
     circuit: CircuitGraph, input_list: List[Port], parent_group: Optional[Group] = None
 ) -> Port:
-    otr_group = circuit.add_group("OR_TREE_RECURSIVE")
-    otr_group.set_parent(parent_group)
+    this_group = circuit.add_group("OR_TREE_RECURSIVE")
+    this_group_id = this_group.id if this_group is not None else -1
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
     if len(input_list) == 1:
         return input_list[0]
     if len(input_list) == 2:
-        or_node = circuit.add_node("or", "OR", inputs=input_list, group_id=otr_group.id)
+        or_node = circuit.add_node("or", "OR", inputs=input_list, group_id=this_group_id)
         return or_node.ports[2]
     mid = len(input_list) // 2
-    left = or_tree_recursive(circuit, input_list[:mid], parent_group=otr_group)
-    right = or_tree_recursive(circuit, input_list[mid:], parent_group=otr_group)
-    or_node = circuit.add_node("or", "OR", inputs=[left, right], group_id=otr_group.id)
+    left = or_tree_recursive(circuit, input_list[:mid], parent_group=this_group)
+    right = or_tree_recursive(circuit, input_list[mid:], parent_group=this_group)
+    or_node = circuit.add_node("or", "OR", inputs=[left, right], group_id=this_group_id)
     return or_node.ports[2]
 
 
 def and_tree_iterative(
     circuit: CircuitGraph, input_list: List[Port], parent_group: Optional[Group] = None
 ) -> Port:
-    ati_group = circuit.add_group("AND_TREE_ITERATIVE")
-    ati_group.set_parent(parent_group)
+    this_group = circuit.add_group("AND_TREE_ITERATIVE")
+    this_group_id = this_group.id if this_group is not None else -1
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
     current = input_list
     while len(current) > 1:
         next = []
@@ -57,7 +61,7 @@ def and_tree_iterative(
                     "and",
                     "AND",
                     inputs=[current[i], current[i + 1]],
-                    group_id=ati_group.id,
+                    group_id=this_group_id,
                 )
                 next.append(m.ports[2])
             else:
@@ -69,8 +73,10 @@ def and_tree_iterative(
 def or_tree_iterative(
     circuit: CircuitGraph, input_list: List[Port], parent_group: Optional[Group] = None
 ) -> Port:
-    oti_group = circuit.add_group("OR_TREE_ITERATIVE")
-    oti_group.set_parent(parent_group)
+    this_group = circuit.add_group("OR_TREE_ITERATIVE")
+    this_group_id = this_group.id if this_group is not None else -1
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
     current = input_list
     while len(current) > 1:
         next = []
@@ -81,7 +87,7 @@ def or_tree_iterative(
                     "or",
                     "OR",
                     inputs=[current[i], current[i + 1]],
-                    group_id=oti_group.id,
+                    group_id=this_group_id,
                 )
                 next.append(m.ports[2])
             else:
@@ -96,15 +102,16 @@ def adder_tree_iterative(
     zero: Port,
     parent_group: Optional[Group] = None,
 ):
-    ati_group = circuit.add_group("ADDER_TREE_ITERATIVE")
-    ati_group.set_parent(parent_group)
+    this_group = circuit.add_group("ADDER_TREE_ITERATIVE")
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
     current = summands
     while len(current) > 1:
         next = []
         for i in range(0, len(current), 2):
             if i + 1 < len(current):
                 sum, _ = carry_look_ahead_adder(
-                    circuit, current[i], current[i + 1], zero, parent_group=ati_group
+                    circuit, current[i], current[i + 1], zero, parent_group=this_group
                 )
                 next.append(sum)
             else:
@@ -116,8 +123,9 @@ def adder_tree_iterative(
 def adder_tree_recursive(
     circuit, summand_lists, zero, parent_group: Optional[Group] = None
 ):
-    atr_group = circuit.add_group("ADDER_TREE_RECURSIVE")
-    atr_group.set_parent(parent_group)
+    this_group = circuit.add_group("ADDER_TREE_RECURSIVE")
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
     # carry does not work, pseudo non deterministic behaviour
     if len(summand_lists) == 1:
         return summand_lists[0], zero

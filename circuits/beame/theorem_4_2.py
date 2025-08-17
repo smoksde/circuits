@@ -27,8 +27,9 @@ def precompute_lookup_is_prime_power(
     n: int,
     parent_group: Optional[Group] = None,
 ):
-    plipp_group = circuit.add_group(label="PRECOMPUTE_LOOKUP_IS_PRIME_POWER")
-    plipp_group.set_parent(parent_group)
+    this_group = circuit.add_group(label="PRECOMPUTE_LOOKUP_IS_PRIME_POWER")
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
 
     result = []
     for i in range(1, n + 1):
@@ -46,8 +47,9 @@ def precompute_lookup_p_l(
     n: int,
     parent_group: Optional[Group] = None,
 ):
-    plpl_group = circuit.add_group(label="PRECOMPUTE_LOOKUP_P_L")
-    plpl_group.set_parent(parent_group)
+    this_group = circuit.add_group(label="PRECOMPUTE_LOOKUP_P_L")
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
 
     p_result = []
     l_result = []
@@ -88,8 +90,9 @@ def precompute_lookup_powers(
     n: int,
     parent_group: Optional[Group] = None,
 ) -> List[List[List[Port]]]:
-    plp_group = circuit.add_group("THEOREM_4_2_PRECOMPUTE_LOOKUP_POWERS")
-    plp_group.set_parent(parent_group)
+    this_group = circuit.add_group("THEOREM_4_2_PRECOMPUTE_LOOKUP_POWERS")
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
 
     result = []
     for p in range(0, n + 1):
@@ -119,8 +122,9 @@ def precompute_lookup_powers_decr(
     n: int,
     parent_group: Optional[Group] = None,
 ):
-    plp_group = circuit.add_group("THEOREM_4_2_PRECOMPUTE_LOOKUP_POWERS_DECR")
-    plp_group.set_parent(parent_group)
+    this_group = circuit.add_group("THEOREM_4_2_PRECOMPUTE_LOOKUP_POWERS_DECR")
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
 
     result = []
     for p in range(1, n + 1):
@@ -152,7 +156,8 @@ def precompute_lookup_generator_powers(
     parent_group: Optional[Group] = None,
 ):
     this_group = circuit.add_group("THEOREM_4_2_PRECOMPUTE_LOOKUP_GENERATOR_POWERS")
-    this_group.set_parent(parent_group)
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
 
     result = []
     software_primitive_roots = sb.find_primitive_roots(n)
@@ -198,7 +203,8 @@ def precompute_lookup_tables_B(
     parent_group: Optional[Group] = None,
 ):
     this_group = circuit.add_group("THEOREM_4_2_PRECOMPUTE_LOOKUP_TABLES_B")
-    this_group.set_parent(parent_group)
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
     # TABLE for a == 0
     TABLE_ZERO = []
     for l in range(0, int(math.log2(n)) + 1):
@@ -245,8 +251,7 @@ def precompute_lookup_tables_B(
 
     return TABLE_ZERO, TABLE_ONE
 
-
-def step_1(
+def step_1_with_lemma_4_1(
     circuit: CircuitGraph,
     x_list: List[List[Port]],
     p: List[Port],
@@ -255,8 +260,10 @@ def step_1(
 ) -> List[List[Port]]:
     n = len(x_list)
 
-    this_group = circuit.add_group("THEOREM_4_2_STEP_1")
-    this_group.set_parent(parent_group)
+    this_group = circuit.add_group("THEOREM_4_2_STEP_1_WITH_LEMMA_4_1")
+    this_group_id = this_group.id if this_group is not None else -1
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
 
     zero = constant_zero(circuit, p[0], parent_group=this_group)
     one = constant_one(circuit, p[0], parent_group=this_group)
@@ -281,7 +288,7 @@ def step_1(
             )
 
             goreq = circuit.add_node(
-                "not", "NOT", inputs=[less], group_id=this_group.id
+                "not", "NOT", inputs=[less], group_id=this_group_id
             ).ports[1]
 
             remainder = lemma_4_1.lemma_4_1(
@@ -296,18 +303,18 @@ def step_1(
                 circuit, p_powers[i], parent_group=this_group
             )
             p_powers_is_zero = circuit.add_node(
-                "not", "NOT", inputs=[p_powers_is_not_zero], group_id=this_group.id
+                "not", "NOT", inputs=[p_powers_is_not_zero], group_id=this_group_id
             ).ports[1]
 
             cond = circuit.add_node(
                 "or",
                 "OR",
                 inputs=[is_remainder_not_zero, goreq],
-                group_id=this_group.id,
+                group_id=this_group_id,
             ).ports[2]
 
             cond = circuit.add_node(
-                "or", "OR", inputs=[cond, p_powers_is_zero], group_id=this_group.id
+                "or", "OR", inputs=[cond, p_powers_is_zero], group_id=this_group_id
             ).ports[2]
 
             exponent = circuit_utils.generate_number(i, n, zero, one)
@@ -319,6 +326,93 @@ def step_1(
 
     return exponents
 
+def step_1(
+    circuit: CircuitGraph,
+    x_list: List[List[Port]],
+    p: List[Port],
+    pexpl: List[Port],
+    parent_group: Optional[Group] = None,
+) -> List[List[Port]]:
+    this_group = circuit.add_group("THEOREM_4_2_STEP_1")
+    #this_group_id = this_group.id if this_group is not None else -1
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
+
+
+    return step_1_with_precompute(circuit, x_list, p, parent_group=this_group)
+    #return step_1_with_lemma_4_1(circuit, x_list, p, pexpl, parent_group=this_group)
+    
+def precompute_largest_powers(
+    circuit: CircuitGraph,
+    zero: Port,
+    one: Port,
+    n: int,
+    parent_group: Optional[Group] = None,
+) -> List[List[List[Port]]]:
+    print("Starting precompute largest powers")
+    this_group = circuit.add_group("THEOREM_4_2_PRECOMPUTE_LARGEST_POWERS")
+    # this_group_id = this_group.id if this_group is not None else -1
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
+    
+    result = []
+
+    for p in range(0, n + 1):
+        print(f"Precomputing largest powers for p = {p}")
+        row = []
+        for x in range(0, n):
+            largest_exp = 0
+            j = 0
+            while True:
+                if p == 0 or p == 1:
+                    largest_exp = 0
+                    break
+                power = p**j
+                if power > x:
+                    break
+                elif x % power == 0:
+                    largest_exp = j
+                j += 1
+            largest_exp_ports = circuit_utils.generate_number(largest_exp, n, zero, one, parent_group=this_group)
+            row.append(largest_exp_ports)
+        result.append(row)
+    print("Finished precompute largest powers")
+    return result
+
+
+def step_1_with_precompute(
+    circuit: CircuitGraph,
+    x_list: List[List[Port]],
+    p: List[Port],
+    parent_group: Optional[Group] = None,
+) -> List[List[Port]]:
+    
+    this_group = circuit.add_group("THEOREM_4_2_STEP_1_WITH_PRECOMPUTE")
+    #this_group_id = this_group.id if this_group is not None else -1
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
+
+    n = len(x_list)
+
+    zero = constant_zero(circuit, p[0], parent_group=this_group)
+    one = constant_one(circuit, p[0], parent_group=this_group)
+
+    lookup_largest_powers = precompute_largest_powers(circuit, zero, one, n, parent_group=this_group)
+
+    lookup_largest_powers_for_p = tensor_multiplexer(
+        circuit, lookup_largest_powers, p, parent_group=this_group
+    )
+
+    exponents = []
+
+    for x in x_list:
+        lookup_power = bus_multiplexer(
+            circuit, lookup_largest_powers_for_p, x, parent_group=this_group
+        )
+        exponents.append(lookup_power)
+    return exponents
+
+
 
 def step_2(
     circuit: CircuitGraph,
@@ -329,7 +423,8 @@ def step_2(
 ):
 
     this_group = circuit.add_group("THEOREM_4_2_STEP_2")
-    this_group.set_parent(parent_group)
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
 
     n = len(x_list)
 
@@ -372,7 +467,8 @@ def compute_sum(
     parent_group: Optional[Group] = None,
 ):
     this_group = circuit.add_group("THEOREM_4_2_STEP_3")
-    this_group.set_parent(parent_group)
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
 
     zero = constant_zero(circuit, j_list[0][0], parent_group=this_group)
     j = adder_tree_iterative(circuit, j_list, zero, parent_group=this_group)
@@ -386,7 +482,9 @@ def step_4(
     parent_group: Optional[Group] = None,
 ) -> Port:
     this_group = circuit.add_group("THEOREM_4_2_STEP_4")
-    this_group.set_parent(parent_group)
+    this_group_id = this_group.id if this_group is not None else -1
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
 
     n = len(p)
 
@@ -403,7 +501,7 @@ def step_4(
 
     _, p_equals_two, _ = n_bit_comparator(circuit, p, num_two, parent_group=this_group)
     p_not_equals_two = circuit.add_node(
-        "not", "NOT", inputs=[p_equals_two], group_id=this_group.id
+        "not", "NOT", inputs=[p_equals_two], group_id=this_group_id
     ).ports[1]
 
     _, pexpl_equals_two, _ = n_bit_comparator(
@@ -414,11 +512,11 @@ def step_4(
     )
 
     two_or_four = circuit.add_node(
-        "or", "OR", inputs=[pexpl_equals_two, pexpl_equals_four], group_id=this_group.id
+        "or", "OR", inputs=[pexpl_equals_two, pexpl_equals_four], group_id=this_group_id
     ).ports[2]
 
     flag = circuit.add_node(
-        "or", "OR", inputs=[p_not_equals_two, two_or_four], group_id=this_group.id
+        "or", "OR", inputs=[p_not_equals_two, two_or_four], group_id=this_group_id
     ).ports[2]
 
     return flag
@@ -432,7 +530,8 @@ def A_step_5(
 ):
 
     this_group = circuit.add_group("THEOREM_4_2_A_STEP_5")
-    this_group.set_parent(parent_group)
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
 
     n = len(y_list[0])
 
@@ -484,7 +583,8 @@ def A_step_7(
 ) -> List[Port]:
 
     this_group = circuit.add_group("THEOREM_4_2_A_STEP_7")
-    this_group.set_parent(parent_group)
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
 
     n = len(pexpl)
 
@@ -512,7 +612,8 @@ def A_step_8(
 ) -> List[Port]:
 
     this_group = circuit.add_group("THEOREM_4_2_A_step_8")
-    this_group.set_parent(parent_group)
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
 
     n = len(a_hat)
 
@@ -536,7 +637,8 @@ def B_step_5(
 ) -> Tuple[List[List[Port]], List[List[Port]]]:
 
     this_group = circuit.add_group("THEOREM_4_2_B_STEP_5")
-    this_group.set_parent(parent_group)
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
 
     n = len(l)
 
@@ -623,7 +725,8 @@ def compute_value_index_from_bus(
 ) -> List[Port]:
 
     this_group = circuit.add_group("COMPUTE_VALUE_INDEX_FROM_BUS")
-    this_group.set_parent(parent_group)
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
 
     n = len(value)
     index_candidates = []
@@ -646,7 +749,8 @@ def B_step_7(
     parent_group: Optional[Group] = None,
 ) -> Tuple[List[Port], List[Port]]:
     this_group = circuit.add_group("THEOREM_4_2_B_step_7")
-    this_group.set_parent(parent_group)
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
 
     n = len(a)
 
@@ -678,7 +782,9 @@ def B_step_8(
     # after b_hat
 
     this_group = circuit.add_group("THEOREM_4_2_B_step_8")
-    this_group.set_parent(parent_group)
+    this_group_id = this_group.id if this_group is not None else -1
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
 
     n = len(a_hat)
 
@@ -711,7 +817,7 @@ def B_step_8(
     equals = n_bit_equality(circuit, a_hat, num_one, parent_group=this_group)
 
     not_equals = circuit.add_node(
-        "not", "NOT", inputs=[equals], group_id=this_group.id
+        "not", "NOT", inputs=[equals], group_id=this_group_id
     ).ports[1]
 
     r1 = conditional_zeroing(
@@ -736,7 +842,8 @@ def step_9(
 ) -> List[Port]:
 
     this_group = circuit.add_group("THEOREM_4_2_STEP_9")
-    this_group.set_parent(parent_group)
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
 
     n = len(p)
 
@@ -770,7 +877,8 @@ def theorem_4_2(
 ) -> List[Port]:
 
     this_group = circuit.add_group("THEOREM_4_2")
-    this_group.set_parent(parent_group)
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
 
     n = len(pexpl)
 
@@ -791,6 +899,10 @@ def theorem_4_2(
     # PART A
     a_list = A_step_5(circuit, y_list, pexpl, parent_group=this_group)
     a = compute_sum(circuit, a_list)
+    #print("len a, len pexpl", len(a), len(pexpl))
+    # CHECK IF THIS SHOULD BE DONE HERE
+    while len(a) < len(pexpl):
+        a.append(zero)
     a_hat = A_step_7(circuit, a, pexpl, parent_group=this_group)
     y_product_part_a = A_step_8(circuit, a_hat, pexpl, parent_group=this_group)
 
@@ -827,7 +939,8 @@ def precompute_lookup_pexpl_minus_pexpl_minus_one(
     this_group = circuit.add_group(
         "THEOREM_4_2_PRECOMPUTE_LOOKUP_PEXPL_MINUS_PEXPL_MINUS_ONE"
     )
-    this_group.set_parent(parent_group)
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
 
     p_l_lookup = sb.theorem_4_2_precompute_lookup_p_l(n)
 
@@ -858,7 +971,8 @@ def precompute_lookup_division(
     parent_group: Optional[Group] = None,
 ):
     this_group = circuit.add_group("THEOREM_4_2_PRECOMPUTE_LOOKUP_DIVISION")
-    this_group.set_parent(parent_group)
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
 
     table = []
     for x in range(n + 1):

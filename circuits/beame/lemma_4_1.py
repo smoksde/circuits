@@ -21,8 +21,9 @@ def precompute_aim(
     n: int,
     parent_group: Optional[Group] = None,
 ):
-    pa_group = circuit.add_group("PRE_AIM")
-    pa_group.set_parent(parent_group)
+    this_group = circuit.add_group("PRE_AIM")
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
 
     lis = []
 
@@ -50,12 +51,13 @@ def precompute_aim(
 def provide_aims_given_m(
     circuit: CircuitGraph, m: List[Port], parent_group: Optional[Group] = None
 ):
-    pagm_group = circuit.add_group("LEMMA_4_1_PROVIDE_AIMS_GIVEN_M")
-    pagm_group.set_parent(parent_group)
-    zero = constant_zero(circuit, m[0], parent_group=pagm_group)
-    one = constant_one(circuit, m[0], parent_group=pagm_group)
+    this_group = circuit.add_group("LEMMA_4_1_PROVIDE_AIMS_GIVEN_M")
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
+    zero = constant_zero(circuit, m[0], parent_group=this_group)
+    one = constant_one(circuit, m[0], parent_group=this_group)
     n = len(m)
-    aims_ports = precompute_aim(circuit, zero, one, n, parent_group=pagm_group)
+    aims_ports = precompute_aim(circuit, zero, one, n, parent_group=this_group)
     # figure out if aims_ports needs to be reformated
     ais = tensor_multiplexer(circuit, aims_ports, m)
     return ais  # List[List[Port]]
@@ -68,15 +70,17 @@ def compute_summands(
     aims: List[List[Port]],
     parent_group: Optional[Group] = None,
 ):
-    cs_group = circuit.add_group("LEMMA_4_1_COMPUTE_SUMMANDS")
-    cs_group.set_parent(parent_group)
+    this_group = circuit.add_group("LEMMA_4_1_COMPUTE_SUMMANDS")
+    this_group_id = this_group.id if this_group is not None else -1
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
     n = len(x)
     result = []
     for p1, p2 in zip(x, aims):
         not_p1 = circuit.add_node(
-            "not", "NOT", inputs=[p1], group_id=cs_group.id
+            "not", "NOT", inputs=[p1], group_id=this_group_id
         ).ports[1]
-        product = conditional_zeroing(circuit, p2, not_p1, parent_group=cs_group)
+        product = conditional_zeroing(circuit, p2, not_p1, parent_group=this_group)
         result.append(product)
     return result
 
@@ -87,14 +91,15 @@ def compute_y(
     m: List[Port],
     parent_group: Optional[Group] = None,
 ) -> List[Port]:
-    cy_group = circuit.add_group("LEMMA_4_1_COMPUTE_Y")
-    cy_group.set_parent(parent_group)
+    this_group = circuit.add_group("LEMMA_4_1_COMPUTE_Y")
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
 
-    zero = constant_zero(circuit, x[0], parent_group=cy_group)
+    zero = constant_zero(circuit, x[0], parent_group=this_group)
 
-    aims = provide_aims_given_m(circuit, m, parent_group=cy_group)
-    summands = compute_summands(circuit, x, aims, parent_group=cy_group)
-    sum = adder_tree_iterative(circuit, summands, zero, parent_group=cy_group)
+    aims = provide_aims_given_m(circuit, m, parent_group=this_group)
+    summands = compute_summands(circuit, x, aims, parent_group=this_group)
+    sum = adder_tree_iterative(circuit, summands, zero, parent_group=this_group)
 
     assert_list_of_ports(sum)
     return sum
@@ -108,10 +113,11 @@ def compute_diffs(
     parent_group: Optional[Group] = None,
 ) -> List[List[Port]]:
 
-    cd_group = circuit.add_group("LEMMA_4_1_COMPUTE_DIFFS")
-    cd_group.set_parent(parent_group)
+    this_group = circuit.add_group("LEMMA_4_1_COMPUTE_DIFFS")
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
 
-    zero = constant_zero(circuit, y[0], parent_group=cd_group)
+    zero = constant_zero(circuit, y[0], parent_group=this_group)
 
     diff_list = []
 
@@ -133,13 +139,13 @@ def compute_diffs(
             #    if bit:
             #        summands.append(m_powers[idx])
             summands = [m for _ in range(i)]
-            acc = adder_tree_iterative(circuit, summands, zero, parent_group=cd_group)
+            acc = adder_tree_iterative(circuit, summands, zero, parent_group=this_group)
         # acc = [zero for k in range(n)]
         # for _ in range(i):
         #    acc, _ = carry_look_ahead_adder(
         #        circuit, acc, m, zero, parent_group=cd_group
         #    )
-        diff = subtract(circuit, y, acc, parent_group=cd_group)
+        diff = subtract(circuit, y, acc, parent_group=this_group)
         diff_list.append(diff)
 
     return diff_list
@@ -154,14 +160,16 @@ def reduce_in_parallel(
     parent_group: Optional[Group] = None,
 ) -> List[Port]:
 
-    rip_group = circuit.add_group("LEMMA_4_1_REDUCE_IN_PARALLEL")
-    rip_group.set_parent(parent_group)
+    this_group = circuit.add_group("LEMMA_4_1_REDUCE_IN_PARALLEL")
+    this_group_id = this_group.id if this_group is not None else -1
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
 
-    zero = constant_zero(circuit, y[0], parent_group=rip_group)
+    zero = constant_zero(circuit, y[0], parent_group=this_group)
 
     inter_list = []
 
-    diff_list = compute_diffs(circuit, y, m, n, parent_group=rip_group)
+    diff_list = compute_diffs(circuit, y, m, n, parent_group=this_group)
 
     # is parallel in the circuit
     for i in range(n):
@@ -170,19 +178,19 @@ def reduce_in_parallel(
         # check diff if its in the range of [0, m - 1]
         is_negative = diff[len(diff) - 1]
         is_positive = circuit.add_node(
-            "not", "NOT", inputs=[is_negative], group_id=rip_group.id
+            "not", "NOT", inputs=[is_negative], group_id=this_group_id
         ).ports[1]
         less, equal, greater = n_bit_comparator(
-            circuit, diff, m, parent_group=rip_group
+            circuit, diff, m, parent_group=this_group
         )
         # has to be less
         desired = circuit.add_node(
-            "and", "DESIRED_AND", inputs=[is_positive, less], group_id=rip_group.id
+            "and", "DESIRED_AND", inputs=[is_positive, less], group_id=this_group_id
         ).ports[2]
         not_desired = circuit.add_node(
-            "not", "NOT", inputs=[desired], group_id=rip_group.id
+            "not", "NOT", inputs=[desired], group_id=this_group_id
         ).ports[1]
-        inter = conditional_zeroing(circuit, diff, not_desired, parent_group=rip_group)
+        inter = conditional_zeroing(circuit, diff, not_desired, parent_group=this_group)
         inter_list.append(inter)
 
     result = []
@@ -190,7 +198,7 @@ def reduce_in_parallel(
         reformat = []
         for entry in inter_list:
             reformat.append(entry[i])
-        tree_res = or_tree_iterative(circuit, reformat, parent_group=rip_group)
+        tree_res = or_tree_iterative(circuit, reformat, parent_group=this_group)
         result.append(tree_res)
     return result
 
@@ -201,12 +209,13 @@ def lemma_4_1(
     m: List[Port],
     parent_group: Optional[Group] = None,
 ) -> List[Port]:
-    lemma_group = circuit.add_group("LEMMA_4_1")
-    lemma_group.set_parent(parent_group)
+    this_group = circuit.add_group("LEMMA_4_1")
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
 
     n = len(x)
-    y = compute_y(circuit, x, m, parent_group=lemma_group)
-    result = reduce_in_parallel(circuit, y, m, n, parent_group=lemma_group)
+    y = compute_y(circuit, x, m, parent_group=this_group)
+    result = reduce_in_parallel(circuit, y, m, n, parent_group=this_group)
     return result
 
 

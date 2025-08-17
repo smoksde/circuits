@@ -31,7 +31,8 @@ def precompute_u_list(
 ) -> List[List[Port]]:
 
     this_group = circuit.add_group("LEMMA_5_1_PRECOMPUTE_U_LIST")
-    this_group.set_parent(parent_group)
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
 
     c_list, c = theorem_5_3_sanity.compute_good_modulus_sequence(n)
     v_list = lemma_5_1_sanity.step_2(c_list, c)
@@ -56,7 +57,8 @@ def step_5(
 ) -> List[Port]:
 
     this_group = circuit.add_group("LEMMA_5_1_STEP_5")
-    this_group.set_parent(parent_group)
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
 
     n = len(u_list[0])
 
@@ -83,7 +85,9 @@ def step_6_and_7(
     parent_group: Optional[Group] = None,
 ):
     this_group = circuit.add_group("LEMMA_5_1_STEP_6")
-    this_group.set_parent(parent_group)
+    this_group_id = this_group.id if this_group is not None else -1
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
 
     n = len(y)
 
@@ -106,11 +110,11 @@ def step_6_and_7(
         less, _, _ = n_bit_comparator(circuit, y_t, c, parent_group=this_group)
 
         not_less = circuit.add_node(
-            "not", "NOT", inputs=[less], group_id=this_group.id
+            "not", "NOT", inputs=[less], group_id=this_group_id
         ).ports[1]
 
         not_desired = circuit.add_node(
-            "or", label="OR", inputs=[not_less, is_negative], group_id=this_group.id
+            "or", label="OR", inputs=[not_less, is_negative], group_id=this_group_id
         ).ports[2]
 
         # conditional subtract
@@ -129,7 +133,8 @@ def lemma_5_1(
 ) -> List[Port]:
 
     this_group = circuit.add_group("LEMMA_5_1")
-    this_group.set_parent(parent_group)
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
 
     big_n = len(c)
     n = int(math.sqrt(big_n))

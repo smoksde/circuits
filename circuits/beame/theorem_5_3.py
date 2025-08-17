@@ -15,7 +15,8 @@ def precompute_good_modulus_sequence(
 ) -> Tuple[List[List[Port]], List[Port]]:
 
     this_group = circuit.add_group("PRECOMPUTE_GOOD_MODULUS_SEQUENCE")
-    this_group.set_parent(parent_group)
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
 
     value_primes, value_primes_product = (
         theorem_5_3_sanity.compute_good_modulus_sequence(n)

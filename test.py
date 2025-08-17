@@ -1649,7 +1649,7 @@ class TestCircuitSimulation(unittest.TestCase):
             self.assertEqual(got, expect)
 
     def test_theorem_5_2(self):
-        circuit = CircuitGraph()
+        circuit = CircuitGraph(enable_groups=False)
         n = 4
 
         X_LIST_NODES, RESULT_NODES = setup_theorem_5_2(circuit, bit_len=n)

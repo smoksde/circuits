@@ -8,16 +8,21 @@ from group import Group
 
 from utils import binlist2int
 
+# Make x, y node coords and groups optional
 
 class CircuitGraph:
-    def __init__(self):
+    def __init__(self, enable_groups: bool = True):
         self.nodes = {}
         self.edges = []
-        self.groups = {}
+        
         self.node_count = 0
         self.node_values = {}
         self.port_count = 0
-        self.group_count = 0
+        self.enable_groups = enable_groups
+        if self.enable_groups:
+            self.groups = {}
+            self.group_count = 0
+        
 
     def add_node(
         self,
@@ -205,6 +210,8 @@ class CircuitGraph:
         return edge
 
     def add_group(self, label="DEFAULT_GROUP"):
+        if not self.enable_groups:
+            return None
         group_id = self.group_count
         self.group_count += 1
         group = Group(group_id, label)
@@ -214,13 +221,14 @@ class CircuitGraph:
     def to_json(self):
         nodes = [node.to_dict() for node in self.nodes.values()]
         edges = [edge.to_dict() for edge in self.edges]
-        groups = [group.to_dict() for group in self.groups.values()]
-        return {
+        data = {
             "nodes": nodes,
             "edges": edges,
-            "groups": groups,
             "values": self.node_values,
         }
+        if self.enable_groups:
+            data["groups"] = [group.to_dict() for group in self.groups.values()]
+        return data
 
     def simulate(self):
         port_values = {}

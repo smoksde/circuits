@@ -16,7 +16,8 @@ def step_3(
 ):
     
     this_group = circuit.add_group("THEOREM_5_2_STEP_3")
-    this_group.set_parent(parent_group)
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
 
     n = len(x_list)
     s = len(c_list)
@@ -37,7 +38,8 @@ def step_4(
     parent_group: Optional[Group] = None
 ):
     this_group = circuit.add_group("THEOREM_5_2_STEP_4")
-    this_group.set_parent(parent_group)
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
 
     b_j_list = []
     for idx, x_list in enumerate(b_j_i_matrix):
@@ -52,7 +54,8 @@ def step_5(
     parent_group: Optional[Group] = None
 ):
     this_group = circuit.add_group("THEOREM_5_2_STEP_5")
-    this_group.set_parent(parent_group)
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
 
     result = lemma_5_1.lemma_5_1(circuit, b_j_list, c, parent_group=this_group)
     return result
@@ -63,7 +66,8 @@ def theorem_5_2(
     parent_group: Optional[Group] = None
 ):
     this_group = circuit.add_group("THEOREM_5_2")
-    this_group.set_parent(parent_group)
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
 
     n = len(x_list)
     big_n = n * n

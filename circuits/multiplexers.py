@@ -11,13 +11,15 @@ def multiplexer(
 ):
 
     this_group = circuit.add_group("MULTIPLEXER")
-    this_group.set_parent(parent_group)
+    this_group_id = this_group.id if this_group is not None else -1
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
 
     # inputs should be ascending order
     n_bits = len(selector_list)
     not_selector_list = []
     for sel in selector_list:
-        not_sel = circuit.add_node("not", "NOT", inputs=[sel], group_id=this_group.id)
+        not_sel = circuit.add_node("not", "NOT", inputs=[sel], group_id=this_group_id)
         not_selector_list.append(not_sel.ports[1])
 
     and_ports = []
@@ -46,7 +48,8 @@ def multiplexer(
 def bus_multiplexer(circuit, bus, selector, parent_group: Optional[Group] = None):
 
     this_group = circuit.add_group("BUS_MULTIPLEXER")
-    this_group.set_parent(parent_group)
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
 
     bit_width = len(bus[0])
     num_amount = len(bus)
@@ -87,7 +90,8 @@ def tensor_multiplexer(
 ):
 
     this_group = circuit.add_group("TENSOR_MULTIPLEXER")
-    this_group.set_parent(parent_group)
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
 
     dim_one = len(tensor)  # number of words to choose from
     dim_two = len(tensor[0])  # rows (i.e., how many outputs you want)
@@ -105,22 +109,24 @@ def tensor_multiplexer(
 # if signal then a else b
 def mux2(circuit, signal, a, b, parent_group: Optional[Group] = None):
 
-    mux_group = circuit.add_group("MUX")
-    mux_group.set_parent(parent_group)
+    this_group = circuit.add_group("MUX")
+    this_group_id = this_group.id if this_group is not None else -1
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
     not_signal = circuit.add_node(
-        "not", "MUX_NOT", inputs=[signal], group_id=mux_group.id
+        "not", "MUX_NOT", inputs=[signal], group_id=this_group_id
     )
     not_signal_port = not_signal.ports[1]
     first_and = circuit.add_node(
-        "and", "MUX_AND", inputs=[signal, a], group_id=mux_group.id
+        "and", "MUX_AND", inputs=[signal, a], group_id=this_group_id
     )
     second_and = circuit.add_node(
-        "and", "MUX_AND", inputs=[not_signal_port, b], group_id=mux_group.id
+        "and", "MUX_AND", inputs=[not_signal_port, b], group_id=this_group_id
     )
     first_and_port = first_and.ports[2]
     second_and_port = second_and.ports[2]
     out_node = circuit.add_node(
-        "or", "MUX_OR", inputs=[first_and_port, second_and_port], group_id=mux_group.id
+        "or", "MUX_OR", inputs=[first_and_port, second_and_port], group_id=this_group_id
     )
     out_port = out_node.ports[2]
     return out_port

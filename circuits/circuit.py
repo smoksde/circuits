@@ -519,6 +519,21 @@ def setup_theorem_4_2(cg: CircuitGraph, bit_len=4):
     return X_LIST_NODES, PEXPL_NODES, RESULT_NODES
 
 
+def setup_theorem_4_2_for_theorem_5_2(cg: CircuitGraph, bit_len=4):
+    n = bit_len
+
+    X_LIST_NODES = [cg.add_input_nodes(n) for _ in range(n)]
+    PEXPL_NODES = cg.add_input_nodes(n)
+
+    X_LIST_PORTS = [cg.get_input_nodes_ports(nodes) for nodes in X_LIST_NODES]
+    PEXPL_PORTS = cg.get_input_nodes_ports(PEXPL_NODES)
+
+    RESULT_PORTS = theorem_4_2.theorem_4_2_for_theorem_5_2(cg, X_LIST_PORTS, PEXPL_PORTS)
+    RESULT_NODES = cg.generate_output_nodes_from_ports(RESULT_PORTS)
+
+    return X_LIST_NODES, PEXPL_NODES, RESULT_NODES
+
+
 def setup_theorem_4_2_precompute_lookup_tables_B(cg: CircuitGraph, bit_len=4):
     n = bit_len
     input_node = cg.add_input_nodes(1, "INPUT")[0]
@@ -687,6 +702,7 @@ def setup_theorem_5_2(cg: CircuitGraph, bit_len=4):
     RESULT_PORTS = theorem_5_2.theorem_5_2(cg, X_LIST_PORTS)
     RESULT_NODES = cg.generate_output_nodes_from_ports(RESULT_PORTS)
     return X_LIST_NODES, RESULT_NODES
+
 
 def setup_max_tree_iterative(cg: CircuitGraph, num_amount=4, bit_len=4):
     VALUES_NODES = []

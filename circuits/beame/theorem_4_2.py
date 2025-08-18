@@ -349,7 +349,7 @@ def precompute_largest_powers(
     n: int,
     parent_group: Optional[Group] = None,
 ) -> List[List[List[Port]]]:
-    print("Starting precompute largest powers")
+    #print("Starting precompute largest powers")
     this_group = circuit.add_group("THEOREM_4_2_PRECOMPUTE_LARGEST_POWERS")
     # this_group_id = this_group.id if this_group is not None else -1
     if circuit.enable_groups and this_group is not None:
@@ -358,7 +358,7 @@ def precompute_largest_powers(
     result = []
 
     for p in range(0, n + 1):
-        print(f"Precomputing largest powers for p = {p}")
+        #print(f"Precomputing largest powers for p = {p}")
         row = []
         for x in range(0, n):
             largest_exp = 0
@@ -376,7 +376,7 @@ def precompute_largest_powers(
             largest_exp_ports = circuit_utils.generate_number(largest_exp, n, zero, one, parent_group=this_group)
             row.append(largest_exp_ports)
         result.append(row)
-    print("Finished precompute largest powers")
+    #print("Finished precompute largest powers")
     return result
 
 
@@ -636,11 +636,19 @@ def B_step_5(
     parent_group: Optional[Group] = None,
 ) -> Tuple[List[List[Port]], List[List[Port]]]:
 
+    print("Starting B_step_5")
+    
+    print("len(y_list)")
+    print(len(y_list))
+    print("len(y_list[0])")
+    print(len(y_list[0]))
+    print(len(l))
+
     this_group = circuit.add_group("THEOREM_4_2_B_STEP_5")
     if circuit.enable_groups and this_group is not None:
         this_group.set_parent(parent_group)
 
-    n = len(l)
+    n = len(y_list[0]) # len(l)
 
     zero = constant_zero(circuit, l[0], parent_group=this_group)
     one = constant_one(circuit, l[0], parent_group=this_group)
@@ -892,6 +900,8 @@ def theorem_4_2(
     p = bus_multiplexer(circuit, p_lookup, pexpl)
     l = bus_multiplexer(circuit, l_lookup, pexpl)
 
+    do_a = step_4(circuit, p, pexpl, parent_group=this_group)
+
     j_list = step_1(circuit, x_list, p, pexpl, parent_group=this_group)
     y_list = step_2(circuit, x_list, p, j_list, parent_group=this_group)
     j = compute_sum(circuit, j_list, parent_group=this_group)
@@ -906,6 +916,12 @@ def theorem_4_2(
     a_hat = A_step_7(circuit, a, pexpl, parent_group=this_group)
     y_product_part_a = A_step_8(circuit, a_hat, pexpl, parent_group=this_group)
 
+    # DEFAULT VALUES FOR PART B IF PART A WAS DONE
+    new_y_list = []
+    for _ in range(len(y_list)):
+        new_y_list.append([zero for _ in range(len(y_list[0]))])
+    y_list = new_y_list
+
     # PART B
     a_list, b_list = B_step_5(circuit, y_list, l, parent_group=this_group)
     a = compute_sum(circuit, a_list, parent_group=this_group)
@@ -914,7 +930,7 @@ def theorem_4_2(
     # print(len(a_hat), len(b_hat), len(l))
     y_product_part_b = B_step_8(circuit, a_hat, b_hat, l, parent_group=this_group)
 
-    do_a = step_4(circuit, p, pexpl, parent_group=this_group)
+    
 
     # print("HELLO")
     # print(type(y_product_part_a), len(y_product_part_a))
@@ -928,6 +944,43 @@ def theorem_4_2(
 
     return result
 
+def theorem_4_2_for_theorem_5_2(
+    circuit: CircuitGraph,
+    x_list: List[List[Port]],
+    pexpl: List[Port],
+    parent_group: Optional[Group] = None,
+) -> List[Port]:
+    
+    this_group = circuit.add_group("THEOREM_4_2_FOR_THEOREM_5_2")
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
+
+    n = len(pexpl)
+
+    zero = constant_zero(circuit, pexpl[0], parent_group=this_group)
+    one = constant_one(circuit, pexpl[0], parent_group=this_group)
+
+    p_lookup, l_lookup = precompute_lookup_p_l(
+        circuit, zero, one, n, parent_group=this_group
+    )
+
+    p = bus_multiplexer(circuit, p_lookup, pexpl)
+    l = bus_multiplexer(circuit, l_lookup, pexpl)
+
+    j_list = step_1(circuit, x_list, p, pexpl, parent_group=this_group)
+    y_list = step_2(circuit, x_list, p, j_list, parent_group=this_group)
+    j = compute_sum(circuit, j_list, parent_group=this_group)
+
+    a_list = A_step_5(circuit, y_list, pexpl, parent_group=this_group)
+    a = compute_sum(circuit, a_list)
+    while len(a) < len(pexpl):
+        a.append(zero)
+    a_hat = A_step_7(circuit, a, pexpl, parent_group=this_group)
+    y_product = A_step_8(circuit, a_hat, pexpl, parent_group=this_group)
+
+    result = step_9(circuit, p, j, pexpl, y_product, parent_group=this_group)
+
+    return result
 
 def precompute_lookup_pexpl_minus_pexpl_minus_one(
     circuit: CircuitGraph,

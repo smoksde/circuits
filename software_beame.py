@@ -204,8 +204,10 @@ def compute_powers_up_to(g, thresh):
 
 def compute_powers_mod_up_to(g, m, thresh):
     powers = []
-    if g == 1 or g == 0:
+    if g == 0:
         return [0]
+    if g == 1:
+        return [1] # should this be longer?
     i = 0
     while True:
         if i > m:  # check this statement

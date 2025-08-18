@@ -80,7 +80,7 @@ def step_2_compute_x_dividend_by_p(x_list, j_list, p):
     y_list = []
     n = len(x_list)
     for i in range(n):
-        y = x_list[i] // p ** j_list[i]
+        y = x_list[i] // (p ** j_list[i])
         y_list.append(y)
     return y_list
 
@@ -92,9 +92,9 @@ def step_3_compute_j(j_list):
 # Do A if return is 0, do B if return is 1
 def step_4_test_condition(p, l):
     if p != 2 or p**l == 2 or p**l == 4:
-        return 0
-    else:
         return 1
+    else:
+        return 0
 
 
 def A_step_5_find_discrete_logarithms(disc_log_lookup, pexpl, y_list):
@@ -127,15 +127,19 @@ def A_step_8_read_reverse_log(disc_log_lookup, pexpl_idx, a_idx):
 
 
 def B_step_5_find_values(l, y_list):
-    zero_a_values = [compute_a_b_l_formula(0, b, l) for b in range(2 ** (l - 2))]
-    one_a_values = [compute_a_b_l_formula(1, b, l) for b in range(2 ** (l - 2))]
+    print("------------B step 5")
+    print("int(2 ** (l - 2))")
+    print(int(2 ** (l - 2)))
+    limit_b = max(int(2 ** (l - 2)),1)
+    zero_a_values = [compute_a_b_l_formula(0, b, l) for b in range(limit_b)]
+    one_a_values = [compute_a_b_l_formula(1, b, l) for b in range(limit_b)]
 
     # print("B step 5")
-    # print(f"l: {l}")
-    # print("zero_a_values")
-    # print(zero_a_values)
-    # print("one_a_values")
-    # print(one_a_values)
+    print(f"l: {l}")
+    print("zero_a_values")
+    print(zero_a_values)
+    print("one_a_values")
+    print(one_a_values)
 
     a_b_list = []
     for y in y_list:
@@ -146,7 +150,7 @@ def B_step_5_find_values(l, y_list):
             a = 1
             b = one_a_values.index(y)
         else:
-            raise ValueError("y not found in lookup")
+            raise ValueError(f"y: {y} not found in lookup")
         a_b_list.append((a, b))
     return a_b_list
 
@@ -265,7 +269,7 @@ if __name__ == "__main__":
             print(f"x_{i}: ", x_list[i])
         print(f"p: {p}")
         print(f"l: {l}")
-        result = compute(x_list, p, l, debug=True)
+        result = compute(x_list, p, int(l), debug=True)
         print(f"result: {result}")
 
         print(f"expectation: {expectation}")

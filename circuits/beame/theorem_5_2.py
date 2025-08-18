@@ -43,7 +43,7 @@ def step_4(
 
     b_j_list = []
     for idx, x_list in enumerate(b_j_i_matrix):
-        b_j = theorem_4_2.theorem_4_2(circuit, x_list, c_list[idx], parent_group=this_group)
+        b_j = theorem_4_2.theorem_4_2_for_theorem_5_2(circuit, x_list, c_list[idx], parent_group=this_group)
         b_j_list.append(b_j)
     return b_j_list
 

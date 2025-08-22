@@ -528,7 +528,9 @@ def setup_theorem_4_2_for_theorem_5_2(cg: CircuitGraph, bit_len=4):
     X_LIST_PORTS = [cg.get_input_nodes_ports(nodes) for nodes in X_LIST_NODES]
     PEXPL_PORTS = cg.get_input_nodes_ports(PEXPL_NODES)
 
-    RESULT_PORTS = theorem_4_2.theorem_4_2_for_theorem_5_2(cg, X_LIST_PORTS, PEXPL_PORTS)
+    RESULT_PORTS = theorem_4_2.theorem_4_2_for_theorem_5_2(
+        cg, X_LIST_PORTS, PEXPL_PORTS
+    )
     RESULT_NODES = cg.generate_output_nodes_from_ports(RESULT_PORTS)
 
     return X_LIST_NODES, PEXPL_NODES, RESULT_NODES
@@ -694,6 +696,7 @@ def setup_lemma_5_1(cg: CircuitGraph, bit_len=4):
     RESULT_PORTS = lemma_5_1.lemma_5_1(cg, X_MOD_C_I_LIST_PORTS, C_PORTS)
     RESULT_NODES = cg.generate_output_nodes_from_ports(RESULT_PORTS)
     return X_MOD_C_I_LIST_NODES, C_NODES, RESULT_NODES
+
 
 def setup_theorem_5_2(cg: CircuitGraph, bit_len=4):
     n = bit_len
@@ -1143,6 +1146,18 @@ def setup_wallace_tree_multiplier(cg, bit_len=4):
     A = [cg.add_node("input", f"A{i}") for i in range(bit_len)]
     B = [cg.add_node("input", f"B{i}") for i in range(bit_len)]
     outputs = wallace_tree_multiplier(
+        cg, [a.ports[0] for a in A], [b.ports[0] for b in B]
+    )
+    output_nodes = []
+    for out in outputs:
+        output_nodes.append(cg.add_node("output", "PRODUCT", inputs=[out]))
+    return A, B, output_nodes
+
+
+def setup_faulty_wallace_tree_multiplier(cg, bit_len=4):
+    A = [cg.add_node("input", f"A{i}") for i in range(bit_len)]
+    B = [cg.add_node("input", f"B{i}") for i in range(bit_len)]
+    outputs = faulty_wallace_tree_multiplier(
         cg, [a.ports[0] for a in A], [b.ports[0] for b in B]
     )
     output_nodes = []

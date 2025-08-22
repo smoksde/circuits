@@ -116,7 +116,7 @@ def longest_path_length(cg):
 
 
 def analyze_circuit_function(name, setup_fn, bit_len=4):
-    cg = CircuitGraph()
+    cg = CircuitGraph(enable_groups=False)
     setup_fn(cg, bit_len)
     num_nodes = len(cg.nodes)
     num_edges = len(cg.edges)
@@ -353,7 +353,7 @@ def plot_circuit_metrics(experiments, metric="depth", title="Circuit Characteris
         )
 
     plt.title(title)
-    plt.xlabel("Bit Length (Number representation size)")
+    plt.xlabel("N - Bit Width of Input Numbers")
     plt.ylabel(metric.capitalize())
     plt.grid(True)
     plt.legend()
@@ -461,6 +461,36 @@ def run_selected_plot():
         },
     ]
 
+    experiments = [
+        {
+            "name": "Carry Look-Ahead Adder",
+            "setup_fn": setup_carry_look_ahead_adder,
+            "bit_lengths": [4, 8, 16, 32, 64, 128, 256, 512],
+            "color": "blue",
+            "style": "--",
+            "label": "Carry Look-Ahead Adder",
+        },
+    ]
+
+    experiments = [
+        {
+            "name": "Wallace Tree Multiplier",
+            "setup_fn": setup_wallace_tree_multiplier,
+            "bit_lengths": [4, 8, 16, 32, 64, 128, 256],
+            "color": "blue",
+            "style": "--",
+            "label": "Wallace Tree Multiplier",
+        },
+        {
+            "name": "Faulty Wallace Tree Multiplier",
+            "setup_fn": setup_faulty_wallace_tree_multiplier,
+            "bit_lengths": [4, 8, 16, 32, 64, 128, 256],
+            "color": "red",
+            "style": "--",
+            "label": "Faulty Wallace Tree Multiplier",
+        },
+    ]
+
     """
     experiments = [
         {
@@ -497,7 +527,7 @@ def run_selected_plot():
     plot_circuit_metrics(
         experiments,
         metric=metric,
-        title=f"Comparison of Circuits {metric}",
+        title=f"Circuits {metric}",
     )
 
 

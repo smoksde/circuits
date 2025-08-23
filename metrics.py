@@ -564,7 +564,37 @@ def run_selected_plot():
         },
     ]"""
 
-    metric = "num_nodes"  # depth, num_nodes or num_edges
+    experiments = [
+        {
+            "name": "setup_slow_modulo_circuit",
+            "setup_fn": setup_slow_modulo_circuit,
+            "bit_lengths": [4, 8],
+            "color": "red",
+            "style": "--",
+            "label": "setup_slow_modulo_circuit",
+        },
+        {
+            "name": "setup_modulo_circuit",
+            "setup_fn": setup_modulo_circuit,
+            "bit_lengths": [4, 8, 16],
+            "color": "blue",
+            "style": "--",
+            "label": "setup_modulo_circuit",
+        },
+    ]
+
+    experiments = [
+        {
+            "name": "setup_modulo_circuit",
+            "setup_fn": setup_modulo_circuit,
+            "bit_lengths": [4, 8, 16, 32, 64, 128],
+            "color": "blue",
+            "style": "--",
+            "label": "setup_modulo_circuit",
+        },
+    ]
+
+    metric = "depth"  # depth, num_nodes or num_edges
 
     plot_circuit_metrics(
         experiments,

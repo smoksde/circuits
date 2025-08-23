@@ -491,6 +491,28 @@ def run_selected_plot():
         },
     ]
 
+    experiments = [
+        {
+            "name": "setup_theorem_5_3_precompute_good_modulus_sequence",
+            "setup_fn": setup_theorem_5_3_precompute_good_modulus_sequence,
+            "bit_lengths": [4, 8, 16, 32, 64, 128, 256],
+            "color": "blue",
+            "style": "--",
+            "label": "setup_theorem_5_3_precompute_good_modulus_sequence,",
+        }
+    ]
+
+    experiments = [
+        {
+            "name": "setup_theorem_4_2_precompute_lookup_division",
+            "setup_fn": setup_theorem_4_2_precompute_lookup_division,
+            "bit_lengths": [4, 8, 16, 32, 64, 128],
+            "color": "blue",
+            "style": "--",
+            "label": "setup_theorem_4_2_precompute_lookup_division,",
+        }
+    ]
+
     """
     experiments = [
         {
@@ -509,7 +531,7 @@ def run_selected_plot():
             "style": "--",
             "label": "theorem_4_2_step_1",
         },
-    ]
+    ]"""
 
     experiments = [
         {
@@ -520,9 +542,29 @@ def run_selected_plot():
             "style": "--",
             "label": "theorem_4_2",
         },
+        {
+            "name": "theorem_4_2_for_theorem_5_2",
+            "setup_fn": setup_theorem_4_2_for_theorem_5_2,
+            "bit_lengths": [4, 8, 16],
+            "color": "blue",
+            "style": "--",
+            "label": "theorem_4_2_for_theorem_5_2",
+        },
+    ]
+
+    """
+    experiments = [
+        {
+            "name": "setup_theorem_4_2_step_1",
+            "setup_fn": setup_theorem_4_2_step_1,
+            "bit_lengths": [4, 8, 16, 32],
+            "color": "red",
+            "style": "--",
+            "label": "setup_theorem_4_2_step_1",
+        },
     ]"""
 
-    metric = "depth"  # depth, num_nodes or num_edges
+    metric = "num_nodes"  # depth, num_nodes or num_edges
 
     plot_circuit_metrics(
         experiments,

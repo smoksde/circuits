@@ -370,6 +370,40 @@ def setup_theorem_4_2_step_1(cg: CircuitGraph, bit_len=4):
     ]
     return X_LIST_NODES, P_NODES, PEXPL_NODES, EXPONENTS_NODES
 
+def setup_theorem_4_2_step_1_with_lemma_4_1(cg: CircuitGraph, bit_len=4):
+    n = bit_len
+    X_LIST_NODES = [cg.add_input_nodes(n, "INPUT") for _ in range(n)]
+    P_NODES = cg.add_input_nodes(n, "INPUT")
+    PEXPL_NODES = cg.add_input_nodes(n, "INPUT")
+
+    X_LIST_PORTS = [cg.get_input_nodes_ports(nodes) for nodes in X_LIST_NODES]
+    P_PORTS = cg.get_input_nodes_ports(P_NODES)
+    PEXPL_PORTS = cg.get_input_nodes_ports(PEXPL_NODES)
+
+    EXPONENTS_PORTS = theorem_4_2.step_1_with_lemma_4_1(cg, X_LIST_PORTS, P_PORTS, PEXPL_PORTS)
+
+    EXPONENTS_NODES = [
+        cg.generate_output_nodes_from_ports(ports) for ports in EXPONENTS_PORTS
+    ]
+    return X_LIST_NODES, P_NODES, PEXPL_NODES, EXPONENTS_NODES
+
+def setup_theorem_4_2_step_1_with_precompute(cg: CircuitGraph, bit_len=4):
+    n = bit_len
+    X_LIST_NODES = [cg.add_input_nodes(n, "INPUT") for _ in range(n)]
+    P_NODES = cg.add_input_nodes(n, "INPUT")
+    PEXPL_NODES = cg.add_input_nodes(n, "INPUT")
+
+    X_LIST_PORTS = [cg.get_input_nodes_ports(nodes) for nodes in X_LIST_NODES]
+    P_PORTS = cg.get_input_nodes_ports(P_NODES)
+    PEXPL_PORTS = cg.get_input_nodes_ports(PEXPL_NODES)
+
+    EXPONENTS_PORTS = theorem_4_2.step_1_with_precompute(cg, X_LIST_PORTS, P_PORTS, PEXPL_PORTS)
+
+    EXPONENTS_NODES = [
+        cg.generate_output_nodes_from_ports(ports) for ports in EXPONENTS_PORTS
+    ]
+    return X_LIST_NODES, P_NODES, PEXPL_NODES, EXPONENTS_NODES
+
 
 def setup_theorem_4_2_step_2(cg: CircuitGraph, bit_len=4):
     n = bit_len
@@ -1017,7 +1051,7 @@ def setup_adder_tree_recursive(cg, bit_len=4):
 
 def setup_multiplexer(cg, bit_len=4):
     X = [cg.add_node("input", f"X{i}") for i in range(bit_len)]
-    S = [cg.add_node("input", f"S{i}") for i in range(math.log2(bit_len))]
+    S = [cg.add_node("input", f"S{i}") for i in range(int(math.log2(bit_len)))]
     mux = multiplexer(cg, [x.ports[0] for x in X], [s.ports[0] for s in S])
     out = cg.add_node("output", "MUX OUT", inputs=[mux])
     return
@@ -1196,8 +1230,15 @@ def setup_conditional_zeroing(cg, bit_len=4):
         output_nodes.append(output_node)
     return X, C, output_nodes
 
+def setup_subtract(cg: CircuitGraph, bit_len=4):
+    n = bit_len
+    A = cg.add_input_nodes(n, label="A")
+    B = cg.add_input_nodes(n, label="B")
+    diff = subtract(cg, cg.get_input_nodes_ports(A), cg.get_input_nodes_ports(B))
+    diff_nodes = cg.generate_output_nodes_from_ports(diff, label="DIFF")
+    return A, B, diff_nodes
 
-def setup_conditional_subtract(cg, bit_len=4):
+def setup_conditional_subtract(cg: CircuitGraph, bit_len=4):
     A = [cg.add_node("input", f"A{i}") for i in range(bit_len)]
     B = [cg.add_node("input", f"B{i}") for i in range(bit_len)]
     C = cg.add_node("input", f"COND")

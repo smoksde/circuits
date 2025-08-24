@@ -4,6 +4,7 @@ from graph import *
 from circuits import *
 import matplotlib.pyplot as plt
 
+metrics = ["depth", "num_nodes", "num_edges"]
 
 def compute_node_edges(cg):
     port_to_node_dict = {}
@@ -502,16 +503,7 @@ def run_selected_plot():
         }
     ]
 
-    experiments = [
-        {
-            "name": "setup_theorem_4_2_precompute_lookup_division",
-            "setup_fn": setup_theorem_4_2_precompute_lookup_division,
-            "bit_lengths": [4, 8, 16, 32, 64, 128],
-            "color": "blue",
-            "style": "--",
-            "label": "setup_theorem_4_2_precompute_lookup_division,",
-        }
-    ]
+    
 
     """
     experiments = [
@@ -594,7 +586,86 @@ def run_selected_plot():
         },
     ]
 
-    metric = "depth"  # depth, num_nodes or num_edges
+    experiments = [
+        {
+            "name": "setup_theorem_4_2_precompute_lookup_division",
+            "setup_fn": setup_theorem_4_2_precompute_lookup_division,
+            "bit_lengths": [4, 8, 16, 32, 64, 128],
+            "color": "blue",
+            "style": "--",
+            "label": "setup_theorem_4_2_precompute_lookup_division,",
+        }
+    ]
+
+    experiments = [
+        {
+            "name": "setup_theorem_4_2_step_1_with_lemma_4_1",
+            "setup_fn": setup_theorem_4_2_step_1_with_lemma_4_1,
+            "bit_lengths": [4, 8],
+            "color": "red",
+            "style": "--",
+            "label": "setup_theorem_4_2_step_1_with_lemma_4_1,",
+        },
+        {
+            "name": "setup_theorem_4_2_step_1_with_precompute",
+            "setup_fn": setup_theorem_4_2_step_1_with_precompute,
+            "bit_lengths": [4, 8, 16],
+            "color": "blue",
+            "style": "--",
+            "label": "setup_theorem_4_2_step_1_with_precompute,",
+        }
+    ]
+
+    experiments = [
+        {
+            "name": "setup_lemma_4_1",
+            "setup_fn": setup_lemma_4_1,
+            "bit_lengths": [4, 8, 16, 32],
+            "color": "blue",
+            "style": "--",
+            "label": "setup_lemma_4_1,",
+        }
+    ]
+
+    experiments = [
+        {
+            "name": "setup_multiplexer",
+            "setup_fn": setup_multiplexer,
+            "bit_lengths": [4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384],
+            "color": "blue",
+            "style": "--",
+            "label": "setup_multiplexer,",
+        },
+        {
+            "name": "setup_bus_multiplexer",
+            "setup_fn": setup_bus_multiplexer,
+            "bit_lengths": [4, 8, 16, 32, 64, 128, 256, 512],
+            "color": "red",
+            "style": "--",
+            "label": "setup_bus_multiplexer,",
+        },
+        {
+            "name": "setup_tensor_multiplexer",
+            "setup_fn": setup_tensor_multiplexer,
+            "bit_lengths": [4, 8, 16, 32, 64, 128],
+            "color": "green",
+            "style": "--",
+            "label": "setup_tensor_multiplexer,",
+        },
+    ]
+
+    experiments = [
+        {
+            "name": "setup_subtract",
+            "setup_fn": setup_subtract,
+            "bit_lengths": [4, 8, 16, 32, 64, 128, 256, 512],
+            "color": "blue",
+            "style": "--",
+            "label": "setup_subtract,",
+        },
+    ]
+
+    metric = metrics[0]  # depth, num_nodes or num_edges
 
     plot_circuit_metrics(
         experiments,

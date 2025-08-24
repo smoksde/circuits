@@ -59,7 +59,7 @@ def provide_aims_given_m(
     n = len(m)
     aims_ports = precompute_aim(circuit, zero, one, n, parent_group=this_group)
     # figure out if aims_ports needs to be reformated
-    ais = tensor_multiplexer(circuit, aims_ports, m)
+    ais = tensor_multiplexer(circuit, aims_ports, m, parent_group=this_group)
     return ais  # List[List[Port]]
 
 

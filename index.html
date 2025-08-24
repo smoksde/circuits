@@ -6,8 +6,7 @@
     <style>
         body {
             font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-            max-width: 800px;
-            margin: 0 auto;
+            margin: 0;
             padding: 24px;
             background: #f8fafc;
             color: #334155;
@@ -34,58 +33,162 @@
             font-size: 14px;
         }
         
-        .experiments-section {
-            background: white;
-            padding: 24px;
-            border-radius: 12px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        .main-content {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 24px;
             margin-bottom: 24px;
         }
         
-        .section-title {
-            margin: 0 0 16px 0;
-            color: #1e293b;
-            font-size: 18px;
-            font-weight: 600;
+        .panel {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            overflow: hidden;
         }
         
-        .experiment-item {
-            display: flex;
-            flex-direction: column;
-            padding: 8px 12px;
-            border: 1px solid #e2e8f0;
-            border-radius: 6px;
-            margin-bottom: 8px;
-            transition: all 0.2s ease;
-        }
-        
-        .experiment-item:hover {
-            border-color: #cbd5e1;
+        .panel-header {
+            padding: 20px;
+            border-bottom: 1px solid #e2e8f0;
             background: #f8fafc;
         }
         
-        .experiment-item.selected {
-            border-color: #3b82f6;
-            background: #eff6ff;
-        }
-        
-        .experiment-header {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 8px;
-        }
-        
-        .experiment-checkbox {
+        .panel-title {
             margin: 0;
+            color: #1e293b;
+            font-size: 16px;
+            font-weight: 600;
         }
         
-        .experiment-name {
+        .panel-content {
+            padding: 16px;
+            min-height: 400px;
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        
+        .panel-content.scrollable {
+            max-height: 600px;
+            overflow-y: auto;
+        }
+        
+        /* Available Circuits */
+        .circuit-list {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+        
+        .circuit-item {
+            padding: 12px 16px;
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            cursor: grab;
+            transition: all 0.2s ease;
+            user-select: none;
+        }
+        
+        .circuit-item:hover {
+            background: #f1f5f9;
+            border-color: #cbd5e1;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        
+        .circuit-item:active {
+            cursor: grabbing;
+        }
+        
+        .circuit-item.dragging {
+            opacity: 0.5;
+            transform: rotate(2deg);
+        }
+        
+        .circuit-name {
             font-weight: 500;
             color: #1e293b;
             font-size: 14px;
         }
         
+        /* Drop Zone */
+        .drop-zone {
+            min-height: 400px;
+            border: 2px dashed #cbd5e1;
+            border-radius: 8px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #64748b;
+            font-size: 14px;
+            transition: all 0.2s ease;
+        }
+        
+        .drop-zone.drag-over {
+            border-color: #3b82f6;
+            background: #eff6ff;
+            color: #3b82f6;
+        }
+        
+        .drop-zone.has-items {
+            justify-content: flex-start;
+            align-items: stretch;
+            padding: 0;
+            border: none;
+            background: transparent;
+        }
+        
+        .drop-zone-empty {
+            text-align: center;
+            padding: 40px 20px;
+        }
+        
+        .drop-zone-icon {
+            font-size: 48px;
+            margin-bottom: 16px;
+            opacity: 0.5;
+        }
+        
+        /* Selected Circuits */
+        .selected-circuit {
+            background: #f8fafc;
+            border: 1px solid #e2e8f0;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            position: relative;
+        }
+        
+        .selected-circuit-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        
+        .selected-circuit-name {
+            font-weight: 500;
+            color: #1e293b;
+            font-size: 14px;
+        }
+        
+        .remove-btn {
+            background: #fee2e2;
+            color: #dc2626;
+            border: none;
+            border-radius: 4px;
+            padding: 4px 8px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        
+        .remove-btn:hover {
+            background: #fecaca;
+        }
+        
+        /* Slider Styles */
         .slider-container {
             display: flex;
             flex-direction: column;
@@ -148,12 +251,12 @@
         .range-labels {
             display: flex;
             justify-content: space-between;
-            font-size: 12px;
+            font-size: 11px;
             color: #64748b;
         }
         
         .range-display {
-            font-size: 12px;
+            font-size: 11px;
             color: #374151;
             font-weight: 500;
             text-align: center;
@@ -163,12 +266,13 @@
             margin-top: 4px;
         }
         
-        .controls-section {
-            background: white;
-            padding: 24px;
-            border-radius: 12px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            margin-bottom: 24px;
+        /* Inline Controls */
+        .controls-inline {
+            margin-bottom: 20px;
+            padding: 16px;
+            background: #f8fafc;
+            border-radius: 8px;
+            border: 1px solid #e2e8f0;
         }
         
         .control-row {
@@ -218,6 +322,8 @@
         .loading {
             color: #64748b;
             font-style: italic;
+            text-align: center;
+            padding: 40px 20px;
         }
         
         .empty-state {
@@ -225,32 +331,129 @@
             color: #64748b;
             padding: 40px 20px;
         }
+        
+        /* Plot Display */
+        .plot-section {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            margin-top: 24px;
+            display: none;
+        }
+        
+        .plot-section.show {
+            display: block;
+        }
+        
+        .plot-header {
+            padding: 20px;
+            border-bottom: 1px solid #e2e8f0;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .plot-title {
+            margin: 0;
+            color: #1e293b;
+            font-size: 18px;
+            font-weight: 600;
+        }
+        
+        .copy-btn {
+            background: #10b981;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            padding: 8px 16px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+        }
+        
+        .copy-btn:hover {
+            background: #059669;
+        }
+        
+        .copy-btn:disabled {
+            background: #9ca3af;
+            cursor: not-allowed;
+        }
+        
+        .plot-content {
+            padding: 20px;
+            text-align: center;
+        }
+        
+        .plot-image {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
     </style>
 </head>
 <body>
     <div class="header">
         <h1>Circuit Metrics Plots Generator</h1>
-        <p>Select experiments and configure parameters to generate circuit plots visualizing key metrics. Make sure to select very small bit widths for larger circuits as simulation time and computation of metrics might take a while!</p>
+        <p>Drag circuits from the left panel to the right panel to select them for plotting. Configure bit widths for each selected circuit.</p>
     </div>
     
-    <div class="experiments-section">
-        <h2 class="section-title">Select Experiments</h2>
-        <div id="experiments-list" class="loading">Loading experiments...</div>
-    </div>
-    
-    <div class="controls-section">
-        <h2 class="section-title">Configuration</h2>
-        <div class="control-row">
-            <label class="control-label" for="metric-select">Metric:</label>
-            <select id="metric-select" class="metric-select">
-                <option>Loading...</option>
-            </select>
+    <div class="main-content">
+        <!-- Available Circuits -->
+        <div class="panel">
+            <div class="panel-header">
+                <h2 class="panel-title">Available Circuits</h2>
+            </div>
+            <div class="panel-content scrollable">
+                <div id="available-circuits" class="circuit-list">
+                    <div class="loading">Loading circuits...</div>
+                </div>
+            </div>
         </div>
-        <button id="generate-btn" class="generate-btn">Generate Plot</button>
+        
+        <!-- Selected Circuits -->
+        <div class="panel">
+            <div class="panel-header">
+                <h2 class="panel-title">Selected Circuits</h2>
+            </div>
+            <div class="panel-content">
+                <!-- Controls Section -->
+                <div class="controls-inline">
+                    <div class="control-row">
+                        <label class="control-label" for="metric-select">Metric:</label>
+                        <select id="metric-select" class="metric-select">
+                            <option>Loading...</option>
+                        </select>
+                    </div>
+                    <button id="generate-btn" class="generate-btn">Generate Plot</button>
+                </div>
+                
+                <div id="selected-circuits" class="drop-zone">
+                    <div class="drop-zone-empty">
+                        <div class="drop-zone-icon">📊</div>
+                        <div>Drag circuits here to select them for plotting</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Plot Display Section -->
+    <div id="plot-section" class="plot-section">
+        <div class="plot-header">
+            <h2 class="plot-title">Generated Plot</h2>
+            <button id="copy-btn" class="copy-btn">Copy Image</button>
+        </div>
+        <div class="plot-content">
+            <img id="plot-image" class="plot-image" alt="Generated circuit plot">
+        </div>
     </div>
 
     <script>
         const POW2 = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096];
+        let selectedCircuits = [];
         
         function createDualRangeSlider(initialMin = 1, initialMax = 8) {
             const container = document.createElement("div");
@@ -308,8 +511,8 @@
                     }
                 }
                 
-                minLabel.textContent = `${POW2[minVal]} bits`;
-                maxLabel.textContent = `${POW2[maxVal]} bits`;
+                minLabel.textContent = `${POW2[minVal]}`;
+                maxLabel.textContent = `${POW2[maxVal]}`;
                 
                 const minPercent = (minVal / (POW2.length - 1)) * 100;
                 const maxPercent = (maxVal / (POW2.length - 1)) * 100;
@@ -345,56 +548,137 @@
             };
         }
         
+        function addCircuitToSelected(circuitName) {
+            if (selectedCircuits.find(c => c.name === circuitName)) {
+                return; // Already selected
+            }
+            
+            const circuit = {
+                name: circuitName,
+                rangeSlider: createDualRangeSlider()
+            };
+            
+            selectedCircuits.push(circuit);
+            renderSelectedCircuits();
+        }
+        
+        function removeCircuitFromSelected(circuitName) {
+            selectedCircuits = selectedCircuits.filter(c => c.name !== circuitName);
+            renderSelectedCircuits();
+        }
+        
+        function renderSelectedCircuits() {
+            const container = document.getElementById("selected-circuits");
+            
+            if (selectedCircuits.length === 0) {
+                container.className = "drop-zone";
+                container.innerHTML = `
+                    <div class="drop-zone-empty">
+                        <div class="drop-zone-icon">📊</div>
+                        <div>Drag circuits here to select them for plotting</div>
+                    </div>
+                `;
+                return;
+            }
+            
+            container.className = "drop-zone has-items";
+            container.innerHTML = "";
+            
+            selectedCircuits.forEach(circuit => {
+                const item = document.createElement("div");
+                item.className = "selected-circuit";
+                
+                const header = document.createElement("div");
+                header.className = "selected-circuit-header";
+                
+                const name = document.createElement("span");
+                name.className = "selected-circuit-name";
+                name.textContent = circuit.name;
+                
+                const removeBtn = document.createElement("button");
+                removeBtn.className = "remove-btn";
+                removeBtn.textContent = "Remove";
+                removeBtn.onclick = () => removeCircuitFromSelected(circuit.name);
+                
+                header.appendChild(name);
+                header.appendChild(removeBtn);
+                
+                item.appendChild(header);
+                item.appendChild(circuit.rangeSlider.element);
+                
+                container.appendChild(item);
+            });
+        }
+        
         async function loadExperiments() {
             try {
                 const response = await fetch("/funcs");
                 const functions = await response.json();
-                const container = document.getElementById("experiments-list");
+                const container = document.getElementById("available-circuits");
                 
                 container.innerHTML = "";
                 
                 if (functions.length === 0) {
-                    container.innerHTML = '<div class="empty-state">No experiments available</div>';
+                    container.innerHTML = '<div class="empty-state">No circuits available</div>';
                     return;
                 }
                 
                 functions.forEach(fn => {
                     const item = document.createElement("div");
-                    item.className = "experiment-item";
-                    
-                    const header = document.createElement("div");
-                    header.className = "experiment-header";
-                    
-                    const checkbox = document.createElement("input");
-                    checkbox.type = "checkbox";
-                    checkbox.className = "experiment-checkbox";
-                    checkbox.dataset.fn = fn;
+                    item.className = "circuit-item";
+                    item.draggable = true;
+                    item.dataset.circuit = fn;
                     
                     const name = document.createElement("span");
-                    name.className = "experiment-name";
+                    name.className = "circuit-name";
                     name.textContent = fn;
                     
-                    header.appendChild(checkbox);
-                    header.appendChild(name);
+                    item.appendChild(name);
                     
-                    const rangeSlider = createDualRangeSlider();
-                    
-                    checkbox.addEventListener("change", () => {
-                        item.classList.toggle("selected", checkbox.checked);
+                    // Drag events
+                    item.addEventListener("dragstart", (e) => {
+                        e.dataTransfer.setData("text/plain", fn);
+                        item.classList.add("dragging");
                     });
                     
-                    item.appendChild(header);
-                    item.appendChild(rangeSlider.element);
-                    
-                    item.rangeSlider = rangeSlider;
+                    item.addEventListener("dragend", () => {
+                        item.classList.remove("dragging");
+                    });
                     
                     container.appendChild(item);
                 });
+                
+                setupDropZone();
             } catch (error) {
-                document.getElementById("experiments-list").innerHTML = 
-                    '<div class="empty-state">Error loading experiments</div>';
+                document.getElementById("available-circuits").innerHTML = 
+                    '<div class="empty-state">Error loading circuits</div>';
                 console.error("Failed to load experiments:", error);
             }
+        }
+        
+        function setupDropZone() {
+            const dropZone = document.getElementById("selected-circuits");
+            
+            dropZone.addEventListener("dragover", (e) => {
+                e.preventDefault();
+                dropZone.classList.add("drag-over");
+            });
+            
+            dropZone.addEventListener("dragleave", (e) => {
+                if (!dropZone.contains(e.relatedTarget)) {
+                    dropZone.classList.remove("drag-over");
+                }
+            });
+            
+            dropZone.addEventListener("drop", (e) => {
+                e.preventDefault();
+                dropZone.classList.remove("drag-over");
+                
+                const circuitName = e.dataTransfer.getData("text/plain");
+                if (circuitName) {
+                    addCircuitToSelected(circuitName);
+                }
+            });
         }
         
         async function loadMetrics() {
@@ -419,25 +703,26 @@
         }
         
         async function generatePlot() {
-            const selectedExperiments = [...document.querySelectorAll(".experiment-item")]
-                .filter(item => item.querySelector("input").checked)
-                .map(item => ({
-                    name: item.querySelector("input").dataset.fn,
-                    fn: item.querySelector("input").dataset.fn,
-                    bits: item.rangeSlider.getBitWidths()
-                }));
-            
-            if (selectedExperiments.length === 0) {
-                alert("Please select at least one experiment");
+            if (selectedCircuits.length === 0) {
+                alert("Please select at least one circuit by dragging it to the right panel");
                 return;
             }
             
+            const experiments = selectedCircuits.map(circuit => ({
+                name: circuit.name,
+                fn: circuit.name,
+                bits: circuit.rangeSlider.getBitWidths()
+            }));
+            
             const payload = {
-                experiments: selectedExperiments,
+                experiments: experiments,
                 metric: document.getElementById("metric-select").value
             };
             
             const button = document.getElementById("generate-btn");
+            const plotSection = document.getElementById("plot-section");
+            const plotImage = document.getElementById("plot-image");
+            
             button.disabled = true;
             button.textContent = "Generating...";
             
@@ -455,8 +740,16 @@
                 }
                 
                 const blob = await response.blob();
-                const url = URL.createObjectURL(blob);
-                window.open(url, "_blank");
+                const imageUrl = URL.createObjectURL(blob);
+                
+                // Display the plot in the page
+                plotImage.src = imageUrl;
+                plotImage.dataset.blob = imageUrl; // Store for copying
+                plotSection.classList.add("show");
+                
+                // Scroll to the plot
+                plotSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                
             } catch (error) {
                 alert("Failed to generate plot. Please try again.");
                 console.error("Plot generation error:", error);
@@ -465,6 +758,45 @@
                 button.textContent = "Generate Plot";
             }
         }
+        
+        async function copyImageToClipboard() {
+            const plotImage = document.getElementById("plot-image");
+            const copyBtn = document.getElementById("copy-btn");
+            
+            if (!plotImage.src) return;
+            
+            copyBtn.disabled = true;
+            copyBtn.textContent = "Copying...";
+            
+            try {
+                // Fetch the image blob
+                const response = await fetch(plotImage.src);
+                const blob = await response.blob();
+                
+                // Copy to clipboard
+                await navigator.clipboard.write([
+                    new ClipboardItem({
+                        [blob.type]: blob
+                    })
+                ]);
+                
+                copyBtn.textContent = "Copied!";
+                setTimeout(() => {
+                    copyBtn.textContent = "Copy Image";
+                }, 2000);
+                
+            } catch (error) {
+                console.error("Failed to copy image:", error);
+                alert("Failed to copy image to clipboard. Your browser may not support this feature.");
+            } finally {
+                copyBtn.disabled = false;
+                if (copyBtn.textContent === "Copying...") {
+                    copyBtn.textContent = "Copy Image";
+                }
+            }
+        }
+        
+        document.getElementById("copy-btn").addEventListener("click", copyImageToClipboard);
         
         document.getElementById("generate-btn").addEventListener("click", generatePlot);
         

@@ -370,6 +370,7 @@ def setup_theorem_4_2_step_1(cg: CircuitGraph, bit_len=4):
     ]
     return X_LIST_NODES, P_NODES, PEXPL_NODES, EXPONENTS_NODES
 
+
 def setup_theorem_4_2_step_1_with_lemma_4_1(cg: CircuitGraph, bit_len=4):
     n = bit_len
     X_LIST_NODES = [cg.add_input_nodes(n, "INPUT") for _ in range(n)]
@@ -380,12 +381,15 @@ def setup_theorem_4_2_step_1_with_lemma_4_1(cg: CircuitGraph, bit_len=4):
     P_PORTS = cg.get_input_nodes_ports(P_NODES)
     PEXPL_PORTS = cg.get_input_nodes_ports(PEXPL_NODES)
 
-    EXPONENTS_PORTS = theorem_4_2.step_1_with_lemma_4_1(cg, X_LIST_PORTS, P_PORTS, PEXPL_PORTS)
+    EXPONENTS_PORTS = theorem_4_2.step_1_with_lemma_4_1(
+        cg, X_LIST_PORTS, P_PORTS, PEXPL_PORTS
+    )
 
     EXPONENTS_NODES = [
         cg.generate_output_nodes_from_ports(ports) for ports in EXPONENTS_PORTS
     ]
     return X_LIST_NODES, P_NODES, PEXPL_NODES, EXPONENTS_NODES
+
 
 def setup_theorem_4_2_step_1_with_precompute(cg: CircuitGraph, bit_len=4):
     n = bit_len
@@ -397,7 +401,9 @@ def setup_theorem_4_2_step_1_with_precompute(cg: CircuitGraph, bit_len=4):
     P_PORTS = cg.get_input_nodes_ports(P_NODES)
     PEXPL_PORTS = cg.get_input_nodes_ports(PEXPL_NODES)
 
-    EXPONENTS_PORTS = theorem_4_2.step_1_with_precompute(cg, X_LIST_PORTS, P_PORTS, PEXPL_PORTS)
+    EXPONENTS_PORTS = theorem_4_2.step_1_with_precompute(
+        cg, X_LIST_PORTS, P_PORTS, PEXPL_PORTS
+    )
 
     EXPONENTS_NODES = [
         cg.generate_output_nodes_from_ports(ports) for ports in EXPONENTS_PORTS
@@ -719,6 +725,7 @@ def setup_lemma_5_1_precompute_u_list(cg: CircuitGraph, bit_len=4):
     return U_LIST_NODES
 
 
+# should not be n * n but n
 def setup_lemma_5_1(cg: CircuitGraph, bit_len=4):
     n = bit_len
     X_MOD_C_I_LIST_NODES = [cg.add_input_nodes(n * n) for _ in range(n)]
@@ -730,6 +737,20 @@ def setup_lemma_5_1(cg: CircuitGraph, bit_len=4):
     RESULT_PORTS = lemma_5_1.lemma_5_1(cg, X_MOD_C_I_LIST_PORTS, C_PORTS)
     RESULT_NODES = cg.generate_output_nodes_from_ports(RESULT_PORTS)
     return X_MOD_C_I_LIST_NODES, C_NODES, RESULT_NODES
+
+
+def setup_theorem_5_2_step_3(cg: CircuitGraph, bit_len=4):
+    n = bit_len
+    X_LIST_NODES = [cg.add_input_nodes(n) for _ in range(n)]
+    C_LIST_NODES = [cg.add_input_nodes(n) for _ in range(n)]
+    X_LIST_PORTS = [cg.get_input_nodes_ports(nodes) for nodes in X_LIST_NODES]
+    C_LIST_PORTS = [cg.get_input_nodes_ports(nodes) for nodes in C_LIST_NODES]
+    MATRIX_PORTS = theorem_5_2.step_3(cg, X_LIST_PORTS, C_LIST_PORTS)
+    MATRIX_NODES = []
+    for row in MATRIX_PORTS:
+        nodes = [cg.generate_output_nodes_from_ports(ports) for ports in row]
+        MATRIX_NODES.append(nodes)
+    return X_LIST_NODES, C_LIST_NODES, MATRIX_NODES
 
 
 def setup_theorem_5_2(cg: CircuitGraph, bit_len=4):
@@ -1230,6 +1251,7 @@ def setup_conditional_zeroing(cg, bit_len=4):
         output_nodes.append(output_node)
     return X, C, output_nodes
 
+
 def setup_subtract(cg: CircuitGraph, bit_len=4):
     n = bit_len
     A = cg.add_input_nodes(n, label="A")
@@ -1237,6 +1259,7 @@ def setup_subtract(cg: CircuitGraph, bit_len=4):
     diff = subtract(cg, cg.get_input_nodes_ports(A), cg.get_input_nodes_ports(B))
     diff_nodes = cg.generate_output_nodes_from_ports(diff, label="DIFF")
     return A, B, diff_nodes
+
 
 def setup_conditional_subtract(cg: CircuitGraph, bit_len=4):
     A = [cg.add_node("input", f"A{i}") for i in range(bit_len)]

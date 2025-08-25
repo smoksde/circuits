@@ -4,7 +4,15 @@ from graph import *
 from circuits import *
 import matplotlib.pyplot as plt
 
-metrics = ["depth", "num_nodes", "num_edges"]
+metrics = [
+    "depth",
+    "num_nodes",
+    "num_gate_nodes",
+    "num_input_nodes",
+    "num_output_nodes",
+    "num_edges",
+]
+
 
 def compute_node_edges(cg):
     port_to_node_dict = {}
@@ -115,12 +123,26 @@ def longest_path_length(cg):
     return max(dist[node] for node in input_nodes if dist[node] != -float("inf"))
 """
 
+# computes the metrics from scratch
+# def compute_metrics_for_circuit_function
+
+# either calls compute_metrics_for_circuit_function
+# or reads of existing data from cache if wanted (flag named use_cache)
+# def get_metrics_for_circuit_function
+
 
 def analyze_circuit_function(name, setup_fn, bit_len=4):
     cg = CircuitGraph(enable_groups=False)
     setup_fn(cg, bit_len)
-    num_nodes = len(cg.nodes)
-    num_edges = len(cg.edges)
+    num_nodes = len(cg.nodes)  # cg.nodes.values()
+    num_gate_nodes = len(
+        [node for node in cg.nodes.values() if node.type not in ["input", "output"]]
+    )
+    num_input_nodes = len([node for node in cg.nodes.values() if node.type == "input"])
+    num_output_nodes = len(
+        [node for node in cg.nodes.values() if node.type == "output"]
+    )
+    num_edges = len(cg.edges)  # cg.nodes.values()
     # depth = 0
     # depth = circuit_depth(cg)
     depth = longest_path_length(cg)
@@ -128,6 +150,9 @@ def analyze_circuit_function(name, setup_fn, bit_len=4):
         "name": name,
         "bit_len": bit_len,
         "num_nodes": num_nodes,
+        "num_gate_nodes": num_gate_nodes,
+        "num_input_nodes": num_input_nodes,
+        "num_output_nodes": num_output_nodes,
         "num_edges": num_edges,
         "depth": depth,
     }
@@ -503,8 +528,6 @@ def run_selected_plot():
         }
     ]
 
-    
-
     """
     experiments = [
         {
@@ -613,7 +636,7 @@ def run_selected_plot():
             "color": "blue",
             "style": "--",
             "label": "setup_theorem_4_2_step_1_with_precompute,",
-        }
+        },
     ]
 
     experiments = [
@@ -631,7 +654,21 @@ def run_selected_plot():
         {
             "name": "setup_multiplexer",
             "setup_fn": setup_multiplexer,
-            "bit_lengths": [4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384],
+            "bit_lengths": [
+                4,
+                8,
+                16,
+                32,
+                64,
+                128,
+                256,
+                512,
+                1024,
+                2048,
+                4096,
+                8192,
+                16384,
+            ],
             "color": "blue",
             "style": "--",
             "label": "setup_multiplexer,",

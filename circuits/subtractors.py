@@ -15,9 +15,6 @@ def subtract(circuit, a_bits, b_bits, parent_group=None) -> List[Port]:
     result, carry = carry_look_ahead_adder(
         circuit, a_bits, b_complement, zero, parent_group=this_group
     )
-    # result, carry = ripple_carry_adder(
-    #    circuit, a_bits, b_complement, zero, parent_group=sub_group
-    # )
     return result
 
 
@@ -54,7 +51,10 @@ def conditional_subtract(circuit, x_bits, m_bits, select, parent_group=None):
             "not", f"NOT_SEL_{i}", inputs=[select], group_id=this_group_id
         ).ports[1]
         and1 = circuit.add_node(
-            "and", f"AND_DIFF_{i}", inputs=[select, difference[i]], group_id=this_group_id
+            "and",
+            f"AND_DIFF_{i}",
+            inputs=[select, difference[i]],
+            group_id=this_group_id,
         ).ports[2]
         and2 = circuit.add_node(
             "and", f"AND_X_{i}", inputs=[not_select, x_bits[i]], group_id=this_group_id

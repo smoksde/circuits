@@ -91,7 +91,13 @@ def theorem_5_2(
     c_list, c = theorem_5_3.precompute_good_modulus_sequence(
         circuit, zero, one, big_n, parent_group=this_group
     )
+
+    # does a lot of lemma 4.1 in parallel
     b_j_i_matrix = step_3(circuit, x_list, c_list, parent_group=this_group)
+
+    # does theorem 4.2 in parallel
     b_j_list = step_4(circuit, b_j_i_matrix, c_list, parent_group=this_group)
+
+    # does lemma 5.1
     result = step_5(circuit, b_j_list, c, parent_group=this_group)
     return result

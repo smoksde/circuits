@@ -353,6 +353,10 @@ CIRCUIT_FUNCTIONS = {
 }
 
 
+def setup_generate_number(cg: CircuitGraph, bit_len=4):
+    n = bit_len
+
+
 def setup_theorem_4_2_step_1(cg: CircuitGraph, bit_len=4):
     n = bit_len
     X_LIST_NODES = [cg.add_input_nodes(n, "INPUT") for _ in range(n)]
@@ -576,6 +580,21 @@ def setup_theorem_4_2_for_theorem_5_2(cg: CircuitGraph, bit_len=4):
     return X_LIST_NODES, PEXPL_NODES, RESULT_NODES
 
 
+def setup_theorem_4_2_precompute_largest_powers(cg: CircuitGraph, bit_len=4):
+    n = bit_len
+    input_node = cg.add_input_nodes(1)[0]
+    input_port = cg.get_input_node_port(input_node)
+    zero_port = constant_zero(cg, input_port)
+    one_port = constant_one(cg, input_port)
+    MATRIX_PORTS = theorem_4_2.precompute_largest_powers(cg, zero_port, one_port, n)
+    MATRIX_NODES = []
+    for row in MATRIX_PORTS:
+        MATRIX_NODES.append(
+            [cg.generate_output_nodes_from_ports(ports) for ports in row]
+        )
+    return MATRIX_NODES
+
+
 def setup_theorem_4_2_precompute_lookup_tables_B(cg: CircuitGraph, bit_len=4):
     n = bit_len
     input_node = cg.add_input_nodes(1, "INPUT")[0]
@@ -725,6 +744,35 @@ def setup_lemma_5_1_precompute_u_list(cg: CircuitGraph, bit_len=4):
     return U_LIST_NODES
 
 
+def setup_lemma_5_1_step_5(cg: CircuitGraph, bit_len=4):
+    n = bit_len
+    s = n
+    X_MOD_C_I_LIST_NODES = [cg.add_input_nodes(n) for _ in range(s)]
+    U_LIST_NODES = [cg.add_input_nodes(n) for _ in range(n)]
+    X_MOD_C_I_LIST_PORTS = [
+        cg.get_input_nodes_ports(nodes) for nodes in X_MOD_C_I_LIST_NODES
+    ]
+    U_LIST_PORTS = [cg.get_input_nodes_ports(nodes) for nodes in U_LIST_NODES]
+    Y_PORTS = lemma_5_1.step_5(cg, X_MOD_C_I_LIST_PORTS, U_LIST_PORTS)
+    Y_NODES = cg.generate_output_nodes_from_ports(Y_PORTS)
+    return X_MOD_C_I_LIST_NODES, U_LIST_NODES, Y_NODES
+
+
+def setup_lemma_5_1_step_6_and_7(cg: CircuitGraph, bit_len=4):
+    n = bit_len
+    input_node = cg.add_input_nodes(1)[0]
+    input_port = cg.get_input_node_port(input_node)
+    zero_port = constant_zero(cg, input_port)
+    one_port = constant_one(cg, input_port)
+    Y_NODES = cg.add_input_nodes(n)
+    C_NODES = cg.add_input_nodes(n)
+    Y_PORTS = cg.get_input_nodes_ports(Y_NODES)
+    C_PORTS = cg.get_input_nodes_ports(C_NODES)
+    RESULT_PORTS = lemma_5_1.step_6_and_7(cg, Y_PORTS, C_PORTS, zero_port, one_port)
+    RESULT_NODES = cg.generate_output_nodes_from_ports(RESULT_PORTS)
+    return Y_NODES, C_NODES, RESULT_NODES
+
+
 # should not be n * n but n
 def setup_lemma_5_1(cg: CircuitGraph, bit_len=4):
     n = bit_len
@@ -751,6 +799,26 @@ def setup_theorem_5_2_step_3(cg: CircuitGraph, bit_len=4):
         nodes = [cg.generate_output_nodes_from_ports(ports) for ports in row]
         MATRIX_NODES.append(nodes)
     return X_LIST_NODES, C_LIST_NODES, MATRIX_NODES
+
+
+def setup_theorem_5_2_step_4(cg: CircuitGraph, bit_len=4):
+    n = bit_len
+    s = n  # n * n
+    B_J_I_MATRIX_NODES = []
+    B_J_I_MATRIX_PORTS = []
+    for _ in range(s):
+        nodes_list = [cg.add_input_nodes(n) for _ in range(n)]
+        B_J_I_MATRIX_NODES.append(nodes_list)
+        B_J_I_MATRIX_PORTS.append(
+            cg.get_input_nodes_ports(nodes) for nodes in nodes_list
+        )
+    C_LIST_NODES = [cg.add_input_nodes(n) for _ in range(s)]
+    C_LIST_PORTS = [cg.get_input_nodes_ports(nodes) for nodes in C_LIST_NODES]
+    B_J_LIST_PORTS = theorem_5_2.step_4(cg, B_J_I_MATRIX_PORTS, C_LIST_PORTS)
+    B_J_LIST_NODES = [
+        cg.generate_output_nodes_from_ports(ports) for ports in B_J_LIST_PORTS
+    ]
+    return B_J_I_MATRIX_NODES, C_LIST_NODES, B_J_LIST_NODES
 
 
 def setup_theorem_5_2(cg: CircuitGraph, bit_len=4):
@@ -822,6 +890,21 @@ def setup_lemma_4_1_provide_aims_given_m(cg: CircuitGraph, bit_len=4):
         num_nodes = cg.generate_output_nodes_from_ports(num)
         O_NODES.append(num_nodes)
     return M, O_NODES
+
+
+def setup_lemma_4_1_precompute_aim(cg: CircuitGraph, bit_len=4):
+    n = bit_len
+    input_node = cg.add_input_nodes(1, "INPUT")[0]
+    input_port = cg.get_input_node_port(input_node)
+    zero_port = constant_zero(cg, input_port)
+    one_port = constant_one(cg, input_port)
+    MATRIX_PORTS = lemma_4_1.precompute_aim(cg, zero_port, one_port, n)
+    MATRIX_NODES = []
+    for row in MATRIX_PORTS:
+        MATRIX_NODES.append(
+            [cg.generate_output_nodes_from_ports(ports) for ports in row]
+        )
+    return MATRIX_NODES
 
 
 # O_NODES is a List[List[Port]]
@@ -1207,6 +1290,26 @@ def setup_wallace_tree_multiplier(cg, bit_len=4):
     for out in outputs:
         output_nodes.append(cg.add_node("output", "PRODUCT", inputs=[out]))
     return A, B, output_nodes
+
+
+def setup_subtract(cg: CircuitGraph, bit_len=4):
+    n = bit_len
+    A_NODES = cg.add_input_nodes(n)
+    B_NODES = cg.add_input_nodes(n)
+    A_PORTS = cg.get_input_nodes_ports(A_NODES)
+    B_PORTS = cg.get_input_nodes_ports(B_NODES)
+    DIFF_PORTS = subtract(cg, A_PORTS, B_PORTS)
+    DIFF_NODES = cg.generate_output_nodes_from_ports(DIFF_PORTS)
+    return A_NODES, B_NODES, DIFF_NODES
+
+
+def setup_two_complement(cg: CircuitGraph, bit_len=4):
+    n = bit_len
+    X_NODES = cg.add_input_nodes(n)
+    X_PORTS = cg.get_input_nodes_ports(X_NODES)
+    RESULT_PORTS = two_complement(cg, X_PORTS)
+    RESULT_NODES = cg.generate_output_nodes_from_ports(RESULT_PORTS)
+    return X_NODES, RESULT_NODES
 
 
 def setup_faulty_wallace_tree_multiplier(cg, bit_len=4):

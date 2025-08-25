@@ -41,6 +41,7 @@ def render_plot(specs, metric="depth", title="Metric vs bits"):
         vals = [
             metrics.analyze_circuit_function(fn_name, setup_fn, b)[metric] for b in bits
         ]
+        print(vals)
         label = (
             fn_name[6:] if fn_name.startswith("setup_") else fn_name
         )  # or s.get("name", fn_name)
@@ -63,6 +64,7 @@ async def plot_png(req: Request):
     j = await req.json()
     specs = j.get("experiments") or j.get("specs")
     metric = j.get("metric", "depth")
+    # print("metric: ", metric)
     if not specs:
         raise HTTPException(400, "No experiments provided")
 

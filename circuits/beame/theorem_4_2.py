@@ -20,6 +20,7 @@ from . import lemma_4_1
 import theorem_4_2_sanity
 
 
+# produces approx. n signals that can be hardwired into circuits
 def precompute_lookup_is_prime_power(
     circuit: CircuitGraph,
     zero: Port,
@@ -40,6 +41,7 @@ def precompute_lookup_is_prime_power(
     return result
 
 
+# produces approx. n^2 * 2 signals that can be hardwired into circuits
 def precompute_lookup_p_l(
     circuit: CircuitGraph,
     zero: Port,
@@ -83,6 +85,7 @@ def precompute_lookup_p_l(
     return p_result, l_result
 
 
+# approx. n^3 produced signals that can be hardwired into a circuit
 def precompute_lookup_powers(
     circuit: CircuitGraph,
     zero: Port,
@@ -115,6 +118,7 @@ def precompute_lookup_powers(
     return result
 
 
+"""
 def precompute_lookup_powers_decr(
     circuit: CircuitGraph,
     zero: Port,
@@ -144,10 +148,10 @@ def precompute_lookup_powers_decr(
             powers_of_p.append(power_ports)
         result.append(powers_of_p)
 
-    return result
+    return result"""
 
 
-# WITH DUMMY ROW FOR SIMPLER INDEXING
+# also producing n^3 ingoing signals into the circuit this is used in
 def precompute_lookup_generator_powers(
     circuit: CircuitGraph,
     zero: Port,
@@ -195,6 +199,7 @@ def precompute_lookup_generator_powers(
     return result
 
 
+# no more relevant since part b not used in the case of iterated products in the context of beames paper
 def precompute_lookup_tables_B(
     circuit: CircuitGraph,
     zero: Port,
@@ -251,6 +256,7 @@ def precompute_lookup_tables_B(
 
     return TABLE_ZERO, TABLE_ONE
 
+
 def step_1_with_lemma_4_1(
     circuit: CircuitGraph,
     x_list: List[List[Port]],
@@ -269,10 +275,6 @@ def step_1_with_lemma_4_1(
     one = constant_one(circuit, p[0], parent_group=this_group)
 
     lookup_powers = precompute_lookup_powers(
-        circuit, zero, one, len(x_list), parent_group=this_group
-    )
-
-    lookup_powers_decr = precompute_lookup_powers_decr(
         circuit, zero, one, len(x_list), parent_group=this_group
     )
 
@@ -326,6 +328,7 @@ def step_1_with_lemma_4_1(
 
     return exponents
 
+
 def step_1(
     circuit: CircuitGraph,
     x_list: List[List[Port]],
@@ -334,14 +337,15 @@ def step_1(
     parent_group: Optional[Group] = None,
 ) -> List[List[Port]]:
     this_group = circuit.add_group("THEOREM_4_2_STEP_1")
-    #this_group_id = this_group.id if this_group is not None else -1
+    # this_group_id = this_group.id if this_group is not None else -1
     if circuit.enable_groups and this_group is not None:
         this_group.set_parent(parent_group)
 
-
     return step_1_with_precompute(circuit, x_list, p, parent_group=this_group)
-    #return step_1_with_lemma_4_1(circuit, x_list, p, pexpl, parent_group=this_group)
-    
+    # return step_1_with_lemma_4_1(circuit, x_list, p, pexpl, parent_group=this_group)
+
+
+# approximately n^3 hardwired signals. since 2-dim matrix of n bit numbers
 def precompute_largest_powers(
     circuit: CircuitGraph,
     zero: Port,
@@ -349,16 +353,16 @@ def precompute_largest_powers(
     n: int,
     parent_group: Optional[Group] = None,
 ) -> List[List[List[Port]]]:
-    #print("Starting precompute largest powers")
+    # print("Starting precompute largest powers")
     this_group = circuit.add_group("THEOREM_4_2_PRECOMPUTE_LARGEST_POWERS")
     # this_group_id = this_group.id if this_group is not None else -1
     if circuit.enable_groups and this_group is not None:
         this_group.set_parent(parent_group)
-    
+
     result = []
 
     for p in range(0, n + 1):
-        #print(f"Precomputing largest powers for p = {p}")
+        # print(f"Precomputing largest powers for p = {p}")
         row = []
         for x in range(0, n):
             largest_exp = 0
@@ -373,10 +377,12 @@ def precompute_largest_powers(
                 elif x % power == 0:
                     largest_exp = j
                 j += 1
-            largest_exp_ports = circuit_utils.generate_number(largest_exp, n, zero, one, parent_group=this_group)
+            largest_exp_ports = circuit_utils.generate_number(
+                largest_exp, n, zero, one, parent_group=this_group
+            )
             row.append(largest_exp_ports)
         result.append(row)
-    #print("Finished precompute largest powers")
+    # print("Finished precompute largest powers")
     return result
 
 
@@ -386,9 +392,9 @@ def step_1_with_precompute(
     p: List[Port],
     parent_group: Optional[Group] = None,
 ) -> List[List[Port]]:
-    
+
     this_group = circuit.add_group("THEOREM_4_2_STEP_1_WITH_PRECOMPUTE")
-    #this_group_id = this_group.id if this_group is not None else -1
+    # this_group_id = this_group.id if this_group is not None else -1
     if circuit.enable_groups and this_group is not None:
         this_group.set_parent(parent_group)
 
@@ -397,7 +403,9 @@ def step_1_with_precompute(
     zero = constant_zero(circuit, p[0], parent_group=this_group)
     one = constant_one(circuit, p[0], parent_group=this_group)
 
-    lookup_largest_powers = precompute_largest_powers(circuit, zero, one, n, parent_group=this_group)
+    lookup_largest_powers = precompute_largest_powers(
+        circuit, zero, one, n, parent_group=this_group
+    )
 
     lookup_largest_powers_for_p = tensor_multiplexer(
         circuit, lookup_largest_powers, p, parent_group=this_group
@@ -411,7 +419,6 @@ def step_1_with_precompute(
         )
         exponents.append(lookup_power)
     return exponents
-
 
 
 def step_2(
@@ -637,7 +644,7 @@ def B_step_5(
 ) -> Tuple[List[List[Port]], List[List[Port]]]:
 
     print("Starting B_step_5")
-    
+
     print("len(y_list)")
     print(len(y_list))
     print("len(y_list[0])")
@@ -648,7 +655,7 @@ def B_step_5(
     if circuit.enable_groups and this_group is not None:
         this_group.set_parent(parent_group)
 
-    n = len(y_list[0]) # len(l)
+    n = len(y_list[0])  # len(l)
 
     zero = constant_zero(circuit, l[0], parent_group=this_group)
     one = constant_one(circuit, l[0], parent_group=this_group)
@@ -909,7 +916,7 @@ def theorem_4_2(
     # PART A
     a_list = A_step_5(circuit, y_list, pexpl, parent_group=this_group)
     a = compute_sum(circuit, a_list)
-    #print("len a, len pexpl", len(a), len(pexpl))
+    # print("len a, len pexpl", len(a), len(pexpl))
     # CHECK IF THIS SHOULD BE DONE HERE
     while len(a) < len(pexpl):
         a.append(zero)
@@ -930,8 +937,6 @@ def theorem_4_2(
     # print(len(a_hat), len(b_hat), len(l))
     y_product_part_b = B_step_8(circuit, a_hat, b_hat, l, parent_group=this_group)
 
-    
-
     # print("HELLO")
     # print(type(y_product_part_a), len(y_product_part_a))
     # print(type(y_product_part_b), len(y_product_part_b))
@@ -944,13 +949,14 @@ def theorem_4_2(
 
     return result
 
+
 def theorem_4_2_for_theorem_5_2(
     circuit: CircuitGraph,
     x_list: List[List[Port]],
     pexpl: List[Port],
     parent_group: Optional[Group] = None,
 ) -> List[Port]:
-    
+
     this_group = circuit.add_group("THEOREM_4_2_FOR_THEOREM_5_2")
     if circuit.enable_groups and this_group is not None:
         this_group.set_parent(parent_group)
@@ -981,6 +987,7 @@ def theorem_4_2_for_theorem_5_2(
     result = step_9(circuit, p, j, pexpl, y_product, parent_group=this_group)
 
     return result
+
 
 def precompute_lookup_pexpl_minus_pexpl_minus_one(
     circuit: CircuitGraph,

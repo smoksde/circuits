@@ -110,19 +110,19 @@ def build_treemap(groups, nodes):
 if __name__ == "__main__":
 
     circuit = CircuitGraph()
-    bit_len = 8  # 16
+    bit_len = 4  # 16
     # _ = setup_full_adder(circuit, bit_len=bit_len)
     # _ = setup_n_left_shift(circuit, bit_len=bit_len)
     # _ = setup_n_bit_comparator(circuit, bit_len=bit_len)
     # _ = setup_wallace_tree_multiplier(circuit, bit_len=bit_len)
     # _ = setup_modulo_circuit(circuit, bit_len=bit_len)
     # _ = setup_modular_exponentiation(circuit, bit_len=bit_len)
-    # _ = setup_lemma_4_1(circuit, bit_len=bit_len)
+    _ = setup_lemma_4_1(circuit, bit_len=bit_len)
     # _ = setup_theorem_4_2_step_1(circuit, bit_len=bit_len)
     # _ = setup_theorem_4_2(circuit, bit_len=bit_len)
     # _ = setup_theorem_5_2(circuit, bit_len=bit_len)
     # _ = setup_lemma_4_1_reduce_in_parallel(circuit, bit_len=bit_len)
-    _ = setup_lemma_5_1_precompute_u_list(circuit, bit_len=bit_len)
+    #_ = setup_lemma_5_1_precompute_u_list(circuit, bit_len=bit_len)
     # circuit.simulate()
     # build_treemap(circuit.groups, circuit.nodes)
     build_area_treemap(circuit.groups, circuit.nodes)

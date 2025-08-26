@@ -10,6 +10,12 @@ import time
 import tempfile
 from pathlib import Path
 
+plot_types = [
+    "general",
+    "function_approximation",
+    "component_approximation"
+]
+
 metrics = [
     "depth",
     "num_nodes",

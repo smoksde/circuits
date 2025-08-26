@@ -60,7 +60,8 @@
         .control-row { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
         .control-label { font-weight: 500; color: #1e293b; min-width: 60px; }
         .metric-select { flex: 1; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; background: white; font-size: 14px; color: #374151; }
-        
+        .plot_type-select { flex: 1; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; background: white; font-size: 14px; color: #374151; }
+
         .generate-btn { background: #f63b79; color: white; border: none; padding: 12px 24px; border-radius: 6px; font-size: 16px; font-weight: 500; cursor: pointer; transition: background-color 0.2s; }
         .generate-btn:hover { background: #ff1865; }
         .generate-btn:disabled { background: #9ca3af; cursor: not-allowed; }
@@ -125,6 +126,12 @@
                             <div class="control-row">
                                 <label class="control-label" for="metric-select">Metric:</label>
                                 <select id="metric-select" class="metric-select">
+                                    <option>Loading...</option>
+                                </select>
+                            </div>
+                            <div class="control-row">
+                                <label class="control-label" for="plot_type-select">Plot Type:</label>
+                                <select id="plot_type-select" class="plot_type-select">
                                     <option>Loading...</option>
                                 </select>
                             </div>
@@ -414,6 +421,26 @@
                 console.error("Failed to load metrics:", error);
             }
         }
+
+        async function loadPlotTypes() {
+            try {
+                const response = await fetch("/plot_types");
+                const plot_types = await response.json();
+                const select = document.getElementById("plot_type-select");
+                
+                select.innerHTML = "";
+                plot_types.forEach(type => {
+                    const option = document.createElement("option");
+                    option.value = type;
+                    option.textContent = type;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                document.getElementById("plot_type-select").innerHTML = 
+                    '<option>Error loading plot_types</option>';
+                console.error("Failed to load plot_types:", error);
+            }
+        }
         
         async function generatePlot() {
             if (selectedCircuits.length === 0) {
@@ -429,7 +456,8 @@
             
             const payload = {
                 experiments: experiments,
-                metric: document.getElementById("metric-select").value
+                metric: document.getElementById("metric-select").value,
+                plot_type: document.getElementById("plot_type-select").value
             };
             
             const button = document.getElementById("generate-btn");
@@ -508,6 +536,7 @@
         
         loadExperiments();
         loadMetrics();
+        loadPlotTypes();
     </script>
 </body>
 </html>

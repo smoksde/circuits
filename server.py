@@ -8,7 +8,7 @@ import matplotlib.pyplot as plt
 from collections import defaultdict, deque
 
 from graph import CircuitGraph
-import metrics
+import measurement
 import circuits.circuit as circuit
 
 app = FastAPI()
@@ -27,10 +27,10 @@ def funcs():
 
 @app.get("/metrics")
 def get_metrics():
-    return JSONResponse(metrics.metrics)
+    return JSONResponse(measurement.metrics)
 
 
-def render_plot(specs, metric="depth", title="Metric vs bits"):
+def render_plot(specs, metric="depth", title="Measurements for different bit widths"):
     plt.figure(figsize=(6, 3.5))
     for s in specs:
         fn_name = s["fn"]
@@ -39,7 +39,10 @@ def render_plot(specs, metric="depth", title="Metric vs bits"):
         if not callable(setup_fn):
             raise HTTPException(400, f"no function {fn_name}")
         vals = [
-            metrics.analyze_circuit_function(fn_name, setup_fn, b)[metric] for b in bits
+            measurement.analyze_circuit_function(
+                fn_name, setup_fn, b, use_cache=True, fill_cache=True
+            )[metric]
+            for b in bits
         ]
         print(vals)
         label = (
@@ -77,7 +80,9 @@ async def plot_png(req: Request):
         s["setup_fn"] = setup_fn
         s.setdefault("name", fn_name)
 
-    buf = render_plot(specs, metric=metric, title=j.get("title", "Circuit Metrics"))
+    buf = render_plot(
+        specs, metric=metric, title=j.get("title", "Circuit Measurements")
+    )
     return StreamingResponse(buf, media_type="image/png")
 
 

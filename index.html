@@ -2,458 +2,194 @@
 <html lang="en">
 <head>
     <meta charset="utf-8">
-    <title>Circuit Metrics Plots Generator</title>
+    <title>Circuit Implementation Tools</title>
     <style>
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
-            margin: 0;
-            padding: 24px;
-            background: #f8fafc;
-            color: #334155;
-        }
+        * { box-sizing: border-box; }
+        body { font-family: system-ui, sans-serif; margin: 0; background: #f8fafc; color: #334155; }
         
-        .header {
-            background: white;
-            padding: 24px;
-            border-radius: 12px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            margin-bottom: 24px;
-        }
+        .nav-header { background: white; border-bottom: 1px solid #e2e8f0; box-shadow: 0 1px 3px rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100; }
+        .nav-container { max-width: 1200px; margin: 0 auto; display: flex; align-items: center; padding: 0 24px; }
+        .app-logo { font-size: 20px; font-weight: 700; color: #1e293b; margin-right: 48px; }
+        .nav-tabs { display: flex; }
+        .nav-tab { padding: 16px 24px; background: none; border: none; color: #64748b; font-size: 14px; font-weight: 500; cursor: pointer; transition: all 0.2s; border-bottom: 2px solid transparent; }
+        .nav-tab:hover { color: #334155; background: #f8fafc; }
+        .nav-tab.active { color: #f63b79; border-bottom-color: #f63b79; background: #fef7f0; }
         
-        .header h1 {
-            margin: 0 0 8px 0;
-            color: #1e293b;
-            font-size: 24px;
-            font-weight: 600;
-        }
+        .main-container { max-width: 1200px; margin: 0 auto; padding: 24px; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; }
+        .main-content { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-bottom: 24px; }
+        .panel { background: white; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); overflow: hidden; }
+        .panel-header { padding: 20px; border-bottom: 1px solid #e2e8f0; background: #f8fafc; }
+        .panel-title { margin: 0; color: #1e293b; font-size: 16px; font-weight: 600; }
+        .panel-content { padding: 16px; min-height: 400px; max-height: 600px; overflow-y: auto; }
         
-        .header p {
-            margin: 0;
-            color: #64748b;
-            font-size: 14px;
-        }
+        .header { background: white; padding: 24px; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-bottom: 24px; }
+        .header h1 { margin: 0 0 8px 0; color: #1e293b; font-size: 24px; font-weight: 600; }
+        .header p { margin: 0; color: #64748b; font-size: 14px; }
         
-        .main-content {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 24px;
-            margin-bottom: 24px;
-        }
+        .circuit-list { display: flex; flex-direction: column; gap: 8px; }
+        .circuit-item { padding: 12px 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; cursor: grab; transition: all 0.2s; user-select: none; }
+        .circuit-item:hover { background: #f1f5f9; border-color: #cbd5e1; transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .circuit-item:active { cursor: grabbing; }
+        .circuit-item.dragging { opacity: 0.5; transform: rotate(2deg); }
+        .circuit-name { font-weight: 500; color: #1e293b; font-size: 14px; }
         
-        .panel {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            overflow: hidden;
-        }
+        .drop-zone { min-height: 400px; border: 2px dashed #cbd5e1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #64748b; font-size: 14px; transition: all 0.2s; }
+        .drop-zone.drag-over { border-color: #3b82f6; background: #eff6ff; color: #3b82f6; }
+        .drop-zone.has-items { justify-content: flex-start; align-items: stretch; padding: 0; border: none; background: transparent; }
+        .drop-zone-empty { text-align: center; padding: 40px 20px; }
+        .drop-zone-icon { font-size: 48px; margin-bottom: 16px; opacity: 0.5; }
+    
+        .selected-circuit { background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 16px; margin-bottom: 12px; }
+        .selected-circuit-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; }
+        .selected-circuit-name { font-weight: 500; color: #1e293b; font-size: 14px; }
+        .remove-btn { background: #fee2e2; color: #dc2626; border: none; border-radius: 4px; padding: 4px 8px; font-size: 12px; cursor: pointer; transition: all 0.2s; }
+        .remove-btn:hover { background: #fecaca; }
         
-        .panel-header {
-            padding: 20px;
-            border-bottom: 1px solid #e2e8f0;
-            background: #f8fafc;
-        }
+        .slider-container { display: flex; flex-direction: column; gap: 6px; }
+        .dual-range-slider { position: relative; height: 30px; width: 100%; }
+        .dual-range-slider input[type="range"] { position: absolute; width: 100%; background: transparent; -webkit-appearance: none; pointer-events: none; }
+        .dual-range-slider input[type="range"]::-webkit-slider-thumb { appearance: none; height: 20px; width: 20px; border-radius: 50%; border: 2px solid white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); cursor: pointer; pointer-events: all; background: #f63b79; }
+        .slider-track { position: absolute; top: 50%; transform: translateY(-50%); height: 6px; background: #e2e8f0; border-radius: 3px; width: 100%; }
+        .slider-range { position: absolute; height: 6px; background: #f63b79; border-radius: 3px; top: 50%; transform: translateY(-50%); }
+        .range-labels { display: flex; justify-content: space-between; font-size: 11px; color: #64748b; }
+        .range-display { font-size: 11px; color: #374151; font-weight: 500; text-align: center; padding: 4px 8px; background: #f1f5f9; border-radius: 4px; margin-top: 4px; }
         
-        .panel-title {
-            margin: 0;
-            color: #1e293b;
-            font-size: 16px;
-            font-weight: 600;
-        }
+        .controls-inline { margin-bottom: 20px; padding: 16px; background: #f8fafc; border-radius: 8px; border: 1px solid #e2e8f0; }
+        .control-row { display: flex; align-items: center; gap: 16px; margin-bottom: 20px; }
+        .control-label { font-weight: 500; color: #1e293b; min-width: 60px; }
+        .metric-select { flex: 1; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; background: white; font-size: 14px; color: #374151; }
         
-        .panel-content {
-            padding: 16px;
-            min-height: 400px;
-            max-height: 600px;
-            overflow-y: auto;
-        }
+        .generate-btn { background: #f63b79; color: white; border: none; padding: 12px 24px; border-radius: 6px; font-size: 16px; font-weight: 500; cursor: pointer; transition: background-color 0.2s; }
+        .generate-btn:hover { background: #ff1865; }
+        .generate-btn:disabled { background: #9ca3af; cursor: not-allowed; }
+        .copy-btn { background: #10b981; color: white; border: none; border-radius: 6px; padding: 8px 16px; font-size: 14px; font-weight: 500; cursor: pointer; transition: background-color 0.2s; }
+        .copy-btn:hover { background: #059669; }
+        .copy-btn:disabled { background: #9ca3af; cursor: not-allowed; }
         
-        .panel-content.scrollable {
-            max-height: 600px;
-            overflow-y: auto;
-        }
+        .loading, .empty-state { color: #64748b; text-align: center; padding: 40px 20px; }
+        .loading { font-style: italic; }
         
-        /* Available Circuits */
-        .circuit-list {
-            display: flex;
-            flex-direction: column;
-            gap: 8px;
-        }
-        
-        .circuit-item {
-            padding: 12px 16px;
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            cursor: grab;
-            transition: all 0.2s ease;
-            user-select: none;
-        }
-        
-        .circuit-item:hover {
-            background: #f1f5f9;
-            border-color: #cbd5e1;
-            transform: translateY(-1px);
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-        }
-        
-        .circuit-item:active {
-            cursor: grabbing;
-        }
-        
-        .circuit-item.dragging {
-            opacity: 0.5;
-            transform: rotate(2deg);
-        }
-        
-        .circuit-name {
-            font-weight: 500;
-            color: #1e293b;
-            font-size: 14px;
-        }
-        
-        /* Drop Zone */
-        .drop-zone {
-            min-height: 400px;
-            border: 2px dashed #cbd5e1;
-            border-radius: 8px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            color: #64748b;
-            font-size: 14px;
-            transition: all 0.2s ease;
-        }
-        
-        .drop-zone.drag-over {
-            border-color: #3b82f6;
-            background: #eff6ff;
-            color: #3b82f6;
-        }
-        
-        .drop-zone.has-items {
-            justify-content: flex-start;
-            align-items: stretch;
-            padding: 0;
-            border: none;
-            background: transparent;
-        }
-        
-        .drop-zone-empty {
-            text-align: center;
-            padding: 40px 20px;
-        }
-        
-        .drop-zone-icon {
-            font-size: 48px;
-            margin-bottom: 16px;
-            opacity: 0.5;
-        }
-        
-        /* Selected Circuits */
-        .selected-circuit {
-            background: #f8fafc;
-            border: 1px solid #e2e8f0;
-            border-radius: 8px;
-            padding: 16px;
-            margin-bottom: 12px;
-            position: relative;
-        }
-        
-        .selected-circuit-header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 12px;
-        }
-        
-        .selected-circuit-name {
-            font-weight: 500;
-            color: #1e293b;
-            font-size: 14px;
-        }
-        
-        .remove-btn {
-            background: #fee2e2;
-            color: #dc2626;
-            border: none;
-            border-radius: 4px;
-            padding: 4px 8px;
-            font-size: 12px;
-            cursor: pointer;
-            transition: all 0.2s ease;
-        }
-        
-        .remove-btn:hover {
-            background: #fecaca;
-        }
-        
-        /* Slider Styles */
-        .slider-container {
-            display: flex;
-            flex-direction: column;
-            gap: 6px;
-        }
-        
-        .dual-range-slider {
-            position: relative;
-            height: 30px;
-            width: 100%;
-        }
-        
-        .dual-range-slider input[type="range"] {
-            position: absolute;
-            width: 100%;
-            background: transparent;
-            -webkit-appearance: none;
-            pointer-events: none;
-        }
-        
-        .dual-range-slider input[type="range"]::-webkit-slider-thumb {
-            appearance: none;
-            height: 20px;
-            width: 20px;
-            border-radius: 50%;
-            border: 2px solid white;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-            cursor: pointer;
-            pointer-events: all;
-            margin-top: -0px;
-        }
-        
-        .dual-range-slider .range-min::-webkit-slider-thumb {
-            background: #f63b79;
-        }
-        
-        .dual-range-slider .range-max::-webkit-slider-thumb {
-            background: #f63b79;
-        }
-        
-        .slider-track {
-            position: absolute;
-            top: 50%;
-            transform: translateY(-50%);
-            height: 6px;
-            background: #e2e8f0;
-            border-radius: 3px;
-            width: 100%;
-        }
-        
-        .slider-range {
-            position: absolute;
-            height: 6px;
-            background: #f63b79;
-            border-radius: 3px;
-            top: 50%;
-            transform: translateY(-50%);
-        }
-        
-        .range-labels {
-            display: flex;
-            justify-content: space-between;
-            font-size: 11px;
-            color: #64748b;
-        }
-        
-        .range-display {
-            font-size: 11px;
-            color: #374151;
-            font-weight: 500;
-            text-align: center;
-            padding: 4px 8px;
-            background: #f1f5f9;
-            border-radius: 4px;
-            margin-top: 4px;
-        }
-        
-        /* Inline Controls */
-        .controls-inline {
-            margin-bottom: 20px;
-            padding: 16px;
-            background: #f8fafc;
-            border-radius: 8px;
-            border: 1px solid #e2e8f0;
-        }
-        
-        .control-row {
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            margin-bottom: 20px;
-        }
-        
-        .control-label {
-            font-weight: 500;
-            color: #1e293b;
-            min-width: 60px;
-        }
-        
-        .metric-select {
-            flex: 1;
-            padding: 8px 12px;
-            border: 1px solid #d1d5db;
-            border-radius: 6px;
-            background: white;
-            font-size: 14px;
-            color: #374151;
-        }
-        
-        .generate-btn {
-            background: #f63b79;
-            color: white;
-            border: none;
-            padding: 12px 24px;
-            border-radius: 6px;
-            font-size: 16px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: background-color 0.2s ease;
-        }
-        
-        .generate-btn:hover {
-            background: #ff1865;
-        }
-        
-        .generate-btn:disabled {
-            background: #9ca3af;
-            cursor: not-allowed;
-        }
-        
-        .loading {
-            color: #64748b;
-            font-style: italic;
-            text-align: center;
-            padding: 40px 20px;
-        }
-        
-        .empty-state {
-            text-align: center;
-            color: #64748b;
-            padding: 40px 20px;
-        }
-        
-        /* Plot Display */
-        .plot-section {
-            background: white;
-            border-radius: 12px;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            margin-top: 24px;
-            display: none;
-        }
-        
-        .plot-section.show {
-            display: block;
-        }
-        
-        .plot-header {
-            padding: 20px;
-            border-bottom: 1px solid #e2e8f0;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
-        
-        .plot-title {
-            margin: 0;
-            color: #1e293b;
-            font-size: 18px;
-            font-weight: 600;
-        }
-        
-        .copy-btn {
-            background: #10b981;
-            color: white;
-            border: none;
-            border-radius: 6px;
-            padding: 8px 16px;
-            font-size: 14px;
-            font-weight: 500;
-            cursor: pointer;
-            transition: background-color 0.2s ease;
-        }
-        
-        .copy-btn:hover {
-            background: #059669;
-        }
-        
-        .copy-btn:disabled {
-            background: #9ca3af;
-            cursor: not-allowed;
-        }
-        
-        .plot-content {
-            padding: 20px;
-            text-align: center;
-        }
-        
-        .plot-image {
-            max-width: 100%;
-            height: auto;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-        }
+        .plot-section { background: white; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); margin-top: 24px; display: none; }
+        .plot-section.show { display: block; }
+        .plot-header { padding: 20px; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; }
+        .plot-title { margin: 0; color: #1e293b; font-size: 18px; font-weight: 600; }
+        .plot-content { padding: 20px; text-align: center; }
+        .plot-image { max-width: 100%; height: auto; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+
+        .empty-tab { text-align: center; padding: 80px 20px; background: white; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .empty-tab-icon { font-size: 64px; margin-bottom: 24px; opacity: 0.3; }
+        .empty-tab h2 { color: #64748b; font-size: 24px; font-weight: 400; margin: 0 0 12px 0; }
+        .empty-tab p { color: #94a3b8; font-size: 16px; margin: 0; }
     </style>
 </head>
 <body>
-    <div class="header">
-        <h1>Circuit Metrics Plots Generator</h1>
-        <p>Drag circuits from the left panel to the right panel to select them for plotting. Configure bit widths for each selected circuit.</p>
-    </div>
-    
-    <div class="main-content">
-        <!-- Available Circuits -->
-        <div class="panel">
-            <div class="panel-header">
-                <h2 class="panel-title">Available Circuits</h2>
-            </div>
-            <div class="panel-content scrollable">
-                <div id="available-circuits" class="circuit-list">
-                    <div class="loading">Loading circuits...</div>
-                </div>
+    <div class="nav-header">
+        <div class="nav-container">
+            <div class="app-logo">Circuit Implementation Tools</div>
+            <div class="nav-tabs">
+                <button class="nav-tab active" data-tab="tests">Tests</button>
+                <button class="nav-tab" data-tab="metrics">Metrics</button>
+                <button class="nav-tab" data-tab="plots">Plots</button>
+                <button class="nav-tab" data-tab="maps">Maps</button>
             </div>
         </div>
-        
-        <!-- Selected Circuits -->
-        <div class="panel">
-            <div class="panel-header">
-                <h2 class="panel-title">Selected Circuits</h2>
+    </div>
+
+    <div class="main-container">
+        <div id="plots-tab" class="tab-content active">
+            <div class="header">
+                <h1>Create Metric Plots</h1>
+                <p>Drag circuits from the left panel to the right panel to select them for plotting. Configure bit widths for each selected circuit.</p>
             </div>
-            <div class="panel-content">
-                <!-- Controls Section -->
-                <div class="controls-inline">
-                    <div class="control-row">
-                        <label class="control-label" for="metric-select">Metric:</label>
-                        <select id="metric-select" class="metric-select">
-                            <option>Loading...</option>
-                        </select>
+            
+            <div class="main-content">
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2 class="panel-title">Available Circuits</h2>
                     </div>
-                    <button id="generate-btn" class="generate-btn">Generate Plot</button>
+                    <div class="panel-content">
+                        <div id="available-circuits" class="circuit-list">
+                            <div class="loading">Loading circuits...</div>
+                        </div>
+                    </div>
                 </div>
                 
-                <div id="selected-circuits" class="drop-zone">
-                    <div class="drop-zone-empty">
-                        <div class="drop-zone-icon">📊</div>
-                        <div>Drag circuits here to select them for plotting</div>
+                <div class="panel">
+                    <div class="panel-header">
+                        <h2 class="panel-title">Selected Circuits</h2>
+                    </div>
+                    <div class="panel-content">
+                        <div class="controls-inline">
+                            <div class="control-row">
+                                <label class="control-label" for="metric-select">Metric:</label>
+                                <select id="metric-select" class="metric-select">
+                                    <option>Loading...</option>
+                                </select>
+                            </div>
+                            <button id="generate-btn" class="generate-btn">Generate Plot</button>
+                        </div>
+                        
+                        <div id="selected-circuits" class="drop-zone">
+                            <div class="drop-zone-empty">
+                                <div class="drop-zone-icon">📊</div>
+                                <div>Drag circuits here to select them for plotting</div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
+            
+            <div id="plot-section" class="plot-section">
+                <div class="plot-header">
+                    <h2 class="plot-title">Generated Plot</h2>
+                    <button id="copy-btn" class="copy-btn">Copy Image</button>
+                </div>
+                <div class="plot-content">
+                    <img id="plot-image" class="plot-image" alt="Generated circuit plot">
+                </div>
+            </div>
         </div>
-    </div>
-    
-    <!-- Plot Display Section -->
-    <div id="plot-section" class="plot-section">
-        <div class="plot-header">
-            <h2 class="plot-title">Generated Plot</h2>
-            <button id="copy-btn" class="copy-btn">Copy Image</button>
+
+        <div id="analysis-tab" class="tab-content">
+            <div class="empty-tab">
+                <div class="empty-tab-icon">📈</div>
+                <h2>Analysis Dashboard</h2>
+                <p>Coming soon - Advanced circuit analysis and insights</p>
+            </div>
         </div>
-        <div class="plot-content">
-            <img id="plot-image" class="plot-image" alt="Generated circuit plot">
+
+        <div id="compare-tab" class="tab-content">
+            <div class="empty-tab">
+                <div class="empty-tab-icon">⚖️</div>
+                <h2>Circuit Comparison</h2>
+                <p>Coming soon - Side-by-side circuit performance comparison</p>
+            </div>
+        </div>
+
+        <div id="reports-tab" class="tab-content">
+            <div class="empty-tab">
+                <div class="empty-tab-icon">📋</div>
+                <h2>Reports & Export</h2>
+                <p>Coming soon - Generate and export detailed circuit reports</p>
+            </div>
         </div>
     </div>
 
     <script>
         const POW2 = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096];
         let selectedCircuits = [];
+        
+        // Tab switching
+        document.querySelectorAll('.nav-tab').forEach(tab => {
+            tab.addEventListener('click', () => {
+                document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
+                tab.classList.add('active');
+                document.getElementById(`${tab.dataset.tab}-tab`).classList.add('active');
+            });
+        });
         
         function createDualRangeSlider(initialMin = 1, initialMax = 8) {
             const container = document.createElement("div");
@@ -482,17 +218,13 @@
             maxSlider.value = initialMax;
             maxSlider.className = "range-max";
             
-            sliderContainer.appendChild(track);
-            sliderContainer.appendChild(range);
-            sliderContainer.appendChild(minSlider);
-            sliderContainer.appendChild(maxSlider);
+            sliderContainer.append(track, range, minSlider, maxSlider);
             
             const labels = document.createElement("div");
             labels.className = "range-labels";
             const minLabel = document.createElement("span");
             const maxLabel = document.createElement("span");
-            labels.appendChild(minLabel);
-            labels.appendChild(maxLabel);
+            labels.append(minLabel, maxLabel);
             
             const rangeDisplay = document.createElement("div");
             rangeDisplay.className = "range-display";
@@ -511,8 +243,8 @@
                     }
                 }
                 
-                minLabel.textContent = `${POW2[minVal]}`;
-                maxLabel.textContent = `${POW2[maxVal]}`;
+                minLabel.textContent = POW2[minVal];
+                maxLabel.textContent = POW2[maxVal];
                 
                 const minPercent = (minVal / (POW2.length - 1)) * 100;
                 const maxPercent = (maxVal / (POW2.length - 1)) * 100;
@@ -521,20 +253,16 @@
                 range.style.width = `${maxPercent - minPercent}%`;
                 
                 const bitWidths = POW2.slice(minVal, maxVal + 1);
-                if (bitWidths.length === 1) {
-                    rangeDisplay.textContent = `Bit width: ${bitWidths[0]}`;
-                } else {
-                    rangeDisplay.textContent = `Bit widths: ${bitWidths.join(', ')}`;
-                }
+                rangeDisplay.textContent = bitWidths.length === 1 ? 
+                    `Bit width: ${bitWidths[0]}` : 
+                    `Bit widths: ${bitWidths.join(', ')}`;
             }
             
             minSlider.addEventListener("input", updateSlider);
             maxSlider.addEventListener("input", updateSlider);
             updateSlider();
             
-            container.appendChild(sliderContainer);
-            container.appendChild(labels);
-            container.appendChild(rangeDisplay);
+            container.append(sliderContainer, labels, rangeDisplay);
             
             return {
                 element: container,
@@ -549,16 +277,11 @@
         }
         
         function addCircuitToSelected(circuitName) {
-            if (selectedCircuits.find(c => c.name === circuitName)) {
-                return; // Already selected
-            }
-            
-            const circuit = {
+            if (selectedCircuits.find(c => c.name === circuitName)) return;
+            selectedCircuits.push({
                 name: circuitName,
                 rangeSlider: createDualRangeSlider()
-            };
-            
-            selectedCircuits.push(circuit);
+            });
             renderSelectedCircuits();
         }
         
@@ -600,12 +323,8 @@
                 removeBtn.textContent = "Remove";
                 removeBtn.onclick = () => removeCircuitFromSelected(circuit.name);
                 
-                header.appendChild(name);
-                header.appendChild(removeBtn);
-                
-                item.appendChild(header);
-                item.appendChild(circuit.rangeSlider.element);
-                
+                header.append(name, removeBtn);
+                item.append(header, circuit.rangeSlider.element);
                 container.appendChild(item);
             });
         }
@@ -632,10 +351,8 @@
                     const name = document.createElement("span");
                     name.className = "circuit-name";
                     name.textContent = fn;
-                    
                     item.appendChild(name);
                     
-                    // Drag events
                     item.addEventListener("dragstart", (e) => {
                         e.dataTransfer.setData("text/plain", fn);
                         item.classList.add("dragging");
@@ -673,11 +390,8 @@
             dropZone.addEventListener("drop", (e) => {
                 e.preventDefault();
                 dropZone.classList.remove("drag-over");
-                
                 const circuitName = e.dataTransfer.getData("text/plain");
-                if (circuitName) {
-                    addCircuitToSelected(circuitName);
-                }
+                if (circuitName) addCircuitToSelected(circuitName);
             });
         }
         
@@ -688,7 +402,6 @@
                 const select = document.getElementById("metric-select");
                 
                 select.innerHTML = "";
-                
                 metrics.forEach(metric => {
                     const option = document.createElement("option");
                     option.value = metric;
@@ -742,12 +455,8 @@
                 const blob = await response.blob();
                 const imageUrl = URL.createObjectURL(blob);
                 
-                // Display the plot in the page
                 plotImage.src = imageUrl;
-                plotImage.dataset.blob = imageUrl; // Store for copying
                 plotSection.classList.add("show");
-                
-                // Scroll to the plot
                 plotSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
                 
             } catch (error) {
@@ -769,11 +478,9 @@
             copyBtn.textContent = "Copying...";
             
             try {
-                // Fetch the image blob
                 const response = await fetch(plotImage.src);
                 const blob = await response.blob();
                 
-                // Copy to clipboard
                 await navigator.clipboard.write([
                     new ClipboardItem({
                         [blob.type]: blob
@@ -797,7 +504,6 @@
         }
         
         document.getElementById("copy-btn").addEventListener("click", copyImageToClipboard);
-        
         document.getElementById("generate-btn").addEventListener("click", generatePlot);
         
         loadExperiments();

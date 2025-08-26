@@ -11,9 +11,7 @@ from ..comparators import n_bit_comparator
 from ..subtractors import subtract
 
 
-# Lemma 4.1
-# Creates a list of lists with first index m from 1 to n and second index i from 0 to n - 1
-# m <= n
+# Lookup Table generation for Lemma 4.1
 def precompute_aim(
     circuit: CircuitGraph,
     zero: Port,
@@ -48,6 +46,7 @@ def precompute_aim(
     return lis
 
 
+# Selection of appropiate Lookup Table signals
 def provide_aims_given_m(
     circuit: CircuitGraph, m: List[Port], parent_group: Optional[Group] = None
 ):
@@ -121,25 +120,13 @@ def compute_diffs(
 
     diff_list = []
 
-    # m_powers = [m]
-
-    # for i in range(int(math.log2(n))):
-    #    current_len = len(m_powers)
-    #    current = m_powers[current_len - 1]
-    #    next = one_left_shift(circuit, current, parent_group=cd_group)
-    #    m_powers.append(next)
-
     for i in range(n):
         if i == 0:
             acc = [zero for k in range(n)]
         else:
-            # summands = []
-            # i_bits = int2binlist(i, bit_len=n)
-            # for idx, bit in enumerate(i_bits):
-            #    if bit:
-            #        summands.append(m_powers[idx])
             summands = [m for _ in range(i)]
             acc = adder_tree_iterative(circuit, summands, zero, parent_group=this_group)
+        # previous version was faulty since it used up to n sequential adder steps to accumulate a value
         # acc = [zero for k in range(n)]
         # for _ in range(i):
         #    acc, _ = carry_look_ahead_adder(
@@ -151,7 +138,6 @@ def compute_diffs(
     return diff_list
 
 
-# check if its correct that we can generate the multiples via additions due to the fact that m <= n where n is the bit width of the number x in the lemma
 def reduce_in_parallel(
     circuit: CircuitGraph,
     y: List[Port],
@@ -217,21 +203,3 @@ def lemma_4_1(
     y = compute_y(circuit, x, m, parent_group=this_group)
     result = reduce_in_parallel(circuit, y, m, n, parent_group=this_group)
     return result
-
-
-# compute y = sum i from 0 to n - 1: x_i * a_im; since x_i is one bit no multiplier needed
-"""def compute_y_lemma_4_1(
-    circuit: CircuitGraph,
-    x: List[Port],
-    aim: List[List[List[Port]]],
-    parent_group: Optional[Group] = None,
-):
-    cy_group = circuit.add_group("COMPUTE_Y_FOR_LEMMA_4_1")
-    cy_group.set_parent(parent_group)
-    n = len(x)
-    for i in range(n):
-        not_x_i = circuit.add_node("not", "not_x_i", inputs=[x[i]], group_id=)
-        aim_entry = 
-        conditional_zeroing(cirucit, )
-    return
-"""

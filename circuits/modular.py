@@ -72,13 +72,15 @@ def modulo_circuit(circuit, x_bits, m_bits):
 
 # Individual subtractions and by that slow / large
 def slow_modulo_circuit(circuit, x_bits, m_bits, parent_group=None):
-    smc_group = circuit.add_group("SLOW_MODULO_CIRCUIT")
-    smc_group.set_parent(parent_group)
+    this_group = circuit.add_group("SLOW_MODULO_CIRCUIT")
+    this_group_id = this_group.id if this_group is not None else -1
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
     n = len(x_bits)
     m_len = len(m_bits)
     assert m_len <= n, "Modulus must not be wider than dividend"
 
-    zero = constant_zero(circuit, x_bits[0], parent_group=smc_group)
+    zero = constant_zero(circuit, x_bits[0], parent_group=this_group)
 
     # Pad modulus to same width as dividend
     padded_m = m_bits + [zero] * (n - m_len)
@@ -91,13 +93,13 @@ def slow_modulo_circuit(circuit, x_bits, m_bits, parent_group=None):
 
     for step in range(max_subtractions):
         less, equal, greater = n_bit_comparator(
-            circuit, current_remainder, padded_m, parent_group=smc_group
+            circuit, current_remainder, padded_m, parent_group=this_group
         )
         can_subtract = circuit.add_node(
-            "or", "OR", inputs=[equal, greater], group_id=smc_group.id
+            "or", "OR", inputs=[equal, greater], group_id=this_group_id
         ).ports[2]
         current_remainder = conditional_subtract(
-            circuit, current_remainder, padded_m, can_subtract, parent_group=smc_group
+            circuit, current_remainder, padded_m, can_subtract, parent_group=this_group
         )
 
     return current_remainder
@@ -108,8 +110,9 @@ def modulo_circuit_optimized(circuit, x_bits, m_bits, parent_group=None):
     """
     Most efficient version: processes multiple bit positions when possible.
     """
-    mco_group = circuit.add_group("MODULO_CIRCUIT_OPTIMIZED")
-    mco_group.set_parent(parent_group)
+    this_group = circuit.add_group("MODULO_CIRCUIT_OPTIMIZED")
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
 
     n = len(x_bits)
     m_len = len(m_bits)
@@ -145,7 +148,8 @@ def modulo_circuit_optimized(circuit, x_bits, m_bits, parent_group=None):
 
 
 def modulo_circuit(circuit, x_bits, m_bits, parent_group=None):
-    m_group = circuit.add_group("MODULO")
-    m_group.set_parent(parent_group)
-    return modulo_circuit_optimized(circuit, x_bits, m_bits, parent_group=m_group)
+    this_group = circuit.add_group("MODULO")
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
+    return modulo_circuit_optimized(circuit, x_bits, m_bits, parent_group=this_group)
     # return slow_modulo_circuit(circuit, x_bits, m_bits, parent_group=m_group)

@@ -11,20 +11,22 @@ def sign_detector(circuit, x_list):
 
 
 def two_complement(circuit, x_list, parent_group=None):
-    tc_group = circuit.add_group("TWO_COMPLEMENT")
-    tc_group.set_parent(parent_group)
+    this_group = circuit.add_group("TWO_COMPLEMENT")
+    this_group_id = this_group.id if this_group is not None else -1
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
     inverted_list = []
     for x in x_list:
-        not_node = circuit.add_node("not", "NOT", inputs=[x], group_id=tc_group.id)
+        not_node = circuit.add_node("not", "NOT", inputs=[x], group_id=this_group_id)
         inverted_list.append(not_node.ports[1])
-    one = constant_one(circuit, x_list[0], parent_group=tc_group)
-    zero = constant_zero(circuit, x_list[0], parent_group=tc_group)
+    one = constant_one(circuit, x_list[0], parent_group=this_group)
+    zero = constant_zero(circuit, x_list[0], parent_group=this_group)
     one_number = []
     for i in range(len(x_list)):
         one_number.append(zero)
     one_number[0] = one
     two_comp_list, _ = carry_look_ahead_adder(
-        circuit, inverted_list, one_number, zero, parent_group=tc_group
+        circuit, inverted_list, one_number, zero, parent_group=this_group
     )
     # two_comp_list, _ = ripple_carry_adder(
     #    circuit, inverted_list, one_number, zero, parent_group=tc_group
@@ -33,31 +35,35 @@ def two_complement(circuit, x_list, parent_group=None):
 
 
 def xnor_gate(circuit, x, y, parent_group=None):
-    xnor_group = circuit.add_group("XNOR")
-    xnor_group.set_parent(parent_group)
-    or_node = circuit.add_node("or", "OR", inputs=[x, y], group_id=xnor_group.id)
+    this_group = circuit.add_group("XNOR")
+    this_group_id = this_group.id if this_group is not None else -1
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
+    or_node = circuit.add_node("or", "OR", inputs=[x, y], group_id=this_group_id)
     or_node_port = or_node.ports[2]
-    and_node = circuit.add_node("and", "AND", inputs=[x, y], group_id=xnor_group.id)
+    and_node = circuit.add_node("and", "AND", inputs=[x, y], group_id=this_group_id)
     not_or_node = circuit.add_node(
-        "not", "NOT", inputs=[or_node_port], group_id=xnor_group.id
+        "not", "NOT", inputs=[or_node_port], group_id=this_group_id
     )
     not_or_node_port = not_or_node.ports[1]
     xnor_node = circuit.add_node(
-        "or", "OR", inputs=[not_or_node_port, and_node.ports[2]], group_id=xnor_group.id
+        "or", "OR", inputs=[not_or_node_port, and_node.ports[2]], group_id=this_group_id
     )
     return xnor_node.ports[2]
 
 
 def next_power_of_two(circuit: CircuitGraph, x, parent_group=None):
-    npot_group = circuit.add_group("NEXT_POWER_OF_TWO")
-    npot_group.set_parent(parent_group)
+    this_group = circuit.add_group("NEXT_POWER_OF_TWO")
+    this_group_id = this_group.id if this_group is not None else -1
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
 
     next_power = []
 
     for idx, bit in enumerate(x):
         if idx == 0:
             hi = x
-            ln = [constant_zero(circuit, in_port=x[0], parent_group=npot_group)]
+            ln = [constant_zero(circuit, in_port=x[0], parent_group=this_group)]
             lo = []
         elif idx == len(x) - 1:
             hi = [bit]
@@ -75,15 +81,15 @@ def next_power_of_two(circuit: CircuitGraph, x, parent_group=None):
                 lo = []  # empty list -> later constant value
 
         # build or trees
-        hi_ot = or_tree_iterative(circuit, input_list=hi, parent_group=npot_group)
+        hi_ot = or_tree_iterative(circuit, input_list=hi, parent_group=this_group)
         not_hi_ot = circuit.add_node(
-            "not", "NOT", inputs=[hi_ot], group_id=npot_group.id
+            "not", "NOT", inputs=[hi_ot], group_id=this_group_id
         ).ports[1]
-        ln_ot = or_tree_iterative(circuit, input_list=ln, parent_group=npot_group)
+        ln_ot = or_tree_iterative(circuit, input_list=ln, parent_group=this_group)
         # lo_ot = or_tree_iterative(circuit, input_list=lo, parent_group=npot_group)
 
         not_hi_and_ln = circuit.add_node(
-            "and", "AND", inputs=[not_hi_ot, ln_ot], group_id=npot_group.id
+            "and", "AND", inputs=[not_hi_ot, ln_ot], group_id=this_group_id
         ).ports[2]
 
         next_power.append(not_hi_and_ln)
@@ -110,7 +116,12 @@ def next_power_of_two(circuit: CircuitGraph, x, parent_group=None):
     return next_power"""
 
 
-def generate_number(n: int, bit_len: int, zero: Port, one: Port) -> List[Port]:
+def generate_number(
+    n: int, bit_len: int, zero: Port, one: Port, parent_group: Optional[Group] = None
+) -> List[Port]:
+    #this_group = circuit.add_group("GENERATE_NUMBER")
+    #if circuit.enable_groups and this_group is not None:
+    #    this_group.set_parent(parent_group)
     bits = int2binlist(n, bit_len=bit_len)
     ports = []
     for bit in bits:

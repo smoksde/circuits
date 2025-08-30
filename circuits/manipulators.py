@@ -3,20 +3,22 @@ from typing import List, Optional
 from graph import *
 from .comparators import n_bit_comparator, n_bit_equality
 from .multiplexers import multiplexer, bus_multiplexer
-from .utils import generate_number
+from .circuit_utils import generate_number
 from .constants import constant_zero, constant_one
 
 
 # if condition is one then zero it
 def conditional_zeroing(circuit, x_list, cond, parent_group=None):
-    cz_group = circuit.add_group("CONDITIONAL_ZEROING")
-    cz_group.set_parent(parent_group)
+    this_group = circuit.add_group("CONDITIONAL_ZEROING")
+    this_group_id = this_group.id if this_group is not None else -1
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
     ports = []
-    not_cond_node = circuit.add_node("not", "NOT", inputs=[cond], group_id=cz_group.id)
+    not_cond_node = circuit.add_node("not", "NOT", inputs=[cond], group_id=this_group_id)
     not_cond_port = not_cond_node.ports[1]
     for x in x_list:
         and_node = circuit.add_node(
-            "and", "AND", inputs=[x, not_cond_port], group_id=cz_group.id
+            "and", "AND", inputs=[x, not_cond_port], group_id=this_group_id
         )
         ports.append(and_node.ports[2])
     return ports
@@ -28,7 +30,8 @@ def max_tree_iterative(
     parent_group: Optional[Group] = None,
 ):
     this_group = circuit.add_group("MAX_TREE_ITERATIVE")
-    this_group.set_parent(parent_group)
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
     current = values
     while len(current) > 1:
         next = []
@@ -51,7 +54,8 @@ def min_tree_iterative(
     parent_group: Optional[Group] = None,
 ):
     this_group = circuit.add_group("MIN_TREE_ITERATIVE")
-    this_group.set_parent(parent_group)
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
     current = values
     while len(current) > 1:
         next = []
@@ -74,7 +78,9 @@ def smallest_non_zero_tree_iterative(
     parent_group: Optional[Group] = None,
 ):
     this_group = circuit.add_group("SMALLEST_NON_ZERO_TREE_ITERATIVE")
-    this_group.set_parent(parent_group)
+    this_group_id = this_group.id if this_group is not None else -1
+    if circuit.enable_groups and this_group is not None:
+        this_group.set_parent(parent_group)
 
     zero = constant_zero(circuit, values[0][0], parent_group=this_group)
     one = constant_one(circuit, values[0][0], parent_group=this_group)
@@ -91,7 +97,7 @@ def smallest_non_zero_tree_iterative(
                 b = current[i + 1]
                 _, _, greater = n_bit_comparator(circuit, a, b, parent_group=this_group)
                 not_greater = circuit.add_node(
-                    "not", "NOT", inputs=[greater], group_id=this_group.id
+                    "not", "NOT", inputs=[greater], group_id=this_group_id
                 ).ports[1]
                 smaller_one = bus_multiplexer(circuit, [a, b], [greater])
                 equals_zero = n_bit_equality(

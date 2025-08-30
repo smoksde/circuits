@@ -1,0 +1,149 @@
+from fastapi import FastAPI, Request, HTTPException
+from fastapi.responses import HTMLResponse, StreamingResponse, JSONResponse
+import importlib, io
+import matplotlib
+
+matplotlib.use("Agg")
+import matplotlib.pyplot as plt
+from collections import defaultdict, deque
+
+from graph import CircuitGraph
+import measurement
+import approximation
+import circuits.circuit as circuit
+
+app = FastAPI()
+
+
+@app.get("/funcs")
+def funcs():
+    return JSONResponse(
+        [
+            name
+            for name in dir(circuit)
+            if name.startswith("setup_") and callable(getattr(circuit, name))
+        ]
+    )
+
+
+@app.get("/metrics")
+def get_metrics():
+    return JSONResponse(measurement.metrics)
+
+@app.get("/plot_types")
+def get_plot_types():
+    return JSONResponse(measurement.plot_types)
+
+def render_plot(specs, metric="depth", title="Circuit Metrics"):
+    plt.figure(figsize=(6, 3.5))
+    for s in specs:
+        fn_name = s["fn"]
+        bits = s.get("bits", [4, 8, 16])
+        setup_fn = getattr(circuit, fn_name, None)
+        if not callable(setup_fn):
+            raise HTTPException(400, f"no function {fn_name}")
+        vals = [
+            measurement.analyze_circuit_function(
+                fn_name, setup_fn, b, use_cache=True, fill_cache=True
+            )[metric]
+            for b in bits
+        ]
+
+        label = (
+            fn_name[6:] if fn_name.startswith("setup_") else fn_name
+        )  # or s.get("name", fn_name)
+        plt.plot(bits, vals, marker="o", linestyle="--", label=label)
+    plt.title(title)
+    plt.xlabel("bits")
+    plt.ylabel(metric)
+    plt.grid(True)
+    plt.legend()
+    buf = io.BytesIO()
+    plt.tight_layout()
+    plt.savefig(buf, format="png", dpi=120)
+    plt.close()
+    buf.seek(0)
+    return buf
+
+def render_function_approximation_plot(specs, metric="depth", title="Measurements for different bit widths"):
+    plt.figure(figsize=(6, 3.5))
+    for s in specs:
+        fn_name = s["fn"]
+        bits = s.get("bits", [4, 8, 16])
+        setup_fn = getattr(circuit, fn_name, None)
+        if not callable(setup_fn):
+            raise HTTPException(400, f"no function {fn_name}")
+        vals = [
+            measurement.analyze_circuit_function(
+                fn_name, setup_fn, b, use_cache=True, fill_cache=True
+            )[metric]
+            for b in bits
+        ]
+
+        label = (
+            fn_name[6:] if fn_name.startswith("setup_") else fn_name
+        )  # or s.get("name", fn_name)
+        plt.plot(bits, vals, marker="o", linestyle="--", label="measured")
+
+        function_approximation_vals = []
+        approx_fn = approximation.function_approximation(fn_name)
+        if approx_fn:
+            function_approximation_vals = [approx_fn(b) for b in bits]
+            plt.plot(
+                bits,
+                function_approximation_vals,
+                marker="x",
+                linestyle=":",
+                label=f"approximation",
+            )
+
+    plt.title(label)
+    plt.xlabel("bits")
+    plt.ylabel(metric)
+    plt.grid(True)
+    plt.legend()
+    buf = io.BytesIO()
+    plt.tight_layout()
+    plt.savefig(buf, format="png", dpi=120)
+    plt.close()
+    buf.seek(0)
+    return buf
+
+
+@app.post("/plot.png")
+async def plot_png(req: Request):
+    j = await req.json()
+    specs = j.get("experiments") or j.get("specs")
+    plot_type = j.get("plot_type", "general")
+    metric = j.get("metric", "depth")
+    # print("metric: ", metric)
+    if not specs:
+        raise HTTPException(400, "No experiments provided")
+
+    # Map function names to actual Python functions
+    for s in specs:
+        fn_name = s["fn"]
+        setup_fn = getattr(circuit, fn_name, None)
+        if not callable(setup_fn):
+            raise HTTPException(400, f"No such function: {fn_name}")
+        s["setup_fn"] = setup_fn
+        s.setdefault("name", fn_name)
+
+    if plot_type == "general":
+        buf = render_plot(
+            specs, metric=metric
+        )
+    elif plot_type == "function_approximation":
+        buf = render_function_approximation_plot(
+            specs, metric=metric
+        )
+    else:
+        buf = render_plot(
+            specs, metric=metric
+        )
+    return StreamingResponse(buf, media_type="image/png")
+
+
+@app.get("/", response_class=HTMLResponse)
+def index():
+    return HTMLResponse(open("index.html", "r", encoding="utf-8").read())

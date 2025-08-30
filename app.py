@@ -2,7 +2,7 @@ from flask import Flask, render_template, jsonify, request
 import json
 
 import circuits.circuit as circuit
-import graph
+import core.graph as graph
 from test import run_tests
 
 app = Flask(__name__)

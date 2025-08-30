@@ -1,6 +1,6 @@
 from typing import List, Optional
 
-from graph import *
+from core.graph import *
 from .comparators import n_bit_comparator, n_bit_equality
 from .multiplexers import multiplexer, bus_multiplexer
 from .circuit_utils import generate_number

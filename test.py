@@ -1,18 +1,18 @@
 import unittest
 from circuits import *
-from graph import *
+from core.graph import *
 from formula import *
 from utils import int2binlist, iter_random_bin_list
-import theorem_4_2_sanity
-import theorem_5_3_sanity
-import lemma_5_1_sanity
-from node import Node
-from port import Port
-from edge import Edge
+import sanity.theorem_4_2_sanity as theorem_4_2_sanity
+import sanity.theorem_5_3_sanity as theorem_5_3_sanity
+import sanity.lemma_5_1_sanity as lemma_5_1_sanity
+from core.node import Node
+from core.port import Port
+from core.edge import Edge
 import json
 from io import StringIO
 import random
-import software_beame as sb
+import sanity.software_beame as sb
 
 
 def run_tests():

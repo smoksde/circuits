@@ -1,6 +1,6 @@
 from typing import List, Optional
 
-from graph import *
+from core.graph import *
 from .adders import ripple_carry_adder, carry_look_ahead_adder
 
 """

@@ -1,9 +1,9 @@
 from typing import Optional, List, Tuple
-from graph import *
+from core.graph import *
 import utils
 import math
 
-import software_beame as sb
+import sanity.software_beame as sb
 from ..constants import *
 from ..multiplexers import tensor_multiplexer, bus_multiplexer
 from ..comparators import n_bit_comparator, n_bit_equality
@@ -17,7 +17,7 @@ from .. import circuit_utils
 
 from . import lemma_4_1
 
-import theorem_4_2_sanity
+import sanity.theorem_4_2_sanity as theorem_4_2_sanity
 
 
 # produces approx. n signals that can be hardwired into circuits

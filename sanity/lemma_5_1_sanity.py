@@ -1,6 +1,6 @@
 import random
 
-import theorem_5_3_sanity
+import sanity.theorem_5_3_sanity as theorem_5_3_sanity
 
 
 # def step_1(): This just gets the good modulus sequence

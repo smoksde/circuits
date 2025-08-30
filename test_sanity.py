@@ -3,9 +3,9 @@ import json
 from io import StringIO
 import random
 
-import lemma_5_1_sanity
-import theorem_5_2_sanity
-import theorem_5_3_sanity
+import sanity.lemma_5_1_sanity as lemma_5_1_sanity
+import sanity.theorem_5_2_sanity as theorem_5_2_sanity
+import sanity.theorem_5_3_sanity as theorem_5_3_sanity
 
 
 # The circuit construction related tests are NOT in this file.

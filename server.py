@@ -7,7 +7,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from collections import defaultdict, deque
 
-from graph import CircuitGraph
+from core.graph import CircuitGraph
 import measurement
 import approximation
 import circuits.circuit as circuit

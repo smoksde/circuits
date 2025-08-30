@@ -1,4 +1,4 @@
-from software_beame import theorem_4_2_precompute_lookup_generator_powers
+from sanity.software_beame import theorem_4_2_precompute_lookup_generator_powers
 from utils import is_prime_power, wheel_factorize
 
 import math

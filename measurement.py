@@ -1,6 +1,6 @@
 from collections import Counter, defaultdict, deque
 
-from graph import *
+from core.graph import *
 from circuits import *
 import matplotlib.pyplot as plt
 
@@ -138,6 +138,11 @@ def longest_path_length(cg):
     )
     return max_length
 
+def count_components(name, setup_fn, component_label, bit_len=4):
+    cg = CircuitGraph(enable_groups=True)
+    setup_fn(cg, bit_len)
+    count = sum(1 for group in cg.groups.values() if group.label == component_label)
+    return count
 
 def analyze_circuit_function(
     name, setup_fn, bit_len=4, use_cache=True, fill_cache=True
@@ -261,4 +266,13 @@ def run_selected_plot():
 
 if __name__ == "__main__":
     # analyze_all_functions()
-    run_selected_plot()
+    # run_selected_plot()
+
+
+    name = "setup_montgomery_ladder"
+    setup_fn = setup_montgomery_ladder
+    component_label = "WALLACE_TREE_MULTIPLIER"
+    bit_len = 8
+    
+    count = count_components(name, setup_fn, component_label, bit_len)
+    print(f"Count of {component_label} components: {count}")

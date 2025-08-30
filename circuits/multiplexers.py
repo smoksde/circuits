@@ -1,4 +1,4 @@
-from graph import *
+from core.graph import *
 
 from .trees import *
 

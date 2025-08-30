@@ -1,5 +1,5 @@
 from typing import List, Optional, Tuple
-from graph import *
+from core.graph import *
 from utils import int2binlist
 from asserts import *
 

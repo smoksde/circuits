@@ -1,10 +1,10 @@
 from typing import List, Optional
 from collections import defaultdict, deque
 
-from node import Node
-from port import Port
-from edge import Edge
-from group import Group
+from core.node import Node
+from core.port import Port
+from core.edge import Edge
+from core.group import Group
 
 from utils import binlist2int
 

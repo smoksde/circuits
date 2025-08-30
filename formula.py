@@ -1,5 +1,5 @@
 from circuits.circuit import *
-from graph import *
+from core.graph import *
 from tqdm import tqdm
 
 type_to_symbol_dict = {"and": "&", "or": "||", "xor": "^", "not": "!"}

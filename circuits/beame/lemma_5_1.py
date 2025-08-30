@@ -1,5 +1,5 @@
 from typing import List, Optional, Tuple
-from graph import *
+from core.graph import *
 
 from ..multipliers import wallace_tree_multiplier
 from ..trees import adder_tree_iterative
@@ -7,8 +7,8 @@ from ..constants import constant_zero, constant_one
 from ..subtractors import subtract
 from ..manipulators import conditional_zeroing
 from ..comparators import n_bit_comparator
-import theorem_5_3_sanity
-import lemma_5_1_sanity
+import sanity.theorem_5_3_sanity as theorem_5_3_sanity
+import sanity.lemma_5_1_sanity as lemma_5_1_sanity
 
 from .. import circuit_utils
 

@@ -1,5 +1,5 @@
 from circuits import *
-from graph import *
+from core.graph import *
 import plotly.express as px
 import pandas as pd
 from collections import defaultdict

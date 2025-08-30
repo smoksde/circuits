@@ -1,6 +1,6 @@
 from typing import Tuple, Optional, List
 
-from graph import *
+from core.graph import *
 from . import lemma_4_1
 from . import theorem_4_2
 from . import lemma_5_1

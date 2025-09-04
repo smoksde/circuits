@@ -138,7 +138,7 @@ def longest_path_length(cg):
     )
     return max_length
 
-def count_components(name, setup_fn, component_label, bit_len=4):
+def count_components(setup_fn, component_label, bit_len=4):
     cg = CircuitGraph(enable_groups=True)
     setup_fn(cg, bit_len)
     count = sum(1 for group in cg.groups.values() if group.label == component_label)
@@ -274,5 +274,5 @@ if __name__ == "__main__":
     component_label = "WALLACE_TREE_MULTIPLIER"
     bit_len = 8
     
-    count = count_components(name, setup_fn, component_label, bit_len)
+    count = count_components(setup_fn, component_label, bit_len)
     print(f"Count of {component_label} components: {count}")

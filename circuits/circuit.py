@@ -8,7 +8,8 @@ from .comparators import *
 from .multiplexers import *
 from .subtractors import *
 from .modular import *
-from .montgomery_ladder import montgomery_ladder
+from .reference.montgomery_ladder import montgomery_ladder
+from .reference.square_and_multiply import square_and_multiply
 from .manipulators import conditional_zeroing, max_tree_iterative
 
 from .beame import lemma_4_1
@@ -230,65 +231,7 @@ def initial_approximation(circuit, m_bits, n):
     return initial_approx
 
 
-def modular_exponentiation(circuit, base, exponent, modulus, parent_group=None):
-    this_group = circuit.add_group("MODULAR_EXPONENTIATION")
-    this_group_id = this_group.id if this_group is not None else -1
-    if circuit.enable_groups and this_group is not None:
-        this_group.set_parent(parent_group)
-    n = len(base)
-    assert n == len(exponent) and n == len(
-        modulus
-    ), "All input must have the same bit length"
 
-    zero = constant_zero(circuit, base[0], parent_group=this_group)
-    one = constant_one(circuit, base[0], parent_group=this_group)
-
-    result = [zero] * n
-    result[0] = one
-    base_mod = modulo_circuit(circuit, base, modulus, parent_group=this_group)
-    for i in range(n):
-        bit_pos = n - 1 - i
-        current_bit = exponent[bit_pos]
-        squared = wallace_tree_multiplier(
-            circuit, result, result, parent_group=this_group
-        )
-        squared = squared[: len(base)]
-        squared_mod = modulo_circuit(circuit, squared, modulus, parent_group=this_group)
-        with_multiply = wallace_tree_multiplier(
-            circuit, squared_mod, base_mod, parent_group=this_group
-        )
-        with_multiply = with_multiply[: len(base)]
-        multiply_mod = modulo_circuit(
-            circuit, with_multiply, modulus, parent_group=this_group
-        )
-        new_result = [None] * n
-        for j in range(n):
-            not_bit = circuit.add_node(
-                "not",
-                f"NOT_BIT_{bit_pos}_{j}",
-                inputs=[current_bit],
-                group_id=this_group_id,
-            ).ports[1]
-            and1 = circuit.add_node(
-                "and",
-                f"AND_MULT_{bit_pos}_{j}",
-                inputs=[current_bit, multiply_mod[j]],
-                group_id=this_group_id,
-            ).ports[2]
-            and2 = circuit.add_node(
-                "and",
-                f"AND_SQR_{bit_pos}_{j}",
-                inputs=[not_bit, squared_mod[j]],
-                group_id=this_group_id,
-            ).ports[2]
-            new_result[j] = circuit.add_node(
-                "or",
-                f"OR_RESULT_{bit_pos}_{j}",
-                inputs=[and1, and2],
-                group_id=this_group_id,
-            ).ports[2]
-        result = new_result
-    return result
 
 
 CIRCUIT_FUNCTIONS = {
@@ -346,7 +289,7 @@ CIRCUIT_FUNCTIONS = {
     "optimized_modulo_circuit": lambda cg, bit_len: setup_optimized_modulo_circuit(
         cg, bit_len=bit_len
     ),
-    "modular_exponentiation": lambda cg, bit_len: setup_modular_exponentiation(
+    "square_and_multiply": lambda cg, bit_len: setup_square_and_multiply(
         cg, bit_len=bit_len
     ),
     "montgomery_ladder": lambda cg, bit_len: setup_montgomery_ladder(
@@ -812,7 +755,7 @@ def setup_theorem_5_2_step_4(cg: CircuitGraph, bit_len=4):
         nodes_list = [cg.add_input_nodes(n) for _ in range(n)]
         B_J_I_MATRIX_NODES.append(nodes_list)
         B_J_I_MATRIX_PORTS.append(
-            cg.get_input_nodes_ports(nodes) for nodes in nodes_list
+            [cg.get_input_nodes_ports(nodes) for nodes in nodes_list]
         )
     C_LIST_NODES = [cg.add_input_nodes(n) for _ in range(s)]
     C_LIST_PORTS = [cg.get_input_nodes_ports(nodes) for nodes in C_LIST_NODES]
@@ -821,6 +764,19 @@ def setup_theorem_5_2_step_4(cg: CircuitGraph, bit_len=4):
         cg.generate_output_nodes_from_ports(ports) for ports in B_J_LIST_PORTS
     ]
     return B_J_I_MATRIX_NODES, C_LIST_NODES, B_J_LIST_NODES
+
+
+def setup_theorem_5_2_step_5(cg: CircuitGraph, bit_len=4):
+    n = bit_len
+    X_MOD_C_I_LIST_NODES = [cg.add_input_nodes(n * n) for _ in range(n)]
+    C_NODES = cg.add_input_nodes(n * n)
+    X_MOD_C_I_LIST_PORTS = [
+        cg.get_input_nodes_ports(nodes) for nodes in X_MOD_C_I_LIST_NODES
+    ]
+    C_PORTS = cg.get_input_nodes_ports(C_NODES)
+    RESULT_PORTS = theorem_5_2.step_5(cg, X_MOD_C_I_LIST_PORTS, C_PORTS)
+    RESULT_NODES = cg.generate_output_nodes_from_ports(RESULT_PORTS)
+    return X_MOD_C_I_LIST_NODES, C_NODES, RESULT_NODES
 
 
 def setup_theorem_5_2(cg: CircuitGraph, bit_len=4):
@@ -1005,11 +961,11 @@ def setup_montgomery_ladder(cg, bit_len=4):
     return B, E, M, OUT_NODES
 
 
-def setup_modular_exponentiation(cg, bit_len=4):
+def setup_square_and_multiply(cg, bit_len=4):
     B = [cg.add_node("input", f"B_{i}") for i in range(bit_len)]
     E = [cg.add_node("input", f"E_{i}") for i in range(bit_len)]
     M = [cg.add_node("input", f"M_{i}") for i in range(bit_len)]
-    OUT = modular_exponentiation(
+    OUT = square_and_multiply(
         cg, [b.ports[0] for b in B], [e.ports[0] for e in E], [m.ports[0] for m in M]
     )
     OUT_NODES = [

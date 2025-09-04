@@ -76,7 +76,6 @@ def theorem_5_2(
     this_group = circuit.add_group("THEOREM_5_2")
     if circuit.enable_groups and this_group is not None:
         this_group.set_parent(parent_group)
-
     n = len(x_list)
     big_n = n * n
 

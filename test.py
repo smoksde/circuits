@@ -119,14 +119,19 @@ class TestCircuitSimulation(unittest.TestCase):
             expected_bin_list = int2binlist(expected_num, bit_len=2 * bit_len)
             a_bin_list = int2binlist(rand_a, bit_len=bit_len)
             b_bin_list = int2binlist(rand_b, bit_len=bit_len)
-            for idx, a in enumerate(A):
-                circuit.node_values[str(a.node_id)] = a_bin_list[idx]
-            for idx, b in enumerate(B):
-                circuit.node_values[str(b.node_id)] = b_bin_list[idx]
-            circuit.simulate()
 
-            for idx, e in enumerate(expected_bin_list):
-                self.assertEqual(circuit.get_port_value(outputs[idx].ports[0]), e)
+            circuit.fill_node_values(A, a_bin_list)
+            circuit.fill_node_values(B, b_bin_list)
+
+            #for idx, a in enumerate(A):
+            #    circuit.node_values[str(a.node_id)] = a_bin_list[idx]
+            #for idx, b in enumerate(B):
+            #    circuit.node_values[str(b.node_id)] = b_bin_list[idx]
+            circuit.simulate()
+            got = circuit.compute_value_from_ports(circuit.get_output_nodes_ports(outputs))
+            self.assertEqual(got, expected_num)
+            #for idx, e in enumerate(expected_bin_list):
+            #    self.assertEqual(circuit.get_port_value(outputs[idx].ports[0]), e)
 
     def test_conditional_zeroing(self):
         circuit = CircuitGraph()
@@ -425,16 +430,15 @@ class TestCircuitSimulation(unittest.TestCase):
             for idx, ex in enumerate(expected_bin_list):
                 self.assertEqual(circuit.get_port_value(OUT_NODES[idx].ports[0]), ex)
 
-    def test_modular_exponentiation(self):
+    def test_square_and_multiply(self):
         circuit = CircuitGraph()
         bit_len = 4
-        B, E, M, OUT_NODES = setup_modular_exponentiation(circuit, bit_len=bit_len)
-        for i in range(1):
-            rand_b = random.randrange(2**bit_len - 1)
-            rand_e = random.randrange(2**bit_len - 1)
-            rand_m = random.randrange(2 ** (bit_len // 2) - 1)
-            if rand_m == 0:
-                rand_m = 2
+        B, E, M, OUT_NODES = setup_square_and_multiply(circuit, bit_len=bit_len)
+        for i in range(20):
+            rand_b = random.randrange(1, 2**bit_len - 1)
+            rand_e = random.randrange(1, 2**bit_len - 1)
+            #rand_m = random.randrange(1, 2**bit_len - 1)
+            rand_m = random.randrange(1, 2 ** (bit_len // 2) - 1)
             if rand_m < 8:
                 rand_m = 8
             expected_num = (rand_b**rand_e) % rand_m

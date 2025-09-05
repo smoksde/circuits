@@ -28,11 +28,17 @@
         .header h1 { margin: 0 0 8px 0; color: #1e293b; font-size: 24px; font-weight: 600; }
         .header p { margin: 0; color: #64748b; font-size: 14px; }
         
+        .search-container { padding: 16px; border-bottom: 1px solid #e2e8f0; background: #f8fafc; }
+        .search-input { width: 100%; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; background: white; font-size: 14px; color: #374151; }
+        .search-input::placeholder { color: #9ca3af; }
+        .search-input:focus { outline: none; border-color: #f63b79; box-shadow: 0 0 0 3px rgba(246, 59, 121, 0.1); }
+        
         .circuit-list { display: flex; flex-direction: column; gap: 8px; }
         .circuit-item { padding: 12px 16px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; cursor: grab; transition: all 0.2s; user-select: none; }
         .circuit-item:hover { background: #f1f5f9; border-color: #cbd5e1; transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
         .circuit-item:active { cursor: grabbing; }
         .circuit-item.dragging { opacity: 0.5; transform: rotate(2deg); }
+        .circuit-item.hidden { display: none; }
         .circuit-name { font-weight: 500; color: #1e293b; font-size: 14px; }
         
         .drop-zone { min-height: 400px; border: 2px dashed #cbd5e1; border-radius: 8px; display: flex; flex-direction: column; align-items: center; justify-content: center; color: #64748b; font-size: 14px; transition: all 0.2s; }
@@ -61,6 +67,7 @@
         .control-label { font-weight: 500; color: #1e293b; min-width: 60px; }
         .metric-select { flex: 1; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; background: white; font-size: 14px; color: #374151; }
         .plot_type-select { flex: 1; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; background: white; font-size: 14px; color: #374151; }
+        .interface-select { flex: 1; padding: 8px 12px; border: 1px solid #d1d5db; border-radius: 6px; background: white; font-size: 14px; color: #374151; }
 
         .generate-btn { background: #f63b79; color: white; border: none; padding: 12px 24px; border-radius: 6px; font-size: 16px; font-weight: 500; cursor: pointer; transition: background-color 0.2s; }
         .generate-btn:hover { background: #ff1865; }
@@ -110,6 +117,9 @@
                     <div class="panel-header">
                         <h2 class="panel-title">Available Circuits</h2>
                     </div>
+                    <div class="search-container">
+                        <input type="text" id="circuit-search" class="search-input" placeholder="Search circuits...">
+                    </div>
                     <div class="panel-content">
                         <div id="available-circuits" class="circuit-list">
                             <div class="loading">Loading circuits...</div>
@@ -134,6 +144,15 @@
                                 <select id="plot_type-select" class="plot_type-select">
                                     <option>Loading...</option>
                                 </select>
+                            </div>
+                            <div class="control-row">
+                                <label class="control-label" for="interface-select">Interface:</label>
+                                <select id="interface-select" class="interface-select">
+                                    <option>Loading...</option>
+                                </select>
+                            </div>
+                            <div class="control-row">
+                                <label class="control-label" for=""></label>
                             </div>
                             <button id="generate-btn" class="generate-btn">Generate Plot</button>
                         </div>
@@ -187,14 +206,28 @@
     <script>
         const POW2 = [2, 4, 8, 16, 32, 64, 128, 256, 512, 1024, 2048, 4096];
         let selectedCircuits = [];
+        let allCircuits = [];
         
-        // Tab switching
         document.querySelectorAll('.nav-tab').forEach(tab => {
             tab.addEventListener('click', () => {
                 document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
                 document.querySelectorAll('.tab-content').forEach(tc => tc.classList.remove('active'));
                 tab.classList.add('active');
                 document.getElementById(`${tab.dataset.tab}-tab`).classList.add('active');
+            });
+        });
+        
+        document.getElementById('circuit-search').addEventListener('input', (e) => {
+            const searchTerm = e.target.value.toLowerCase();
+            const circuitItems = document.querySelectorAll('.circuit-item');
+            
+            circuitItems.forEach(item => {
+                const circuitName = item.dataset.circuit.toLowerCase();
+                if (circuitName.includes(searchTerm)) {
+                    item.classList.remove('hidden');
+                } else {
+                    item.classList.add('hidden');
+                }
             });
         });
         
@@ -342,6 +375,7 @@
                 const functions = await response.json();
                 const container = document.getElementById("available-circuits");
                 
+                allCircuits = functions;
                 container.innerHTML = "";
                 
                 if (functions.length === 0) {
@@ -441,6 +475,26 @@
                 console.error("Failed to load plot_types:", error);
             }
         }
+
+        async function loadInterfaces() {
+            try {
+                const response = await fetch("/interfaces");
+                const interfaces = await response.json();
+                const select = document.getElementById("interface-select");
+
+                select.innerHTML = "";
+                interfaces.forEach(type => {
+                    const option = document.createElement("option");
+                    option.value = type;
+                    option.textContent = type;
+                    select.appendChild(option);
+                });
+            } catch (error) {
+                document.getElementById("interface-select").innerHTML = 
+                    '<option>Error loading interfaces</option>';
+                console.error("Failed to load interfaces:", error);
+            }
+        }
         
         async function generatePlot() {
             if (selectedCircuits.length === 0) {
@@ -457,7 +511,8 @@
             const payload = {
                 experiments: experiments,
                 metric: document.getElementById("metric-select").value,
-                plot_type: document.getElementById("plot_type-select").value
+                plot_type: document.getElementById("plot_type-select").value,
+                interface: document.getElementById("interface-select").value
             };
             
             const button = document.getElementById("generate-btn");
@@ -537,6 +592,7 @@
         loadExperiments();
         loadMetrics();
         loadPlotTypes();
+        loadInterfaces();
     </script>
 </body>
 </html>

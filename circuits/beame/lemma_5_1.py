@@ -144,8 +144,8 @@ def lemma_5_1(
 
     u_list = precompute_u_list(circuit, zero, one, n, parent_group=this_group)
 
-    print(len(x_mod_c_i_list[0]))
-    print(len(u_list[0]))
+    #print(len(x_mod_c_i_list[0]))
+    #print(len(u_list[0]))
     y = step_5(circuit, x_mod_c_i_list, u_list, parent_group=this_group)
 
     result = step_6_and_7(circuit, y, c, zero, one, parent_group=this_group)

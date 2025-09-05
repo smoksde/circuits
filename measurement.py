@@ -4,11 +4,11 @@ from core.graph import *
 from circuits import *
 import matplotlib.pyplot as plt
 
-import json
-import os
-import time
-import tempfile
+import cache
+
 from pathlib import Path
+
+# This file contains functions and measurement tools that operate on the graph representation of the constructed circuits.
 
 plot_types = [
     "general",
@@ -18,17 +18,22 @@ plot_types = [
 
 metrics = [
     "depth",
+    "num_gates",
     "num_nodes",
-    "num_gate_nodes",
     "num_input_nodes",
     "num_output_nodes",
     "num_edges",
 ]
 
+interfaces = [
+    "graph",
+    "depth",
+]
+
 BASE_DIR = Path(__file__).resolve().parent
 CACHE_FILE = BASE_DIR / "measurements_cache.json"
 
-
+"""
 def load_cache():
     if not CACHE_FILE.exists():
         return {}
@@ -64,7 +69,7 @@ def update_cached_metrics(circuit: str, bit_width: int, metrics: dict):
 def get_cached_metrics(circuit: str, bit_width: int):
     cache = load_cache()
     return cache.get(circuit, {}).get(str(bit_width))
-
+"""
 
 def compute_node_edges(cg):
     port_to_node_dict = {}
@@ -145,44 +150,53 @@ def count_components(setup_fn, component_label, bit_len=4):
     return count
 
 def analyze_circuit_function(
-    name, setup_fn, bit_len=4, use_cache=True, fill_cache=True
+    name, setup_fn, bit_len=4, interface_name="graph", use_cache=True, fill_cache=True
 ):
     if use_cache:
-        metrics = get_cached_metrics(name, bit_len)
+        metrics = cache.get(CACHE_FILE, name, bit_len)
         if metrics:
             return metrics
+        
+    if interface_name == "depth":
+        interface = DepthInterface()
+        measured_depth = setup_fn(interface, bit_len)
+        if fill_cache:
+            cache.update_field(CACHE_FILE, name, bit_len, "depth", measured_depth)
+        return cache.get(CACHE_FILE, name, bit_len)
+    else:
 
-    cg = CircuitGraph(enable_groups=False)
-    setup_fn(cg, bit_len)
-    num_nodes = len(cg.nodes)  # cg.nodes.values()
-    num_gate_nodes = len(
-        [node for node in cg.nodes.values() if node.type not in ["input", "output"]]
-    )
-    num_input_nodes = len([node for node in cg.nodes.values() if node.type == "input"])
-    num_output_nodes = len(
-        [node for node in cg.nodes.values() if node.type == "output"]
-    )
-    num_edges = len(cg.edges)  # cg.edges.values()
-    # depth = circuit_depth(cg)
-    depth = longest_path_length(cg)
+        cg = CircuitGraph(enable_groups=False)
+        graph_interface = GraphInterface(cg)
+        setup_fn(graph_interface, bit_len)
+        num_nodes = len(cg.nodes)  # cg.nodes.values()
+        num_gate_nodes = len(
+            [node for node in cg.nodes.values() if node.type not in ["input", "output"]]
+        )
+        num_input_nodes = len([node for node in cg.nodes.values() if node.type == "input"])
+        num_output_nodes = len(
+            [node for node in cg.nodes.values() if node.type == "output"]
+        )
+        num_edges = len(cg.edges)  # cg.edges.values()
+        # depth = circuit_depth(cg)
+        depth = longest_path_length(cg)
 
-    dic = {
-        "name": name,
-        "bit_len": bit_len,
-        "num_nodes": num_nodes,
-        "num_gate_nodes": num_gate_nodes,
-        "num_input_nodes": num_input_nodes,
-        "num_output_nodes": num_output_nodes,
-        "num_edges": num_edges,
-        "depth": depth,
-    }
+        dic = {
+            "name": name,
+            "bit_len": bit_len,
+            "num_nodes": num_nodes,
+            "num_gate_nodes": num_gate_nodes,
+            "num_input_nodes": num_input_nodes,
+            "num_output_nodes": num_output_nodes,
+            "num_edges": num_edges,
+            "depth": depth,
+        }
 
-    if fill_cache:
-        update_cached_metrics(name, bit_len, dic)
+        if fill_cache:
+            cache.update(CACHE_FILE, name, bit_len, dic)
 
-    return dic
+        return dic
 
-
+""" OUTDATED
 def analyze_all_functions():
     results = []
     for name, fn in CIRCUIT_FUNCTIONS.items():
@@ -197,7 +211,7 @@ def analyze_all_functions():
         print(f" Bit Length: {r['bit_len']}")
         print(f"  Nodes: {r['num_nodes']}")
         print(f"  Edges: {r['num_edges']}")
-        print(f"Max depth: {r['depth']}")
+        print(f"Max depth: {r['depth']}")"""
 
 
 def plot_circuit_metrics(experiments, metric="depth", title="Circuit Characteristics"):
@@ -265,9 +279,6 @@ def run_selected_plot():
 
 
 if __name__ == "__main__":
-    # analyze_all_functions()
-    # run_selected_plot()
-
 
     name = "setup_montgomery_ladder"
     setup_fn = setup_montgomery_ladder

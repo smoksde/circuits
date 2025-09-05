@@ -1,7 +1,6 @@
 from typing import List, Optional, Tuple
 from core.graph import *
 from utils import int2binlist
-from asserts import *
 
 from ..constants import *
 from ..multiplexers import tensor_multiplexer
@@ -42,7 +41,6 @@ def precompute_aim(
             fix_m_entries.append(aim_entry)
         lis.append(fix_m_entries)
 
-    assert_tensor_of_ports(lis)
     return lis
 
 
@@ -76,9 +74,10 @@ def compute_summands(
     n = len(x)
     result = []
     for p1, p2 in zip(x, aims):
-        not_p1 = circuit.add_node(
-            "not", "NOT", inputs=[p1], group_id=this_group_id
-        ).ports[1]
+        #not_p1 = circuit.add_node(
+        #    "not", "NOT", inputs=[p1], group_id=this_group_id
+        #).ports[1]
+        not_p1 = not_gate(circuit, p1, parent_group=this_group)
         product = conditional_zeroing(circuit, p2, not_p1, parent_group=this_group)
         result.append(product)
     return result
@@ -100,7 +99,6 @@ def compute_y(
     summands = compute_summands(circuit, x, aims, parent_group=this_group)
     sum = adder_tree_iterative(circuit, summands, zero, parent_group=this_group)
 
-    assert_list_of_ports(sum)
     return sum
 
 
@@ -163,19 +161,22 @@ def reduce_in_parallel(
         diff = diff_list[i]
         # check diff if its in the range of [0, m - 1]
         is_negative = diff[len(diff) - 1]
-        is_positive = circuit.add_node(
-            "not", "NOT", inputs=[is_negative], group_id=this_group_id
-        ).ports[1]
+        #is_positive = circuit.add_node(
+        #    "not", "NOT", inputs=[is_negative], group_id=this_group_id
+        #).ports[1]
+        is_positive = not_gate(circuit, is_negative, parent_group=this_group)
         less, equal, greater = n_bit_comparator(
             circuit, diff, m, parent_group=this_group
         )
         # has to be less
-        desired = circuit.add_node(
-            "and", "DESIRED_AND", inputs=[is_positive, less], group_id=this_group_id
-        ).ports[2]
-        not_desired = circuit.add_node(
-            "not", "NOT", inputs=[desired], group_id=this_group_id
-        ).ports[1]
+        #desired = circuit.add_node(
+        #    "and", "DESIRED_AND", inputs=[is_positive, less], group_id=this_group_id
+        #).ports[2]
+        desired = and_gate(circuit, [is_positive, less], parent_group=this_group)
+        #not_desired = circuit.add_node(
+        #    "not", "NOT", inputs=[desired], group_id=this_group_id
+        #).ports[1]
+        not_desired = not_gate(circuit, desired, parent_group=this_group)
         inter = conditional_zeroing(circuit, diff, not_desired, parent_group=this_group)
         inter_list.append(inter)
 

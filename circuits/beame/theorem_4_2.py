@@ -289,9 +289,10 @@ def step_1_with_lemma_4_1(
                 circuit, p_powers[i], pexpl, parent_group=this_group
             )
 
-            goreq = circuit.add_node(
-                "not", "NOT", inputs=[less], group_id=this_group_id
-            ).ports[1]
+            #goreq = circuit.add_node(
+            #    "not", "NOT", inputs=[less], group_id=this_group_id
+            #).ports[1]
+            goreq = not_gate(circuit, less, parent_group=this_group)
 
             remainder = lemma_4_1.lemma_4_1(
                 circuit, x, p_powers[i], parent_group=this_group
@@ -304,20 +305,23 @@ def step_1_with_lemma_4_1(
             p_powers_is_not_zero = or_tree_iterative(
                 circuit, p_powers[i], parent_group=this_group
             )
-            p_powers_is_zero = circuit.add_node(
-                "not", "NOT", inputs=[p_powers_is_not_zero], group_id=this_group_id
-            ).ports[1]
+            #p_powers_is_zero = circuit.add_node(
+            #    "not", "NOT", inputs=[p_powers_is_not_zero], group_id=this_group_id
+            #).ports[1]
+            p_powers_is_zero = not_gate(circuit, p_powers_is_not_zero, parent_group=this_group)
 
-            cond = circuit.add_node(
-                "or",
-                "OR",
-                inputs=[is_remainder_not_zero, goreq],
-                group_id=this_group_id,
-            ).ports[2]
+            #cond = circuit.add_node(
+            #    "or",
+            #    "OR",
+            #    inputs=[is_remainder_not_zero, goreq],
+            #    group_id=this_group_id,
+            #).ports[2]
+            cond = or_gate(circuit, [is_remainder_not_zero, goreq], parent_group=this_group)
 
-            cond = circuit.add_node(
-                "or", "OR", inputs=[cond, p_powers_is_zero], group_id=this_group_id
-            ).ports[2]
+            #cond = circuit.add_node(
+            #    "or", "OR", inputs=[cond, p_powers_is_zero], group_id=this_group_id
+            #).ports[2]
+            cond = or_gate(circuit, [cond, p_powers_is_zero], parent_group=this_group)
 
             exponent = circuit_utils.generate_number(i, n, zero, one)
 
@@ -507,9 +511,10 @@ def step_4(
     num_four[2] = one
 
     _, p_equals_two, _ = n_bit_comparator(circuit, p, num_two, parent_group=this_group)
-    p_not_equals_two = circuit.add_node(
-        "not", "NOT", inputs=[p_equals_two], group_id=this_group_id
-    ).ports[1]
+    #p_not_equals_two = circuit.add_node(
+    #    "not", "NOT", inputs=[p_equals_two], group_id=this_group_id
+    #).ports[1]
+    p_not_equals_two = not_gate(circuit, p_equals_two, parent_group=this_group)
 
     _, pexpl_equals_two, _ = n_bit_comparator(
         circuit, pexpl, num_two, parent_group=this_group
@@ -518,13 +523,15 @@ def step_4(
         circuit, pexpl, num_four, parent_group=this_group
     )
 
-    two_or_four = circuit.add_node(
-        "or", "OR", inputs=[pexpl_equals_two, pexpl_equals_four], group_id=this_group_id
-    ).ports[2]
+    #two_or_four = circuit.add_node(
+    #    "or", "OR", inputs=[pexpl_equals_two, pexpl_equals_four], group_id=this_group_id
+    #).ports[2]
+    two_or_four = or_gate(circuit, [pexpl_equals_two, pexpl_equals_four], parent_group=this_group)
 
-    flag = circuit.add_node(
-        "or", "OR", inputs=[p_not_equals_two, two_or_four], group_id=this_group_id
-    ).ports[2]
+    #flag = circuit.add_node(
+    #    "or", "OR", inputs=[p_not_equals_two, two_or_four], group_id=this_group_id
+    #).ports[2]
+    flag = or_gate(circuit, [p_not_equals_two, two_or_four], parent_group=this_group)
 
     return flag
 
@@ -643,13 +650,13 @@ def B_step_5(
     parent_group: Optional[Group] = None,
 ) -> Tuple[List[List[Port]], List[List[Port]]]:
 
-    print("Starting B_step_5")
+    #print("Starting B_step_5")
 
-    print("len(y_list)")
-    print(len(y_list))
-    print("len(y_list[0])")
-    print(len(y_list[0]))
-    print(len(l))
+    #print("len(y_list)")
+    #print(len(y_list))
+    #print("len(y_list[0])")
+    #print(len(y_list[0]))
+    #print(len(l))
 
     this_group = circuit.add_group("THEOREM_4_2_B_STEP_5")
     if circuit.enable_groups and this_group is not None:
@@ -831,9 +838,10 @@ def B_step_8(
 
     equals = n_bit_equality(circuit, a_hat, num_one, parent_group=this_group)
 
-    not_equals = circuit.add_node(
-        "not", "NOT", inputs=[equals], group_id=this_group_id
-    ).ports[1]
+    #not_equals = circuit.add_node(
+    #    "not", "NOT", inputs=[equals], group_id=this_group_id
+    #).ports[1]
+    not_equals = not_gate(circuit, equals, parent_group=this_group)
 
     r1 = conditional_zeroing(
         circuit, table_a_zero_result, equals, parent_group=this_group
@@ -884,14 +892,14 @@ def step_9(
     return result
 
 
-def theorem_4_2(
+def theorem_4_2_not_modified(
     circuit: CircuitGraph,
     x_list: List[List[Port]],
     pexpl: List[Port],
     parent_group: Optional[Group] = None,
 ) -> List[Port]:
 
-    this_group = circuit.add_group("THEOREM_4_2")
+    this_group = circuit.add_group("THEOREM_4_2_NOT_MODIFIED")
     if circuit.enable_groups and this_group is not None:
         this_group.set_parent(parent_group)
 
@@ -934,12 +942,8 @@ def theorem_4_2(
     a = compute_sum(circuit, a_list, parent_group=this_group)
     b = compute_sum(circuit, b_list, parent_group=this_group)
     a_hat, b_hat = B_step_7(circuit, a, b, l, parent_group=this_group)
-    # print(len(a_hat), len(b_hat), len(l))
+    
     y_product_part_b = B_step_8(circuit, a_hat, b_hat, l, parent_group=this_group)
-
-    # print("HELLO")
-    # print(type(y_product_part_a), len(y_product_part_a))
-    # print(type(y_product_part_b), len(y_product_part_b))
 
     y_product = bus_multiplexer(
         circuit, [y_product_part_b, y_product_part_a], [do_a], parent_group=this_group
@@ -950,14 +954,14 @@ def theorem_4_2(
     return result
 
 
-def theorem_4_2_for_theorem_5_2(
+def theorem_4_2(
     circuit: CircuitGraph,
     x_list: List[List[Port]],
     pexpl: List[Port],
     parent_group: Optional[Group] = None,
 ) -> List[Port]:
 
-    this_group = circuit.add_group("THEOREM_4_2_FOR_THEOREM_5_2")
+    this_group = circuit.add_group("THEOREM_4_2")
     if circuit.enable_groups and this_group is not None:
         this_group.set_parent(parent_group)
 

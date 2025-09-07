@@ -117,22 +117,16 @@ class CircuitValidations(unittest.TestCase):
             rand_a = random.randrange(2**bit_len - 1)
             rand_b = random.randrange(2**bit_len - 1)
             expected_num = rand_a * rand_b
-            expected_bin_list = int2binlist(expected_num, bit_len=2 * bit_len)
+
             a_bin_list = int2binlist(rand_a, bit_len=bit_len)
             b_bin_list = int2binlist(rand_b, bit_len=bit_len)
-
             circuit.fill_node_values(A, a_bin_list)
             circuit.fill_node_values(B, b_bin_list)
 
-            #for idx, a in enumerate(A):
-            #    circuit.node_values[str(a.node_id)] = a_bin_list[idx]
-            #for idx, b in enumerate(B):
-            #    circuit.node_values[str(b.node_id)] = b_bin_list[idx]
             circuit.simulate()
+            
             got = circuit.compute_value_from_ports(circuit.get_output_nodes_ports(outputs))
             self.assertEqual(got, expected_num)
-            #for idx, e in enumerate(expected_bin_list):
-            #    self.assertEqual(circuit.get_port_value(outputs[idx].ports[0]), e)
 
     def test_conditional_zeroing(self):
         circuit = CircuitGraph()
@@ -1660,7 +1654,7 @@ class CircuitValidations(unittest.TestCase):
     # This test takes too long on available hardware within thesis
     # It is believed that there is a construction error left
     # Though all subcircuits that are direct childs of this group and by that steps of this theorem are validated in this thesis
-    """def test_theorem_5_2(self):
+    def test_theorem_5_2(self):
         circuit = CircuitGraph(enable_groups=False)
         interface = GraphInterface(circuit)
         n = 4
@@ -1681,7 +1675,7 @@ class CircuitValidations(unittest.TestCase):
             got = circuit.compute_value_from_ports(RESULT_PORTS)
             self.assertEqual(got, expect, msg=(
                 f"x_list_values: {x_list_values}"
-            ))"""
+            ))
 
 
 class TestUtilsFunctions(unittest.TestCase):

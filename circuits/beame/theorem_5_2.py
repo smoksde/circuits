@@ -55,7 +55,7 @@ def step_4(
 def step_5(
     circuit: CircuitGraph,
     b_j_list: List[List[Port]],
-    c: List,
+    c: List[Port],
     parent_group: Optional[Group] = None,
 ):
     this_group = circuit.add_group("THEOREM_5_2_STEP_5")

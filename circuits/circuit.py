@@ -648,7 +648,7 @@ def setup_theorem_5_2_step_3(interface: Interface, bit_len=4):
         raise TypeError(f"Unsupported interface type: {type(interface).__name__}")
 
 
-def setup_theorem_5_2_step_4(interface: CircuitGraph, bit_len=4):
+def setup_theorem_5_2_step_4(interface: Interface, bit_len=4):
     n = bit_len
     s = n  # n * n
     if isinstance(interface, DepthInterface):
@@ -677,18 +677,26 @@ def setup_theorem_5_2_step_4(interface: CircuitGraph, bit_len=4):
         raise TypeError(f"Unsupported interface type: {type(interface).__name__}")
 
 
-def setup_theorem_5_2_step_5(circuit: CircuitGraph, bit_len=4):
+def setup_theorem_5_2_step_5(interface: Interface, bit_len=4):
     n = bit_len
-    X_MOD_C_I_LIST_NODES = [circuit.add_input_nodes(n * n) for _ in range(n)]
-    C_NODES = circuit.add_input_nodes(n * n)
-    X_MOD_C_I_LIST_PORTS = [
-        circuit.get_input_nodes_ports(nodes) for nodes in X_MOD_C_I_LIST_NODES
-    ]
-    C_PORTS = circuit.get_input_nodes_ports(C_NODES)
-    RESULT_PORTS = theorem_5_2.step_5(circuit, X_MOD_C_I_LIST_PORTS, C_PORTS)
-    RESULT_NODES = circuit.generate_output_nodes_from_ports(RESULT_PORTS)
-    return X_MOD_C_I_LIST_NODES, C_NODES, RESULT_NODES
-
+    if isinstance(interface, DepthInterface):
+        X_MOD_C_I_LIST = [[0] * (n*n) for _ in range(n)]
+        C = [0] * (n*n)
+        RESULT_DEPTHS = theorem_5_2.step_5(interface, X_MOD_C_I_LIST, C)
+        max_depth = max(RESULT_DEPTHS)
+        return max_depth
+    elif isinstance(interface, GraphInterface):
+        X_MOD_C_I_LIST_NODES = [interface.add_input_nodes(n * n) for _ in range(n)]
+        C_NODES = interface.add_input_nodes(n * n)
+        X_MOD_C_I_LIST_PORTS = [
+            interface.get_input_nodes_ports(nodes) for nodes in X_MOD_C_I_LIST_NODES
+        ]
+        C_PORTS = interface.get_input_nodes_ports(C_NODES)
+        RESULT_PORTS = theorem_5_2.step_5(interface, X_MOD_C_I_LIST_PORTS, C_PORTS)
+        RESULT_NODES = interface.generate_output_nodes_from_ports(RESULT_PORTS)
+        return X_MOD_C_I_LIST_NODES, C_NODES, RESULT_NODES
+    else:
+        raise TypeError(f"Unsupported interface type: {type(interface).__name__}")
 
 def setup_theorem_5_2(interface: Interface, bit_len=4):
     n = bit_len

@@ -16,17 +16,12 @@ def half_adder(circuit, x, y, parent_group=None):
 
 def full_adder(circuit, x, y, cin, parent_group=None):
     this_group = circuit.add_group("FULL_ADDER")
-    this_group_id = this_group.id if this_group is not None else -1
     if circuit.enable_groups and this_group is not None:
         this_group.set_parent(parent_group)
     sum1, carry1 = half_adder(circuit, x, y, parent_group=this_group)
     sum2, carry2 = half_adder(circuit, sum1, cin, parent_group=this_group)
     cout = or_gate(circuit, [carry1, carry2], parent_group=this_group)
     return sum2, cout
-    #cout = circuit.add_node(
-    #    "or", "FA_OR", inputs=[carry1, carry2], group_id=this_group_id
-    #)
-    #return sum2, cout.ports[2]
 
 
 def ripple_carry_adder(circuit, x_list, y_list, cin, parent_group=None):

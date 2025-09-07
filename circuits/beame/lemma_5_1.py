@@ -1,6 +1,8 @@
 from typing import List, Optional, Tuple
+
 from core.graph import *
 
+from ..gates import *
 from ..multipliers import wallace_tree_multiplier
 from ..trees import adder_tree_iterative
 from ..constants import constant_zero, constant_one
@@ -109,13 +111,16 @@ def step_6_and_7(
 
         less, _, _ = n_bit_comparator(circuit, y_t, c, parent_group=this_group)
 
-        not_less = circuit.add_node(
-            "not", "NOT", inputs=[less], group_id=this_group_id
-        ).ports[1]
+        #not_less = circuit.add_node(
+        #    "not", "NOT", inputs=[less], group_id=this_group_id
+        #).ports[1]
 
-        not_desired = circuit.add_node(
-            "or", label="OR", inputs=[not_less, is_negative], group_id=this_group_id
-        ).ports[2]
+        #not_desired = circuit.add_node(
+        #    "or", label="OR", inputs=[not_less, is_negative], group_id=this_group_id
+        #).ports[2]
+
+        not_less = not_gate(circuit, less, parent_group=this_group)
+        not_desired = or_gate(circuit, [not_less, is_negative], parent_group=this_group)
 
         # conditional subtract
         inter = conditional_zeroing(circuit, y_t, not_desired, parent_group=this_group)

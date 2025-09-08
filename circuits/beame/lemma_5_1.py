@@ -1,6 +1,8 @@
 from typing import List, Optional, Tuple
+
 from core.graph import *
 
+from ..gates import *
 from ..multipliers import wallace_tree_multiplier
 from ..trees import adder_tree_iterative
 from ..constants import constant_zero, constant_one
@@ -109,13 +111,16 @@ def step_6_and_7(
 
         less, _, _ = n_bit_comparator(circuit, y_t, c, parent_group=this_group)
 
-        not_less = circuit.add_node(
-            "not", "NOT", inputs=[less], group_id=this_group_id
-        ).ports[1]
+        #not_less = circuit.add_node(
+        #    "not", "NOT", inputs=[less], group_id=this_group_id
+        #).ports[1]
 
-        not_desired = circuit.add_node(
-            "or", label="OR", inputs=[not_less, is_negative], group_id=this_group_id
-        ).ports[2]
+        #not_desired = circuit.add_node(
+        #    "or", label="OR", inputs=[not_less, is_negative], group_id=this_group_id
+        #).ports[2]
+
+        not_less = not_gate(circuit, less, parent_group=this_group)
+        not_desired = or_gate(circuit, [not_less, is_negative], parent_group=this_group)
 
         # conditional subtract
         inter = conditional_zeroing(circuit, y_t, not_desired, parent_group=this_group)
@@ -144,8 +149,8 @@ def lemma_5_1(
 
     u_list = precompute_u_list(circuit, zero, one, n, parent_group=this_group)
 
-    print(len(x_mod_c_i_list[0]))
-    print(len(u_list[0]))
+    #print(len(x_mod_c_i_list[0]))
+    #print(len(u_list[0]))
     y = step_5(circuit, x_mod_c_i_list, u_list, parent_group=this_group)
 
     result = step_6_and_7(circuit, y, c, zero, one, parent_group=this_group)

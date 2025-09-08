@@ -16,8 +16,10 @@ def wallace_tree_multiplier(circuit, x_list, y_list, parent_group=None):
     for i, x in enumerate(x_list):
         for j, y in enumerate(y_list):
             index = i + j
-            node = circuit.add_node("and", "AND", inputs=[x, y], group_id=this_group_id)
-            partial_products[index].append(node.ports[2])
+            and_out = and_gate(circuit, inputs=[x,y], parent_group=this_group)
+            partial_products[index].append(and_out)
+            #node = circuit.add_node("and", "AND", inputs=[x, y], group_id=this_group_id)
+            #partial_products[index].append(node.ports[2])
 
     # loop_count = 0
     while any(len(col) > 2 for col in partial_products):

@@ -1,6 +1,6 @@
 from typing import Optional, List, Tuple
-from graph import *
-import theorem_5_3_sanity
+from core.graph import *
+import sanity.theorem_5_3_sanity as theorem_5_3_sanity
 from .. import circuit_utils
 
 

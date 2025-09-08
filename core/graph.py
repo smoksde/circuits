@@ -1,10 +1,10 @@
 from typing import List, Optional
 from collections import defaultdict, deque
 
-from node import Node
-from port import Port
-from edge import Edge
-from group import Group
+from core.node import Node
+from core.port import Port
+from core.edge import Edge
+from core.group import Group
 
 from utils import binlist2int
 
@@ -67,6 +67,20 @@ class CircuitGraph:
         self.nodes[str(node_id)] = node
         self.node_values[str(node_id)] = 0
         return node
+    
+    def add_edge(self, source_port, target_port):
+        edge = Edge(source_port.id, target_port.id)
+        self.edges.append(edge)
+        return edge
+
+    def add_group(self, label="DEFAULT_GROUP"):
+        if not self.enable_groups:
+            return None
+        group_id = self.group_count
+        self.group_count += 1
+        group = Group(group_id, label)
+        self.groups[group.id] = group
+        return group
 
     def add_input_nodes(self, amount, label: Optional[str] = "INPUT"):
         return [self.add_node("input", f"{label}_{i}") for i in range(amount)]
@@ -172,51 +186,57 @@ class CircuitGraph:
                 port_to_node[port.id] = node.node_id
         return port_to_node
 
-    # Returns nodes topologically sorted
-    def topological_sort(self):
-        port_to_node = self.compute_port_to_node_mapping()
-
-        graph = defaultdict(list)
-        in_degree = defaultdict(int)
-
+    def compute_node_adj_and_in_degrees(self):
+        port_to_node_dict = self.compute_port_to_node_mapping()
+        in_degrees = defaultdict(int)
         for node_id in self.nodes:
-            in_degree[node_id] = 0
-
+            in_degrees[node_id] = 0
+        node_adj = defaultdict(list)
         for edge in self.edges:
-            src_node_id = port_to_node[edge.source_port_id]
-            tgt_node_id = port_to_node[edge.target_port_id]
-            graph[src_node_id].append(tgt_node_id)
-            in_degree[tgt_node_id] += 1
+            source_node = port_to_node_dict[edge.source_port_id]
+            target_node = port_to_node_dict[edge.target_port_id]
+            node_adj[source_node].append(target_node)
+            in_degrees[target_node] += 1
+        return node_adj, in_degrees
+    
+    def get_port_value(self, port):
+        return self.port_values.get(port.id, None)
 
-        queue = deque([nid for nid, deg in in_degree.items() if deg == 0])
-        sorted_nodes = []
+    def fill_values(self, nodes, values):
+        assert len(nodes) == len(
+            values
+        ), "In function fill_values length of nodes and values must be the same"
+        for idx, node in enumerate(nodes):
+            self.node_values[str(node.node_id)] = values[idx]
+    
+    def topological_sort(self):
+        adj, in_degrees = self.compute_node_adj_and_in_degrees()
+        queue = deque([nid for nid, deg in in_degrees.items() if deg == 0])
 
+        topological_order = []
         while queue:
             nid = queue.popleft()
-            sorted_nodes.append(self.nodes[nid])
-            for neighbor in graph[nid]:
-                in_degree[neighbor] -= 1
-                if in_degree[neighbor] == 0:
+            topological_order.append(self.nodes[nid])
+            for neighbor in adj[nid]:
+                in_degrees[neighbor] -= 1
+                if in_degrees[neighbor] == 0:
                     queue.append(neighbor)
 
-        if len(sorted_nodes) != len(self.nodes):
+        if len(topological_order) != len(self.nodes):
             raise ValueError("Graph has a cycle or is malformed.")
 
-        return sorted_nodes
-
-    def add_edge(self, source_port, target_port):
-        edge = Edge(source_port.id, target_port.id)
-        self.edges.append(edge)
-        return edge
-
-    def add_group(self, label="DEFAULT_GROUP"):
-        if not self.enable_groups:
-            return None
-        group_id = self.group_count
-        self.group_count += 1
-        group = Group(group_id, label)
-        self.groups[group.id] = group
-        return group
+        return topological_order
+    
+    def topological_sort_generator(self):
+        adj, in_degrees = self.compute_node_adj_and_in_degrees()
+        queue = deque([nid for nid, deg in in_degrees.items() if deg == 0])
+        while queue:
+            nid = queue.popleft()
+            yield self.nodes[nid]
+            for neighbor in adj[nid]:
+                in_degrees[neighbor] -= 1
+                if in_degrees[neighbor] == 0:
+                    queue.append(neighbor)
 
     def to_json(self):
         nodes = [node.to_dict() for node in self.nodes.values()]
@@ -231,71 +251,70 @@ class CircuitGraph:
         return data
 
     def simulate(self):
+        # compute ingoing edges for all nodes
+        port_sources = self.compute_target_to_source_port_map()
+
+        # initialize port values of input nodes
         port_values = {}
-        port_sources = {}
-
-        for edge in self.edges:
-            port_sources[edge.target_port_id] = edge.source_port_id
-
         for node_id, node in self.nodes.items():
             if node.type == "input":
                 val = self.node_values[node_id]
                 output_port = node.ports[0]
                 port_values[output_port.id] = val
 
-        remaining = set(self.nodes.keys()) - {
-            nid for nid, n in self.nodes.items() if n.type == "input"
-        }
-        resolved = set()
-
-        while remaining:
-            progress = False
-            for node_id in list(remaining):
-                node = self.nodes[node_id]
-
-                input_ports = [p for p in node.ports if p.type == "input"]
-                try:
-                    inputs = [port_values[port_sources[p.id]] for p in input_ports]
-                except KeyError:
-                    continue
-
-                output_val = None
-                if node.type == "and":
-                    output_val = inputs[0] & inputs[1]
-                elif node.type == "or":
-                    output_val = inputs[0] | inputs[1]
-                elif node.type == "xor":
-                    output_val = inputs[0] ^ inputs[1]
-                elif node.type == "not":
-                    output_val = 0 if inputs[0] else 1
-                elif node.type == "output":
-                    port_values[node.ports[0].id] = inputs[0]
-                    resolved.add(node_id)
-                    remaining.remove(node_id)
-                    progress = True
-                    continue
-                else:
-                    continue
-
+        # iterate through topological order and resolve port values
+        for node in self.topological_sort():
+            input_ports = [p for p in node.ports if p.type == "input"]
+            try:
+                inputs = [port_values[port_sources[p.id]] for p in input_ports]
+            except KeyError:
+                continue
+            output_val = None
+            if node.type == "input":
+                continue
+            elif node.type == "output":
+                port_values[node.ports[0].id] = inputs[0]
+                continue
+            else:
+                output_val = self.eval_gate(inputs, node.type)
                 output_port = [p for p in node.ports if p.type == "output"][0]
-                port_values[output_port.id] = output_val
-                resolved.add(node_id)
-                remaining.remove(node_id)
-                progress = True
-
-            if not progress:
-                raise RuntimeError(
-                    "Simulation stalled; possible cycle or unconnected inputs."
-                )
+                port_values[output_port.id] = output_val        
 
         self.port_values = port_values
 
-    def get_port_value(self, port):
-        return self.port_values.get(port.id, None)
+    def eval_gate(self, inputs, gate_type):
+        if gate_type == "and":
+            val = inputs[0] & inputs[1]
+        elif gate_type == "or":
+            val = inputs[0] | inputs[1]
+        elif gate_type == "xor":
+            val = inputs[0] ^ inputs[1]
+        elif gate_type == "not":
+            val = 0 if inputs[0] else 1
+        return val
+    
+    def longest_path_length(self):
+        input_nodes = [node.node_id for node in self.nodes.values() if node.type == "input"]
+        output_nodes = set(
+            node.node_id for node in self.nodes.values() if node.type == "output"
+        )
+        adj, in_degrees = self.compute_node_adj_and_in_degrees()
 
-    def fill_values(self, nodes, values):
-        assert len(nodes) == len(
-            values
-        ), "In function fill_values length of nodes and values must be the same"
-        for idx, node in enumerate(nodes):
-            self.node_values[str(node.node_id)] = values[idx]
+        dist = defaultdict(lambda: -float("inf"))
+        for nid in input_nodes:
+            print(nid)
+            dist[nid] = 0
+
+        queue = deque(input_nodes)
+        while queue:
+            node = queue.popleft()
+            for succ in adj[node]:
+                dist[succ] = max(dist[succ], dist[node] + 1)
+                in_degrees[succ] -= 1
+                if in_degrees[succ] == 0:
+                    queue.append(succ)
+
+        max_length = max(
+            (dist[nid] for nid in output_nodes if dist[nid] != -float("inf")), default=0
+        )
+        return max_length

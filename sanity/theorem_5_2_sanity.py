@@ -1,5 +1,5 @@
-import lemma_5_1_sanity
-import theorem_5_3_sanity
+import sanity.lemma_5_1_sanity as lemma_5_1_sanity
+import sanity.theorem_5_3_sanity as theorem_5_3_sanity
 
 # Steps 1 - 2 dont need a sanity check since values are already given by other Lemma / Theorems
 # Step 5 is essentially Lemma 5.1

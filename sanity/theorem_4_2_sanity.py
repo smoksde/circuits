@@ -1,4 +1,4 @@
-from software_beame import theorem_4_2_precompute_lookup_generator_powers
+from sanity.software_beame import theorem_4_2_precompute_lookup_generator_powers
 from utils import is_prime_power, wheel_factorize
 
 import math
@@ -101,11 +101,6 @@ def A_step_5_find_discrete_logarithms(disc_log_lookup, pexpl, y_list):
     powers_list = disc_log_lookup[pexpl]
     a_list = []
     for y in y_list:
-        if y not in powers_list:
-            print(f"pexpl: {pexpl}")
-            print(f"y_list: {y_list}")
-            print(f"powers_list: {powers_list}")
-            print(f"y: {y}")
         a = powers_list.index(
             y
         )  # usual way, but not compatible with how the index in the circuit part is calculated
@@ -127,19 +122,9 @@ def A_step_8_read_reverse_log(disc_log_lookup, pexpl_idx, a_idx):
 
 
 def B_step_5_find_values(l, y_list):
-    print("------------B step 5")
-    print("int(2 ** (l - 2))")
-    print(int(2 ** (l - 2)))
     limit_b = max(int(2 ** (l - 2)),1)
     zero_a_values = [compute_a_b_l_formula(0, b, l) for b in range(limit_b)]
     one_a_values = [compute_a_b_l_formula(1, b, l) for b in range(limit_b)]
-
-    # print("B step 5")
-    print(f"l: {l}")
-    print("zero_a_values")
-    print(zero_a_values)
-    print("one_a_values")
-    print(one_a_values)
 
     a_b_list = []
     for y in y_list:

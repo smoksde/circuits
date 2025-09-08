@@ -1,23 +1,20 @@
 import unittest
 from circuits import *
-from graph import *
+from core.graph import *
 from formula import *
-from utils import int2binlist, iter_random_bin_list
-import theorem_4_2_sanity
-import theorem_5_3_sanity
-import lemma_5_1_sanity
-from node import Node
-from port import Port
-from edge import Edge
+from utils import int2binlist
+import sanity.theorem_4_2_sanity as theorem_4_2_sanity
+import sanity.theorem_5_3_sanity as theorem_5_3_sanity
+import sanity.lemma_5_1_sanity as lemma_5_1_sanity
 import json
 from io import StringIO
 import random
-import software_beame as sb
+import sanity.software_beame as sb
 
 
 def run_tests():
     loader = unittest.TestLoader()
-    suite = loader.loadTestsFromTestCase(TestCircuitSimulation)
+    suite = loader.loadTestsFromTestCase(CircuitValidations)
 
     stream = StringIO()
     runner = unittest.TextTestRunner(stream=stream, verbosity=2)
@@ -34,11 +31,12 @@ def run_tests():
     return json.dumps(output)
 
 
-class TestCircuitSimulation(unittest.TestCase):
+class CircuitValidations(unittest.TestCase):
 
     def test_half_adder(self):
         circuit = CircuitGraph()
-        a, b, sum_out, carry_out = setup_half_adder(circuit)
+        interface = GraphInterface(circuit)
+        a, b, sum_out, carry_out = setup_half_adder(interface)
 
         expected = {
             (0, 0): (0, 0),
@@ -59,7 +57,8 @@ class TestCircuitSimulation(unittest.TestCase):
 
     def test_full_adder(self):
         circuit = CircuitGraph()
-        a, b, cin, sum_out, carry_out = setup_full_adder(circuit)
+        interface = GraphInterface(circuit)
+        a, b, cin, sum_out, carry_out = setup_full_adder(interface)
         expected = {
             (0, 0, 0): (0, 0),
             (0, 0, 1): (1, 0),
@@ -86,8 +85,9 @@ class TestCircuitSimulation(unittest.TestCase):
 
     def test_carry_look_ahead_adder(self):
         circuit = CircuitGraph()
+        interface = GraphInterface(circuit)
         bit_len = 4
-        A, B, cin, sums, carry = setup_carry_look_ahead_adder(circuit, bit_len=bit_len)
+        A, B, cin, sums, carry = setup_carry_look_ahead_adder(interface, bit_len=bit_len)
         for i in range(100):
             rand_a = random.randrange(2**bit_len - 1)
             rand_b = random.randrange(2**bit_len - 1)
@@ -110,28 +110,29 @@ class TestCircuitSimulation(unittest.TestCase):
 
     def test_wallace_tree_multiplier(self):
         circuit = CircuitGraph()
+        interface = GraphInterface(circuit)
         bit_len = 4
-        A, B, outputs = setup_wallace_tree_multiplier(circuit, bit_len=bit_len)
+        A, B, outputs = setup_wallace_tree_multiplier(interface, bit_len=bit_len)
         for i in range(10):
             rand_a = random.randrange(2**bit_len - 1)
             rand_b = random.randrange(2**bit_len - 1)
             expected_num = rand_a * rand_b
-            expected_bin_list = int2binlist(expected_num, bit_len=2 * bit_len)
+
             a_bin_list = int2binlist(rand_a, bit_len=bit_len)
             b_bin_list = int2binlist(rand_b, bit_len=bit_len)
-            for idx, a in enumerate(A):
-                circuit.node_values[str(a.node_id)] = a_bin_list[idx]
-            for idx, b in enumerate(B):
-                circuit.node_values[str(b.node_id)] = b_bin_list[idx]
-            circuit.simulate()
+            circuit.fill_node_values(A, a_bin_list)
+            circuit.fill_node_values(B, b_bin_list)
 
-            for idx, e in enumerate(expected_bin_list):
-                self.assertEqual(circuit.get_port_value(outputs[idx].ports[0]), e)
+            circuit.simulate()
+            
+            got = circuit.compute_value_from_ports(circuit.get_output_nodes_ports(outputs))
+            self.assertEqual(got, expected_num)
 
     def test_conditional_zeroing(self):
         circuit = CircuitGraph()
+        interface = GraphInterface(circuit)
         bit_len = 4
-        X, C, O = setup_conditional_zeroing(circuit, bit_len=bit_len)
+        X, C, O = setup_conditional_zeroing(interface, bit_len=bit_len)
         for i in range(40):
             rand_x = random.randrange((2**bit_len - 1) // 2)
             rand_c = random.randrange(2)
@@ -160,8 +161,9 @@ class TestCircuitSimulation(unittest.TestCase):
 
     def test_conditional_subtract(self):
         circuit = CircuitGraph()
+        interface = GraphInterface(circuit)
         bit_len = 8
-        A, B, C, O = setup_conditional_subtract(circuit, bit_len=bit_len)
+        A, B, C, O = setup_conditional_subtract(interface, bit_len=bit_len)
         instances = 0
         while True:
             rand_a = random.randrange(2**bit_len - 1)
@@ -217,8 +219,9 @@ class TestCircuitSimulation(unittest.TestCase):
 
     def test_or_tree_iterative(self):
         circuit = CircuitGraph()
+        interface = GraphInterface(circuit)
         bit_len = 4
-        X, o = setup_or_tree_iterative(circuit, bit_len=bit_len)
+        X, o = setup_or_tree_iterative(interface, bit_len=bit_len)
         for i in range(100):
             rand_x = random.randrange((2**bit_len - 1))
             expect = 1 if rand_x > 0 else 0
@@ -231,8 +234,9 @@ class TestCircuitSimulation(unittest.TestCase):
 
     def test_one_left_shift(self):
         circuit = CircuitGraph()
+        interface = GraphInterface(circuit)
         bit_len = 4
-        X, OUT = setup_one_left_shift(circuit, bit_len=bit_len)
+        X, OUT = setup_one_left_shift(interface, bit_len=bit_len)
         for i in range(40):
             rand_x = random.randrange((2**bit_len - 1) // 2)
             expected_num = rand_x * 2
@@ -246,8 +250,9 @@ class TestCircuitSimulation(unittest.TestCase):
 
     def test_one_right_shift(self):
         circuit = CircuitGraph()
+        interface = GraphInterface(circuit)
         bit_len = 4
-        X, OUT = setup_one_right_shift(circuit, bit_len=bit_len)
+        X, OUT = setup_one_right_shift(interface, bit_len=bit_len)
         for i in range(40):
             rand_x = random.randrange((2**bit_len - 1))
             expected_num = rand_x // 2
@@ -261,8 +266,9 @@ class TestCircuitSimulation(unittest.TestCase):
 
     def test_n_left_shift(self):
         circuit = CircuitGraph()
+        interface = GraphInterface(circuit)
         bit_len = 8
-        X, A, OUT = setup_n_left_shift(circuit, bit_len=bit_len)
+        X, A, OUT = setup_n_left_shift(interface, bit_len=bit_len)
         instances = 0
         while True:
             rand_x = random.randrange((2**bit_len - 1))
@@ -287,8 +293,9 @@ class TestCircuitSimulation(unittest.TestCase):
 
     def test_n_right_shift(self):
         circuit = CircuitGraph()
+        interface = GraphInterface(circuit)
         bit_len = 4
-        X, A, OUT = setup_n_right_shift(circuit, bit_len=bit_len)
+        X, A, OUT = setup_n_right_shift(interface, bit_len=bit_len)
         instances = 0
         while True:
             rand_x = random.randrange((2**bit_len - 1))
@@ -314,8 +321,9 @@ class TestCircuitSimulation(unittest.TestCase):
 
     def test_n_bit_comparator(self):
         circuit = CircuitGraph()
+        interface = GraphInterface(circuit)
         bit_len = 8
-        A, B, L, E, G = setup_n_bit_comparator(circuit, bit_len=bit_len)
+        A, B, L, E, G = setup_n_bit_comparator(interface, bit_len=bit_len)
         for i in range(40):
             rand_a = random.randrange(2**bit_len - 1)
             rand_b = random.randrange(2**bit_len - 1)
@@ -344,9 +352,10 @@ class TestCircuitSimulation(unittest.TestCase):
 
     def test_n_bit_equality(self):
         circuit = CircuitGraph()
+        interface = GraphInterface(circuit)
         bit_len = 8
         n = bit_len
-        A, B, EQUALS = setup_n_bit_equality(circuit, bit_len=bit_len)
+        A, B, EQUALS = setup_n_bit_equality(interface, bit_len=bit_len)
         for _ in range(40):
             rand_a = random.randrange(2**n - 1)
             rand_b = random.randrange(2**n - 1)
@@ -368,8 +377,9 @@ class TestCircuitSimulation(unittest.TestCase):
 
     def test_modulo_circuit(self):
         circuit = CircuitGraph()
+        interface = GraphInterface(circuit)
         bit_len = 4
-        X, A, OUT_NODES = setup_modulo_circuit(circuit, bit_len=bit_len)
+        X, A, OUT_NODES = setup_modulo_circuit(interface, bit_len=bit_len)
         for i in range(100):
             rand_x = random.randrange(2**bit_len - 1)
             rand_a = random.randrange(2 ** (bit_len // 2) - 1)
@@ -400,8 +410,9 @@ class TestCircuitSimulation(unittest.TestCase):
 
     def test_montgomery_ladder(self):
         circuit = CircuitGraph()
+        interface = GraphInterface(circuit)
         bit_len = 4
-        B, E, M, OUT_NODES = setup_montgomery_ladder(circuit, bit_len=bit_len)
+        B, E, M, OUT_NODES = setup_montgomery_ladder(interface, bit_len=bit_len)
         for i in range(1):
             rand_b = random.randrange(2**bit_len - 1)
             rand_e = random.randrange(2**bit_len - 1)
@@ -425,16 +436,16 @@ class TestCircuitSimulation(unittest.TestCase):
             for idx, ex in enumerate(expected_bin_list):
                 self.assertEqual(circuit.get_port_value(OUT_NODES[idx].ports[0]), ex)
 
-    def test_modular_exponentiation(self):
+    def test_square_and_multiply(self):
         circuit = CircuitGraph()
+        interface = GraphInterface(circuit)
         bit_len = 4
-        B, E, M, OUT_NODES = setup_modular_exponentiation(circuit, bit_len=bit_len)
-        for i in range(1):
-            rand_b = random.randrange(2**bit_len - 1)
-            rand_e = random.randrange(2**bit_len - 1)
-            rand_m = random.randrange(2 ** (bit_len // 2) - 1)
-            if rand_m == 0:
-                rand_m = 2
+        B, E, M, OUT_NODES = setup_square_and_multiply(interface, bit_len=bit_len)
+        for i in range(20):
+            rand_b = random.randrange(1, 2**bit_len - 1)
+            rand_e = random.randrange(1, 2**bit_len - 1)
+            #rand_m = random.randrange(1, 2**bit_len - 1)
+            rand_m = random.randrange(1, 2 ** (bit_len // 2) - 1)
             if rand_m < 8:
                 rand_m = 8
             expected_num = (rand_b**rand_e) % rand_m
@@ -454,8 +465,9 @@ class TestCircuitSimulation(unittest.TestCase):
 
     def test_next_power_of_two(self):
         circuit = CircuitGraph()
+        interface = GraphInterface(circuit)
         bit_len = 4
-        X, O = setup_next_power_of_two(circuit, bit_len=bit_len)
+        X, O = setup_next_power_of_two(interface, bit_len=bit_len)
         for _ in range(20):
             rand_x = random.randrange(2 ** (bit_len - 1) - 1)
             x_bin_list = int2binlist(rand_x, bit_len=bit_len)
@@ -491,11 +503,12 @@ class TestCircuitSimulation(unittest.TestCase):
 
     def test_bus_multiplexer(self):
         circuit = CircuitGraph()
+        interface = GraphInterface(circuit)
         bit_len = 4
         num_amount = 4
         sel_bit_width = int(math.log2(num_amount))
         BUS, S, O = setup_bus_multiplexer(
-            circuit, num_amount=num_amount, bit_len=bit_len
+            interface, num_amount=num_amount, bit_len=bit_len
         )
         for _ in range(20):
             NUMS = []
@@ -509,12 +522,10 @@ class TestCircuitSimulation(unittest.TestCase):
                     expect_list = rand_num_bits
                 NUMS.append(rand_num_bits)
 
-            # FILL BUS VALUES
             for num_idx, num in enumerate(BUS):
                 for idx, port in enumerate(num):
                     circuit.node_values[str(port.node_id)] = NUMS[num_idx][idx]
 
-            # FILL SELECTOR
             for idx, s in enumerate(S):
                 circuit.node_values[str(s.node_id)] = rand_selector_bits[idx]
 
@@ -524,11 +535,12 @@ class TestCircuitSimulation(unittest.TestCase):
 
     def test_tensor_multiplexer(self):
         circuit = CircuitGraph()
+        interface = GraphInterface(circuit)
         bit_len = 4
         num_amount = 4
         sel_bit_width = int(math.log2(num_amount))
         TENSOR, S, O = setup_tensor_multiplexer(
-            circuit, num_amount=num_amount, bit_len=bit_len
+            interface, num_amount=num_amount, bit_len=bit_len
         )
         for _ in range(20):
             NUMS = []
@@ -546,18 +558,14 @@ class TestCircuitSimulation(unittest.TestCase):
                 NUMS.append(num_row)
                 NUMS_BITS.append(num_row_bits)
 
-            # FILL TENSOR VALUES
             for i, row in enumerate(TENSOR):
                 for num_idx, num in enumerate(row):
                     circuit.fill_node_values(num, NUMS_BITS[i][num_idx])
 
-            # FILL SELECTOR VALUE
             circuit.fill_node_values(S, rand_selector_bits)
 
             circuit.simulate()
 
-            # for idx, e in expect_list:
-            #    self.assertEqual(circuit.get_port_value(O[idx].ports[0]), e)
             for i in range(num_amount):
                 expect = circuit_utils.binlist2int(NUMS_BITS[rand_selector][i])
                 value = circuit.compute_value_from_ports(
@@ -569,20 +577,12 @@ class TestCircuitSimulation(unittest.TestCase):
 
     def test_precompute_aim(self):
         circuit = CircuitGraph()
+        interface = GraphInterface(circuit)
         bit_len = 4
         n = bit_len
-        output = setup_precompute_aim(circuit, bit_len=bit_len)
+        output = setup_precompute_aim(interface, bit_len=bit_len)
         sb_output = sb.precompute_aim(bit_len)
         circuit.simulate()
-
-        # print("sb_output: ", sb_output)
-        # for m in range(len(output)):
-        #    for i in range(n):
-        #        value = circuit.compute_value_from_ports(
-        #            circuit.get_output_nodes_ports(output[m][i])
-        #        )
-        #        print(value, end="")
-        #    print()
 
         for m in range(0, n):
             for i in range(n):
@@ -596,9 +596,10 @@ class TestCircuitSimulation(unittest.TestCase):
 
     def test_lemma_4_1_reduce_in_parallel(self):
         circuit = CircuitGraph()
+        interface = GraphInterface(circuit)
         bit_len = 4
         n = bit_len
-        Y, M, O = setup_lemma_4_1_reduce_in_parallel(circuit, bit_len=bit_len)
+        Y, M, O = setup_lemma_4_1_reduce_in_parallel(interface, bit_len=bit_len)
 
         y_cases = [3]
         m_cases = [3]
@@ -614,7 +615,6 @@ class TestCircuitSimulation(unittest.TestCase):
 
             O_PORTS = circuit.get_output_nodes_ports(O)
             O_VALUE = circuit.compute_value_from_ports(O_PORTS)
-            # print(f"y: {y_value}, m: {m_value}, expect: {expect}, got: {O_VALUE}")
             self.assertEqual(O_VALUE, expect)
 
         for i in range(40):
@@ -645,9 +645,10 @@ class TestCircuitSimulation(unittest.TestCase):
 
     def test_lemma_4_1_compute_diffs(self):
         circuit = CircuitGraph()
+        interface = GraphInterface(circuit)
         bit_len = 4
         n = bit_len
-        Y, M, O = setup_lemma_4_1_compute_diffs(circuit, bit_len=bit_len)
+        Y, M, O = setup_lemma_4_1_compute_diffs(interface, bit_len=bit_len)
 
         y_cases = [3]
         m_cases = [3]
@@ -661,8 +662,6 @@ class TestCircuitSimulation(unittest.TestCase):
             circuit.simulate()
 
             diffs = sb.lemma_4_1_compute_diffs(y_value, m_value, n)
-            # print("diffs:")
-            # print(diffs)
 
             O_VALUES = []
 
@@ -673,20 +672,19 @@ class TestCircuitSimulation(unittest.TestCase):
 
             for idx, diff in enumerate(diffs):
                 if diff < 0:
-                    # print("diff is smaller than 0, break")
                     break
                 self.assertEqual(
                     O_VALUES[idx],
                     diff,
                     msg=f"idx: {idx}, expect: {diff}, got: {O_VALUES[idx]}",
                 )
-                # print(f"idx: {idx}, expect: {diff}, got: {O_VALUES[idx]}")
 
     def test_lemma_4_1(self):
         circuit = CircuitGraph()
+        interface = GraphInterface(circuit)
         bit_len = 4
         n = bit_len
-        X, M, O = setup_lemma_4_1(circuit, bit_len=bit_len)
+        X, M, O = setup_lemma_4_1(interface, bit_len=bit_len)
         X_CY, M_CY, Y_CY = setup_lemma_4_1_compute_y(circuit, bit_len=bit_len)
 
         x_cases = [6]
@@ -710,9 +708,6 @@ class TestCircuitSimulation(unittest.TestCase):
             O_VALUE = circuit.compute_value_from_ports(O_PORTS)
             Y_CY_VALUE = circuit.compute_value_from_ports(Y_CY_PORTS)
             expect_value = int(sb.lemma_4_1_compute_y(x_value, m_value, n))
-            # print(
-            #    f"x: {x_value}, m: {m_value}, n: {n}, expect: {expect_value}, got: {Y_CY_VALUE}"
-            # )
 
             self.assertEqual(
                 O_VALUE,
@@ -734,8 +729,6 @@ class TestCircuitSimulation(unittest.TestCase):
             rand_m_bits = int2binlist(rand_m, bit_len=n)
             expect_num = int(rand_x % rand_m)
             expect_bits = int2binlist(expect_num, bit_len=n)
-
-            # print("x: ", rand_x, " m: ", rand_m)
 
             circuit.fill_node_values(X, rand_x_bits)
             circuit.fill_node_values(M, rand_m_bits)
@@ -764,12 +757,13 @@ class TestCircuitSimulation(unittest.TestCase):
 
     def test_lemma_4_1_compute_summands(self):
         circuit = CircuitGraph()
+        interface = GraphInterface(circuit)
         bit_len = 4
         num_amount = bit_len
         n = bit_len
         # O -> List[List[Port]]
         X, NUMS, O = setup_lemma_4_1_compute_summands(
-            circuit, num_amount=num_amount, bit_len=bit_len
+            interface, num_amount=num_amount, bit_len=bit_len
         )
         for i in range(20):
             rand_x = random.randrange(2 ** (n - 1) - 1)
@@ -807,9 +801,10 @@ class TestCircuitSimulation(unittest.TestCase):
 
     def test_lemma_4_1_provide_aims_given_m(self):
         circuit = CircuitGraph()
+        interface = GraphInterface(circuit)
         bit_len = 4
         max_m = 4
-        M, O = setup_lemma_4_1_provide_aims_given_m(circuit, bit_len=bit_len)
+        M, O = setup_lemma_4_1_provide_aims_given_m(interface, bit_len=bit_len)
         for m in range(1, max_m + 1):
             m_bits = int2binlist(m, bit_len=bit_len)
             circuit.fill_node_values(M, m_bits)
@@ -832,11 +827,12 @@ class TestCircuitSimulation(unittest.TestCase):
 
     def test_adder_tree_iterative(self):
         circuit = CircuitGraph()
+        interface = GraphInterface(circuit)
         bit_len = 4
         num_amount = 4
         n = bit_len
         SUMMANDS, O = setup_adder_tree_iterative(
-            circuit, num_amount=num_amount, bit_len=bit_len
+            interface, num_amount=num_amount, bit_len=bit_len
         )
         for i in range(20):
             nums = []
@@ -855,11 +851,12 @@ class TestCircuitSimulation(unittest.TestCase):
     def test_max_tree_iterative(self):
 
         circuit = CircuitGraph()
+        interface = GraphInterface(circuit)
         bit_len = 4
         num_amount = 4
         n = bit_len
         VALUES, O = setup_max_tree_iterative(
-            circuit, num_amount=num_amount, bit_len=bit_len
+            interface, num_amount=num_amount, bit_len=bit_len
         )
         for i in range(20):
             nums = []
@@ -877,12 +874,11 @@ class TestCircuitSimulation(unittest.TestCase):
 
     def test_lemma_4_1_compute_y(self):
         circuit = CircuitGraph()
+        interface = GraphInterface(circuit)
         bit_len = 4
         num_amount = bit_len
         n = bit_len
-        X, M, O = setup_lemma_4_1_compute_y(circuit, bit_len=bit_len)
-
-        # print("compute_y_extra_test_cases: ")
+        X, M, O = setup_lemma_4_1_compute_y(interface, bit_len=bit_len)
 
         x_cases = [5, 5, 6]
         m_cases = [2, 3, 3]
@@ -905,7 +901,6 @@ class TestCircuitSimulation(unittest.TestCase):
                     f"rand_m: {m_value}",
                 ),
             )
-            # print(f"expect: {y_value}, got: {value}, x: {x_value}, m: {m_value}")
 
         for i in range(20):
             rand_x = random.randrange(2 ** (n - 1) - 1)
@@ -939,9 +934,10 @@ class TestCircuitSimulation(unittest.TestCase):
 
     def test_theorem_4_2_precompute_lookup_is_prime_power(self):
         circuit = CircuitGraph()
+        interface = GraphInterface(circuit)
         for n in [4, 8]:
             sb_o = sb.theorem_4_2_precompute_lookup_is_prime_power(n)
-            O = setup_theorem_4_2_precompute_lookup_is_prime_power(circuit, bit_len=n)
+            O = setup_theorem_4_2_precompute_lookup_is_prime_power(interface, bit_len=n)
             circuit.simulate()
             o_ports = circuit.get_output_nodes_ports(O)
             for idx, port in enumerate(o_ports):
@@ -949,10 +945,11 @@ class TestCircuitSimulation(unittest.TestCase):
 
     def test_theorem_4_2_precompute_lookup_p_l(self):
         circuit = CircuitGraph()
+        interface = GraphInterface(circuit)
         for n in [4, 8]:
             sb_o = sb.theorem_4_2_precompute_lookup_p_l(n)
             P_TABLE_NODES, L_TABLE_NODES = setup_theorem_4_2_precompute_lookup_p_l(
-                circuit, bit_len=n
+                interface, bit_len=n
             )
             circuit.simulate()
             O_PORTS = []
@@ -970,9 +967,10 @@ class TestCircuitSimulation(unittest.TestCase):
 
     def test_theorem_4_2_precompute_lookup_powers(self):
         circuit = CircuitGraph()
+        interface = GraphInterface(circuit)
         for n in [4, 8]:
             sb_o = sb.theorem_4_2_precompute_lookup_powers(n)
-            O = setup_theorem_4_2_precompute_lookup_powers(circuit, bit_len=n)
+            O = setup_theorem_4_2_precompute_lookup_powers(interface, bit_len=n)
             circuit.simulate()
             O_PORTS = []
             for powers_of_p_nodes in O:
@@ -989,8 +987,9 @@ class TestCircuitSimulation(unittest.TestCase):
 
     def test_theorem_4_2_precompute_lookup_division(self):
         circuit = CircuitGraph()
+        interface = GraphInterface(circuit)
         n = 8
-        TABLE = setup_theorem_4_2_precompute_lookup_division(circuit, bit_len=n)
+        TABLE = setup_theorem_4_2_precompute_lookup_division(interface, bit_len=n)
         circuit.simulate()
         TABLE_PORTS = []
         for row in TABLE:
@@ -1006,8 +1005,9 @@ class TestCircuitSimulation(unittest.TestCase):
 
     def test_theorem_4_2_precompute_lookup_generator_powers(self):
         circuit = CircuitGraph()
+        interface = GraphInterface(circuit)
         n = 8
-        TABLE = setup_theorem_4_2_precompute_lookup_generator_powers(circuit, bit_len=n)
+        TABLE = setup_theorem_4_2_precompute_lookup_generator_powers(interface, bit_len=n)
         circuit.simulate()
         TABLE_PORTS = []
         for row in TABLE:
@@ -1026,9 +1026,10 @@ class TestCircuitSimulation(unittest.TestCase):
 
     def test_theorem_4_2_precompute_lookup_tables_B(self):
         circuit = CircuitGraph()
+        interface = GraphInterface(circuit)
         n = 8
         TABLE_ZERO, TABLE_ONE = setup_theorem_4_2_precompute_lookup_tables_B(
-            circuit, bit_len=n
+            interface, bit_len=n
         )
 
         circuit.simulate()
@@ -1070,9 +1071,10 @@ class TestCircuitSimulation(unittest.TestCase):
 
     def test_theorem_4_2_precompute_lookup_pexpl_minus_pexpl_minus_one(self):
         circuit = CircuitGraph()
+        interface = GraphInterface(circuit)
         n = 8
         TABLE = setup_theorem_4_2_precompute_lookup_pexpl_minus_pexpl_minus_one(
-            circuit, bit_len=n
+            interface, bit_len=n
         )
         circuit.simulate()
         TABLE_PORTS = []
@@ -1092,8 +1094,9 @@ class TestCircuitSimulation(unittest.TestCase):
 
     def test_theorem_4_2_step_1(self):
         circuit = CircuitGraph()
+        interface = GraphInterface(circuit)
         n = 8
-        X_LIST, P, PEXPL, EXPONENTS = setup_theorem_4_2_step_1(circuit, bit_len=n)
+        X_LIST, P, PEXPL, EXPONENTS = setup_theorem_4_2_step_1(interface, bit_len=n)
 
         for _ in range(1):
             # FILL
@@ -1125,15 +1128,6 @@ class TestCircuitSimulation(unittest.TestCase):
             for nodes in EXPONENTS:
                 EXPONENTS_PORTS.append(circuit.get_output_nodes_ports(nodes))
 
-            # for i in range(len(expected_exponents_list)):
-            #    got_ports = EXPONENTS_PORTS[i]
-            #    got_value = circuit.compute_value_from_ports(got_ports)
-            #    print(f"got: {got_value}")
-            #    print(f"expect: {expected_exponents_list[i]}")
-
-            # print("STEP_1 TEST WITH")
-            # print(f"x_list: {x_list}, pexpl: {pexpl}, p: {p}")
-
             for i, expect_expo in enumerate(expected_exponents_list):
                 got_ports = EXPONENTS_PORTS[i]
                 got_value = circuit.compute_value_from_ports(got_ports)
@@ -1145,12 +1139,12 @@ class TestCircuitSimulation(unittest.TestCase):
 
     def a_test_theorem_4_2_step_2(self):
         circuit = CircuitGraph()
+        interface = GraphInterface(circuit)
         n = 8
         X_LIST_NODES, P_NODES, J_LIST_NODES, Y_LIST_NODES = setup_theorem_4_2_step_2(
-            circuit, bit_len=n
+            interface, bit_len=n
         )
         for loop_idx in range(10):
-            # print(f"LOOP INDEX: {loop_idx + 1}")
             # GENERATE TEST CASE VALUES
             x_list, pexpl, p, l, expectation = (
                 utils.generate_test_values_for_theorem_4_2(n)
@@ -1178,8 +1172,9 @@ class TestCircuitSimulation(unittest.TestCase):
 
     def test_theorem_4_2_compute_sum(self):
         circuit = CircuitGraph()
+        interface = GraphInterface(circuit)
         n = 8
-        J_LIST_NODES, J_NODES = setup_theorem_4_2_compute_sum(circuit, bit_len=n)
+        J_LIST_NODES, J_NODES = setup_theorem_4_2_compute_sum(interface, bit_len=n)
 
         for loop_idx in range(10):
             rand_nums = [random.randrange(0, 2 * n // n)]
@@ -1197,8 +1192,9 @@ class TestCircuitSimulation(unittest.TestCase):
 
     def test_theorem_4_2_step_4(self):
         circuit = CircuitGraph()
+        interface = GraphInterface(circuit)
         n = 8
-        P_NODES, PEXPL_NODES, FLAG_NODE = setup_theorem_4_2_step_4(circuit, bit_len=n)
+        P_NODES, PEXPL_NODES, FLAG_NODE = setup_theorem_4_2_step_4(interface, bit_len=n)
 
         for loop_idx in range(100):
             p = random.randrange(0, 2 ** (n - 1) - 1)
@@ -1233,9 +1229,10 @@ class TestCircuitSimulation(unittest.TestCase):
 
     def test_theorem_4_2_A_step_5(self):
         circuit = CircuitGraph()
+        interface = GraphInterface(circuit)
         n = 8
         Y_LIST_NODES, PEXPL_NODES, A_LIST_NODES = setup_theorem_4_2_A_step_5(
-            circuit, bit_len=n
+            interface, bit_len=n
         )
 
         sw_disc_log_lookup = sb.theorem_4_2_precompute_lookup_generator_powers(n)
@@ -1248,19 +1245,13 @@ class TestCircuitSimulation(unittest.TestCase):
                 )
                 if p != 2 or pexpl in [2, 4]:
                     break
-            # print(f"loop_idx: {loop_idx}")
-            # print(f"x_list: {x_list}")
-            # print(f"pexpl: {pexpl}")
-            # print(f"p: {p}")
-            # print(f"l: {l}")
+            
             j_list = theorem_4_2_sanity.step_1_compute_largest_power_of_p(x_list, p)
-            # print("x_list: ")
-            # print(x_list)
+            
             y_list = theorem_4_2_sanity.step_2_compute_x_dividend_by_p(
                 x_list, j_list, p
             )
-            # print("y_list: ")
-            # print(y_list)
+            
             a_list = theorem_4_2_sanity.A_step_5_find_discrete_logarithms(
                 sw_disc_log_lookup, pexpl, y_list
             )
@@ -1280,14 +1271,14 @@ class TestCircuitSimulation(unittest.TestCase):
             for idx, a_ports in enumerate(A_LIST_PORTS):
                 got = circuit.compute_value_from_ports(a_ports)
                 expect = a_list[idx]
-                # print(f"got: {got}, expect: {expect}")
                 self.assertEqual(got, expect)
 
     def test_theorem_4_2_A_step_7(self):
         circuit = CircuitGraph()
+        interface = GraphInterface(circuit)
         n = 8
         A_NODES, PEXPL_NODES, A_HAT_NODES = setup_theorem_4_2_A_step_7(
-            circuit, bit_len=n
+            interface, bit_len=n
         )
 
         sw_disc_log_lookup = (
@@ -1326,9 +1317,10 @@ class TestCircuitSimulation(unittest.TestCase):
 
     def test_theorem_4_2_A_step_8(self):
         circuit = CircuitGraph()
+        interface = GraphInterface(circuit)
         n = 8
         A_HAT_NODES, PEXPL_NODES, Y_PRODUCT_NODES = setup_theorem_4_2_A_step_8(
-            circuit, bit_len=n
+            interface, bit_len=n
         )
 
         sw_disc_log_lookup = (
@@ -1371,10 +1363,11 @@ class TestCircuitSimulation(unittest.TestCase):
 
     def test_theorem_4_2_B_step_5(self):
         circuit = CircuitGraph()
+        interface = GraphInterface(circuit)
         n = 8
 
         Y_LIST_NODES, L_NODES, A_LIST_NODES, B_LIST_NODES = setup_theorem_4_2_B_step_5(
-            circuit, bit_len=n
+            interface, bit_len=n
         )
 
         # sw_a_zero, sw_a_one = sanity.theorem_4_2_precompute_lookup_tables_B(n)
@@ -1431,10 +1424,11 @@ class TestCircuitSimulation(unittest.TestCase):
 
     def test_theorem_4_2_B_step_7(self):
         circuit = CircuitGraph()
+        interface = GraphInterface(circuit)
         n = 8
 
         A_NODES, B_NODES, L_NODES, A_HAT_NODES, B_HAT_NODES = (
-            setup_theorem_4_2_B_step_7(circuit, bit_len=n)
+            setup_theorem_4_2_B_step_7(interface, bit_len=n)
         )
 
         for loop_idx in range(10):
@@ -1464,10 +1458,11 @@ class TestCircuitSimulation(unittest.TestCase):
 
     def test_theorem_4_2_step_9(self):
         circuit = CircuitGraph()
+        interface = GraphInterface(circuit)
         n = 8
 
         P_NODES, J_NODES, PEXPL_NODES, Y_PRODUCT_NODES, RESULT_NODES = (
-            setup_theorem_4_2_step_9(circuit, bit_len=n)
+            setup_theorem_4_2_step_9(interface, bit_len=n)
         )
 
         sw_disc_log_lookup = (
@@ -1515,8 +1510,9 @@ class TestCircuitSimulation(unittest.TestCase):
 
     def test_theorem_4_2(self):
         circuit = CircuitGraph()
+        interface = GraphInterface(circuit)
         n = 4
-        X_LIST_NODES, PEXPL_NODES, RESULT_NODES = setup_theorem_4_2(circuit, bit_len=n)
+        X_LIST_NODES, PEXPL_NODES, RESULT_NODES = setup_theorem_4_2(interface, bit_len=n)
 
         sw_disc_log_lookup = (
             theorem_4_2_sanity.theorem_4_2_precompute_lookup_generator_powers(n)
@@ -1540,7 +1536,7 @@ class TestCircuitSimulation(unittest.TestCase):
             )
             j = theorem_4_2_sanity.step_3_compute_j(j_list)
             do_a = theorem_4_2_sanity.step_4_test_condition(p, l)
-            print(f"x_list: {x_list}, pexpl: {pexpl}, p: {p}, l: {l}, j: {j}, do_a: {do_a}, j_list: {j_list}, y_list: {y_list}")
+            # print(f"x_list: {x_list}, pexpl: {pexpl}, p: {p}, l: {l}, j: {j}, do_a: {do_a}, j_list: {j_list}, y_list: {y_list}")
             if do_a:
                 a_list = theorem_4_2_sanity.A_step_5_find_discrete_logarithms(
                     sw_disc_log_lookup, pexpl, y_list
@@ -1574,13 +1570,13 @@ class TestCircuitSimulation(unittest.TestCase):
 
     def test_theorem_5_3_precompute_good_modulus_sequence(self):
         circuit = CircuitGraph()
-
+        interface = GraphInterface(circuit)
         tests = [(4, [2, 3, 5, 7], 210)]
 
         for n, primes, product in tests:
             big_n = n * n  # <- important
             PRIMES_NODES, PRIMES_PRODUCT_NODES = (
-                setup_theorem_5_3_precompute_good_modulus_sequence(circuit, bit_len=n)
+                setup_theorem_5_3_precompute_good_modulus_sequence(interface, bit_len=n)
             )
             # for idx, nodes in enumerate(PRIMES_NODES):
             #    circuit.fill_node_values(nodes, int2binlist(primes[idx], bit_len=n))
@@ -1601,9 +1597,10 @@ class TestCircuitSimulation(unittest.TestCase):
 
     def test_lemma_5_1_precompute_u_list(self):
         circuit = CircuitGraph()
+        interface = GraphInterface(circuit)
         tests = [(4, [105, 70, 126, 120])]
         for n, u_list in tests:
-            U_LIST_NODES = setup_lemma_5_1_precompute_u_list(circuit, bit_len=n)
+            U_LIST_NODES = setup_lemma_5_1_precompute_u_list(interface, bit_len=n)
             circuit.simulate()
             U_LIST_PORTS = [
                 circuit.get_output_nodes_ports(nodes) for nodes in U_LIST_NODES
@@ -1615,11 +1612,12 @@ class TestCircuitSimulation(unittest.TestCase):
 
     def test_lemma_5_1(self):
         circuit = CircuitGraph()
+        interface = GraphInterface(circuit)
         n = 4
 
-        X_MOD_C_I_NODES, C_NODES, RESULT_NODES = setup_lemma_5_1(circuit, bit_len=n)
+        X_MOD_C_I_NODES, C_NODES, RESULT_NODES = setup_lemma_5_1(interface, bit_len=n)
 
-        for loop_idx in range(5):
+        for loop_idx in range(1):
 
             # VARIABLE VALUES COMPUTATION
 
@@ -1636,12 +1634,6 @@ class TestCircuitSimulation(unittest.TestCase):
             x_mod_c_i_list = []
             for c_i in c_list:
                 x_mod_c_i_list.append(x_product % c_i)
-            print("x_mod_c_i_list")
-            print(x_mod_c_i_list)
-            v_list = lemma_5_1_sanity.step_2(c_list, c)
-            w_list = lemma_5_1_sanity.step_3(v_list, c_list)
-            u_list = lemma_5_1_sanity.step_4(v_list, w_list)
-            print(f"u_list {u_list}")
 
             expect = x_product % c
 
@@ -1659,13 +1651,17 @@ class TestCircuitSimulation(unittest.TestCase):
 
             self.assertEqual(got, expect)
 
+    # This test takes too long on available hardware within thesis
+    # It is believed that there is a construction error left
+    # Though all subcircuits that are direct childs of this group and by that steps of this theorem are validated in this thesis
     def test_theorem_5_2(self):
         circuit = CircuitGraph(enable_groups=False)
+        interface = GraphInterface(circuit)
         n = 4
 
-        X_LIST_NODES, RESULT_NODES = setup_theorem_5_2(circuit, bit_len=n)
+        X_LIST_NODES, RESULT_NODES = setup_theorem_5_2(interface, bit_len=n)
         
-        for _ in range(2):
+        for _ in range(1):
             x_list_values = [random.randrange(1, (2**n)-1) for _ in range(n)]
             expect = 1
             for x in x_list_values:

@@ -1,6 +1,7 @@
 from typing import List, Optional
 
-from graph import *
+from core.graph import *
+from .gates import *
 from .comparators import n_bit_comparator, n_bit_equality
 from .multiplexers import multiplexer, bus_multiplexer
 from .circuit_utils import generate_number
@@ -14,13 +15,15 @@ def conditional_zeroing(circuit, x_list, cond, parent_group=None):
     if circuit.enable_groups and this_group is not None:
         this_group.set_parent(parent_group)
     ports = []
-    not_cond_node = circuit.add_node("not", "NOT", inputs=[cond], group_id=this_group_id)
-    not_cond_port = not_cond_node.ports[1]
+    #not_cond_node = circuit.add_node("not", "NOT", inputs=[cond], group_id=this_group_id)
+    not_cond_node = not_gate(circuit, cond, parent_group=this_group)
+    not_cond_port = not_cond_node
     for x in x_list:
-        and_node = circuit.add_node(
-            "and", "AND", inputs=[x, not_cond_port], group_id=this_group_id
-        )
-        ports.append(and_node.ports[2])
+        #and_node = circuit.add_node(
+        #    "and", "AND", inputs=[x, not_cond_port], group_id=this_group_id
+        #)
+        and_out = and_gate(circuit, [x, not_cond_port], parent_group=this_group)
+        ports.append(and_out)
     return ports
 
 
@@ -96,9 +99,10 @@ def smallest_non_zero_tree_iterative(
                 a = current[i]
                 b = current[i + 1]
                 _, _, greater = n_bit_comparator(circuit, a, b, parent_group=this_group)
-                not_greater = circuit.add_node(
-                    "not", "NOT", inputs=[greater], group_id=this_group_id
-                ).ports[1]
+                #not_greater = circuit.add_node(
+                #    "not", "NOT", inputs=[greater], group_id=this_group_id
+                #).ports[1]
+                not_greater = not_gate(circuit, greater, parent_group=this_group)
                 smaller_one = bus_multiplexer(circuit, [a, b], [greater])
                 equals_zero = n_bit_equality(
                     circuit,

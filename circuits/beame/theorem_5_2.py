@@ -1,6 +1,6 @@
 from typing import Tuple, Optional, List
 
-from graph import *
+from core.graph import *
 from . import lemma_4_1
 from . import theorem_4_2
 from . import lemma_5_1
@@ -15,7 +15,6 @@ def step_3(
     c_list: List[List[Port]],
     parent_group: Optional[Group] = None,
 ):
-
     this_group = circuit.add_group("THEOREM_5_2_STEP_3")
     if circuit.enable_groups and this_group is not None:
         this_group.set_parent(parent_group)
@@ -28,8 +27,7 @@ def step_3(
         row = []
         for i in range(n):
             b_j_i = lemma_4_1.lemma_4_1(
-                circuit, x_list[i], c_list[j], parent_group=this_group
-            )
+            circuit, x_list[i], c_list[j], parent_group=this_group)
             row.append(b_j_i)
         matrix.append(row)
     return matrix
@@ -47,8 +45,8 @@ def step_4(
 
     b_j_list = []
     for idx, x_list in enumerate(b_j_i_matrix):
-        b_j = theorem_4_2.theorem_4_2_for_theorem_5_2(
-            circuit, x_list, c_list[idx], parent_group=this_group
+        b_j = theorem_4_2.theorem_4_2(
+        circuit, x_list, c_list[idx], parent_group=this_group
         )
         b_j_list.append(b_j)
     return b_j_list
@@ -57,7 +55,7 @@ def step_4(
 def step_5(
     circuit: CircuitGraph,
     b_j_list: List[List[Port]],
-    c: List,
+    c: List[Port],
     parent_group: Optional[Group] = None,
 ):
     this_group = circuit.add_group("THEOREM_5_2_STEP_5")
@@ -76,7 +74,6 @@ def theorem_5_2(
     this_group = circuit.add_group("THEOREM_5_2")
     if circuit.enable_groups and this_group is not None:
         this_group.set_parent(parent_group)
-
     n = len(x_list)
     big_n = n * n
 

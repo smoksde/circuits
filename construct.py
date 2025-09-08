@@ -1,4 +1,4 @@
-from graph import *
+from core.graph import *
 from circuits.circuit import *
 
 from tqdm import tqdm

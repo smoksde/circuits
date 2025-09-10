@@ -30,13 +30,16 @@ def funcs():
 def get_metrics():
     return JSONResponse(measurement.metrics)
 
+
 @app.get("/plot_types")
 def get_plot_types():
     return JSONResponse(measurement.plot_types)
 
+
 @app.get("/interfaces")
 def get_interfaces():
     return JSONResponse(measurement.interfaces)
+
 
 def render_plot(specs, metric="depth", interface="graph", title="Circuit Metrics"):
     plt.figure(figsize=(6, 3.5))
@@ -48,7 +51,13 @@ def render_plot(specs, metric="depth", interface="graph", title="Circuit Metrics
             raise HTTPException(400, f"no function {fn_name}")
         vals = [
             measurement.analyze_circuit_function(
-                fn_name, setup_fn, b, interface_name=interface, use_cache=True, fill_cache=True
+                fn_name,
+                setup_fn,
+                b,
+                interface_name=interface,
+                metric=metric,
+                use_cache=True,
+                fill_cache=True,
             )[metric]
             for b in bits
         ]
@@ -61,7 +70,7 @@ def render_plot(specs, metric="depth", interface="graph", title="Circuit Metrics
     plt.xlabel("bits")
     plt.ylabel(metric)
     plt.grid(True)
-    plt.legend()
+    plt.legend(fontsize=8)
     buf = io.BytesIO()
     plt.tight_layout()
     plt.savefig(buf, format="png", dpi=120)
@@ -69,7 +78,13 @@ def render_plot(specs, metric="depth", interface="graph", title="Circuit Metrics
     buf.seek(0)
     return buf
 
-def render_function_approximation_plot(specs, metric="depth", interface="graph", title="Measurements for different bit widths"):
+
+def render_function_approximation_plot(
+    specs,
+    metric="depth",
+    interface="graph",
+    title="Measurements for different bit widths",
+):
     plt.figure(figsize=(6, 3.5))
     for s in specs:
         fn_name = s["fn"]
@@ -79,7 +94,12 @@ def render_function_approximation_plot(specs, metric="depth", interface="graph",
             raise HTTPException(400, f"no function {fn_name}")
         vals = [
             measurement.analyze_circuit_function(
-                fn_name, setup_fn, b, interface_name=interface, use_cache=True, fill_cache=True
+                fn_name,
+                setup_fn,
+                b,
+                interface_name=interface,
+                use_cache=True,
+                fill_cache=True,
             )[metric]
             for b in bits
         ]
@@ -135,17 +155,13 @@ async def plot_png(req: Request):
         s.setdefault("name", fn_name)
 
     if plot_type == "general":
-        buf = render_plot(
-            specs, metric=metric, interface=interface
-        )
+        buf = render_plot(specs, metric=metric, interface=interface)
     elif plot_type == "function_approximation":
         buf = render_function_approximation_plot(
             specs, metric=metric, interface=interface
         )
     else:
-        buf = render_plot(
-            specs, metric=metric, interface=interface
-        )
+        buf = render_plot(specs, metric=metric, interface=interface)
     return StreamingResponse(buf, media_type="image/png")
 
 

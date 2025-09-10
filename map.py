@@ -56,52 +56,7 @@ def build_area_treemap(groups, nodes):
         parents="parent",
         names="label",
         values="value",
-        custom_data=["custom"],
-    )
-    fig.update_traces(hovertemplate="<b>%{label}</b><br>%{customdata[0]}")
-    fig.show()
-
-
-def build_treemap(groups, nodes):
-    ids = []
-    labels = []
-    parents = []
-    values = []
-    custom_data = []
-
-    for group in groups.values():
-        ids.append(str(group.id))
-        parent_id = str(group.parent.id) if group.parent else ""
-        parents.append(parent_id)
-        labels.append(group.label)
-        values.append(1)
-        custom_data.append(f"Group ID: {group.id}")
-
-    """for node in nodes.values():
-        group = next((g for g in groups if g.id == node.group_id), None)
-        group_label = group.label if group else ""
-        labels.append(node.label)
-        parents.append(group_label)
-        values.append(node.value if node.value else 1)
-        custom_data.append(f"Node Type: {node.type}")"""
-
-    df = pd.DataFrame(
-        {
-            "id": ids,
-            "label": labels,
-            "parent": parents,
-            "value": values,
-            "custom": custom_data,
-        }
-    )
-
-    fig = px.treemap(
-        df,
-        ids="id",
-        parents="parent",
-        names="label",
-        values="value",
-        custom_data=["custom"],
+        custom_data=["custom"],  # color_continuous_scale="Greys",
     )
     fig.update_traces(hovertemplate="<b>%{label}</b><br>%{customdata[0]}")
     fig.show()
@@ -111,20 +66,21 @@ if __name__ == "__main__":
 
     circuit = CircuitGraph()
     interface = GraphInterface(circuit)
-    bit_len = 4  # 16
+    bit_len = 8  # 4
     # _ = setup_full_adder(circuit, bit_len=bit_len)
     # _ = setup_n_left_shift(circuit, bit_len=bit_len)
     # _ = setup_n_bit_comparator(circuit, bit_len=bit_len)
     # _ = setup_wallace_tree_multiplier(circuit, bit_len=bit_len)
     # _ = setup_modulo_circuit(circuit, bit_len=bit_len)
     # _ = setup_modular_exponentiation(circuit, bit_len=bit_len)
-    # _ = setup_lemma_4_1(interface, bit_len=bit_len)
+    _ = setup_lemma_4_1(interface, bit_len=bit_len)
     # _ = setup_theorem_4_2_step_1(circuit, bit_len=bit_len)
-    #_ = setup_theorem_4_2(interface, bit_len=bit_len)
-    _ = setup_lemma_5_1(interface, bit_len=bit_len)
-    # _ = setup_theorem_5_2(circuit, bit_len=bit_len)
+    # _ = setup_theorem_4_2(interface, bit_len=bit_len)
+    # _ = setup_lemma_5_1(interface, bit_len=bit_len)
+    # _ = setup_theorem_5_3_precompute_good_modulus_sequence(interface, bit_len=bit_len)
+    # _ = setup_theorem_5_2(interface, bit_len=bit_len)
+    # _ = setup_theorem_5_2_step_3(interface, bit_len=bit_len)
     # _ = setup_lemma_4_1_reduce_in_parallel(circuit, bit_len=bit_len)
-    #_ = setup_lemma_5_1_precompute_u_list(circuit, bit_len=bit_len)
+    # _ = setup_lemma_5_1_precompute_u_list(circuit, bit_len=bit_len)
     # circuit.simulate()
-    # build_treemap(circuit.groups, circuit.nodes)
     build_area_treemap(circuit.groups, circuit.nodes)

@@ -10,11 +10,7 @@ from pathlib import Path
 
 # This file contains functions and measurement tools that operate on the graph representation of the constructed circuits.
 
-plot_types = [
-    "general",
-    "function_approximation",
-    "component_approximation"
-]
+plot_types = ["general", "function_approximation", "component_approximation"]
 
 metrics = [
     "depth",
@@ -49,20 +45,29 @@ def circuit_depth(circuit: CircuitGraph) -> int:
             depth[node.node_id] = 1 + max(depth[p] for p in preds)
     return max(depth.values(), default=0)"""
 
+
 def count_components(setup_fn, component_label, bit_len=4):
     cg = CircuitGraph(enable_groups=True)
     setup_fn(cg, bit_len)
     count = sum(1 for group in cg.groups.values() if group.label == component_label)
     return count
 
+
 def analyze_circuit_function(
-    name, setup_fn, bit_len=4, interface_name="graph", use_cache=True, fill_cache=True
+    name,
+    setup_fn,
+    bit_len=4,
+    interface_name="graph",
+    metric="depth",
+    use_cache=True,
+    fill_cache=True,
 ):
     if use_cache:
         metrics = cache.get(CACHE_FILE, name, bit_len)
         if metrics:
-            return metrics
-        
+            if metric in metrics:
+                return metrics
+
     if interface_name == "depth":
         interface = DepthInterface()
         measured_depth = setup_fn(interface, bit_len)
@@ -78,7 +83,9 @@ def analyze_circuit_function(
         num_gate_nodes = len(
             [node for node in cg.nodes.values() if node.type not in ["input", "output"]]
         )
-        num_input_nodes = len([node for node in cg.nodes.values() if node.type == "input"])
+        num_input_nodes = len(
+            [node for node in cg.nodes.values() if node.type == "input"]
+        )
         num_output_nodes = len(
             [node for node in cg.nodes.values() if node.type == "output"]
         )
@@ -100,6 +107,7 @@ def analyze_circuit_function(
             cache.update(CACHE_FILE, name, bit_len, dic)
 
         return dic
+
 
 def plot_circuit_metrics(experiments, metric="depth", title="Circuit Characteristics"):
     plt.figure(figsize=(8, 5))
@@ -171,6 +179,6 @@ if __name__ == "__main__":
     setup_fn = setup_montgomery_ladder
     component_label = "WALLACE_TREE_MULTIPLIER"
     bit_len = 8
-    
+
     count = count_components(setup_fn, component_label, bit_len)
     print(f"Count of {component_label} components: {count}")

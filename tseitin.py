@@ -157,9 +157,15 @@ def tseitin_transform(circuit: CircuitGraph, speed_up=True):
 
 if __name__ == "__main__":
     circuit = CircuitGraph()
-    bit_len = 8
-    setup_full_adder(circuit, bit_len=8)
-    # setup_modular_exponentiation(circuit, bit_len=bit_len)
+    interface = GraphInterface(circuit)
+    bit_len = 4
+    # setup_full_adder(circuit, bit_len=8)
+    # setup_square_and_multiply(circuit, bit_len=bit_len)
+    # setup_montgomery_ladder(circuit, bit_len=bit_len)
+    # setup_lemma_4_1(interface, bit_len=bit_len)
+    # setup_theorem_4_2(interface, bit_len=bit_len)
+    setup_lemma_5_1(interface, bit_len=bit_len)
+    # setup_square_and_multiply(interface, bit_len=bit_len)
     clauses, output_vars, var_map = tseitin_transform(circuit)
 
     print("CNF Klauseln:", clauses)

@@ -1,8 +1,10 @@
 from core.graph import CircuitGraph
 
+
 class Interface:
     pass
-    
+
+
 class GraphInterface(Interface):
 
     enable_groups = True
@@ -14,7 +16,8 @@ class GraphInterface(Interface):
     def __getattr__(self, name):
         # Forward any functions to the underlying Circuit Graph
         return getattr(self.circuit, name)
-    
+
+
 class DepthInterface(Interface):
 
     enable_groups = False
@@ -28,6 +31,6 @@ class DepthInterface(Interface):
             return max(inputs)
         else:
             raise ValueError(f"Unknown node type: {node_type}")
-        
+
     def add_group(self, label="DEFAULT_GROUP"):
         return None

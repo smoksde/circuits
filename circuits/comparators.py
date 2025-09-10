@@ -8,24 +8,22 @@ def one_bit_comparator(circuit, x, y, parent_group=None):
     if circuit.enable_groups and this_group is not None:
         this_group.set_parent(parent_group)
 
-    #not_x = circuit.add_node("not", "NOT", inputs=[x], group_id=this_group_id)
-    #not_y = circuit.add_node("not", "NOT", inputs=[y], group_id=this_group_id)
+    # not_x = circuit.add_node("not", "NOT", inputs=[x], group_id=this_group_id)
+    # not_y = circuit.add_node("not", "NOT", inputs=[y], group_id=this_group_id)
 
-    #x_less_y = circuit.add_node(
+    # x_less_y = circuit.add_node(
     #    "and", "AND", inputs=[not_x.ports[1], y], group_id=this_group_id
-    #)
-    #x_greater_y = circuit.add_node(
+    # )
+    # x_greater_y = circuit.add_node(
     #    "and", "AND", inputs=[x, not_y.ports[1]], group_id=this_group_id
-    #)
+    # )
 
     not_x = not_gate(circuit, x, parent_group=this_group)
     not_y = not_gate(circuit, y, parent_group=this_group)
     x_less_y = and_gate(circuit, [not_x, y], parent_group=this_group)
     x_greater_y = and_gate(circuit, [x, not_y], parent_group=this_group)
 
-    x_equals_y = xnor_gate(
-        circuit, x_less_y, x_greater_y, parent_group=this_group
-    )
+    x_equals_y = xnor_gate(circuit, x_less_y, x_greater_y, parent_group=this_group)
 
     return x_less_y, x_equals_y, x_greater_y
 
@@ -45,11 +43,13 @@ def log_depth_and_tree(circuit, inputs, parent_group=None):
         next_level = []
         for i in range(0, len(inputs), 2):
             if i + 1 < len(inputs):
-                #and_node = circuit.add_node(
+                # and_node = circuit.add_node(
                 #    "and", "AND", inputs=[inputs[i], inputs[i + 1]], group_id=this_group_id
-                #)
-                #next_level.append(and_node.ports[2])
-                and_out = and_gate(circuit, [inputs[i], inputs[i + 1]], parent_group=this_group)
+                # )
+                # next_level.append(and_node.ports[2])
+                and_out = and_gate(
+                    circuit, [inputs[i], inputs[i + 1]], parent_group=this_group
+                )
                 next_level.append(and_out)
             else:
                 next_level.append(inputs[i])
@@ -96,10 +96,10 @@ def n_bit_comparator(circuit, x_list, y_list, parent_group=None):
             left_last = left[-1]
             new_right = []
             for r in right:
-                #and_node = circuit.add_node(
+                # and_node = circuit.add_node(
                 #    "and", "AND", inputs=[left_last, r], group_id=this_group_id
-                #)
-                #new_right.append(and_node.ports[2])
+                # )
+                # new_right.append(and_node.ports[2])
                 and_out = and_gate(circuit, [left_last, r], parent_group=this_group)
                 new_right.append(and_out)
             return left + new_right
@@ -113,28 +113,32 @@ def n_bit_comparator(circuit, x_list, y_list, parent_group=None):
     # 5. Build conditional less flags
     build_less = [bit_wise[n - 1][0]]  # MSB less
     for i in range(n - 2, -1, -1):
-        #and_node = circuit.add_node(
+        # and_node = circuit.add_node(
         #    "and",
         #    "AND",
         #    inputs=[eq_prefixes[n - 2 - i], bit_wise[i][0]],
         #    group_id=this_group_id,
-        #)
-        #build_less.append(and_node.ports[2])
-        and_out = and_gate(circuit, [eq_prefixes[n - 2 - i], bit_wise[i][0]], parent_group=this_group)
+        # )
+        # build_less.append(and_node.ports[2])
+        and_out = and_gate(
+            circuit, [eq_prefixes[n - 2 - i], bit_wise[i][0]], parent_group=this_group
+        )
         build_less.append(and_out)
     n_less = or_tree_recursive(circuit, build_less, parent_group=this_group)
 
     # 6. Build conditional greater flags
     build_greater = [bit_wise[n - 1][2]]  # MSB greater
     for i in range(n - 2, -1, -1):
-        #and_node = circuit.add_node(
+        # and_node = circuit.add_node(
         #    "and",
         #    "AND",
         #    inputs=[eq_prefixes[n - 2 - i], bit_wise[i][2]],
         #    group_id=this_group_id,
-        #)
-        #build_greater.append(and_node.ports[2])
-        and_out = and_gate(circuit, [eq_prefixes[n - 2 - i], bit_wise[i][2]], parent_group=this_group)
+        # )
+        # build_greater.append(and_node.ports[2])
+        and_out = and_gate(
+            circuit, [eq_prefixes[n - 2 - i], bit_wise[i][2]], parent_group=this_group
+        )
         build_greater.append(and_out)
     n_greater = or_tree_recursive(circuit, build_greater, parent_group=this_group)
 
@@ -155,12 +159,12 @@ def n_bit_equality(
 
     xnor_bits = []
     for a_bit, b_bit in zip(a, b):
-        #xor = circuit.add_node(
+        # xor = circuit.add_node(
         #    "xor", "XOR", inputs=[a_bit, b_bit], group_id=this_group_id
-        #).ports[2]
-        #not_xor = circuit.add_node(
+        # ).ports[2]
+        # not_xor = circuit.add_node(
         #    "not", "NOT", inputs=[xor], group_id=this_group_id
-        #).ports[1]
+        # ).ports[1]
         xor = xor_gate(circuit, [a_bit, b_bit], parent_group=this_group)
         not_xor = not_gate(circuit, xor, parent_group=this_group)
         xnor_bits.append(not_xor)

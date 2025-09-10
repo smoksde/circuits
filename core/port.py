@@ -1,5 +1,6 @@
 class Port:
-    __slots__ = ('id', 'type', 'node_id', 'x', 'y')
+    __slots__ = ("id", "type", "node_id", "x", "y")
+
     def __init__(self, port_id, port_type, node_id, x, y):
         self.id = port_id
         self.type = port_type

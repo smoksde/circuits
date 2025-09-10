@@ -1,10 +1,10 @@
-from core.graph import *
-from circuits.circuit import *
+from core.interface import *
+from circuits import *
 
 from tqdm import tqdm
 
 
-def tseitin_transform(circuit: CircuitGraph, speed_up=True):
+def tseitin_transform(circuit: Interface, speed_up=True):
     clauses = []
     var_map = {}
 
@@ -47,7 +47,7 @@ def tseitin_transform(circuit: CircuitGraph, speed_up=True):
                             break
                 if source_port_id is None:
                     raise RuntimeError(f"Input port {port.id} not connected")
-                # this should also be replaced
+                # replaceable
                 source_node_id = None
                 for n in circuit.nodes.values():
                     for p in n.ports:
@@ -84,7 +84,7 @@ def tseitin_transform(circuit: CircuitGraph, speed_up=True):
         elif node.type == "not":
             input_port = circuit.get_input_ports_of_node(node)[0]
 
-            # should be replaced with function
+            # replaceable with helperfunction
             if speed_up:
                 source_port_id = port_map[input_port.id]
             else:
@@ -159,15 +159,15 @@ if __name__ == "__main__":
     circuit = CircuitGraph()
     interface = GraphInterface(circuit)
     bit_len = 4
-    # setup_full_adder(circuit, bit_len=8)
-    # setup_square_and_multiply(circuit, bit_len=bit_len)
-    # setup_montgomery_ladder(circuit, bit_len=bit_len)
+    # setup_full_adder(interface, bit_len=8)
     # setup_lemma_4_1(interface, bit_len=bit_len)
     # setup_theorem_4_2(interface, bit_len=bit_len)
     setup_lemma_5_1(interface, bit_len=bit_len)
     # setup_square_and_multiply(interface, bit_len=bit_len)
-    clauses, output_vars, var_map = tseitin_transform(circuit)
 
-    print("CNF Klauseln:", clauses)
-    print("Output Variablen:", output_vars)
-    print("Variablen Zuordnung:", var_map)
+    # to generate 3 sat instances the dimacs_export.py should be used
+    clauses, output_vars, var_map = tseitin_transform(interface)
+
+    print("CNF Clauses:", clauses)
+    print("Output Variables:", output_vars)
+    print("Variable Mapping:", var_map)

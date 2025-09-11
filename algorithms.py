@@ -1,8 +1,4 @@
 def exp_by_squaring(base, exponent, modulus):
-    """
-    Exponentiation by squaring (also known as binary exponentiation)
-    https://en.wikipedia.org/wiki/Modular_exponentiation
-    """
     if modulus == 1:
         return 0
     result = 1

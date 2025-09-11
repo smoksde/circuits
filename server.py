@@ -15,7 +15,6 @@ from map import *
 from core.graph import CircuitGraph
 from core.interface import *
 import measurement
-import approximation
 import circuits.circuit as circuit
 
 app = FastAPI()
@@ -145,18 +144,6 @@ def render_function_approximation_plot(
             fn_name[6:] if fn_name.startswith("setup_") else fn_name
         )  # or s.get("name", fn_name)
         plt.plot(bits, vals, marker="o", linestyle="--", label="measured")
-
-        function_approximation_vals = []
-        approx_fn = approximation.function_approximation(fn_name)
-        if approx_fn:
-            function_approximation_vals = [approx_fn(b) for b in bits]
-            plt.plot(
-                bits,
-                function_approximation_vals,
-                marker="x",
-                linestyle=":",
-                label=f"approximation",
-            )
 
     plt.title(label)
     plt.xlabel("bits")

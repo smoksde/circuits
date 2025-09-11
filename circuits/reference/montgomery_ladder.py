@@ -1,7 +1,7 @@
-from ..constants import *
-from ..multipliers import *
-from ..modular import *
-from ..multiplexers import *
+from ..standard.constants import *
+from ..standard.multipliers import *
+from ..standard.modular import *
+from ..standard.multiplexers import *
 
 
 def mult_and_mod(circuit, x, y, m, parent_group=None):

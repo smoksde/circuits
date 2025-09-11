@@ -2,17 +2,17 @@ import math
 
 from core.interface import Interface, GraphInterface, DepthInterface
 
-from .shifters import *
-from .constants import *
-from .adders import *
-from .multipliers import *
-from .comparators import *
-from .multiplexers import *
-from .subtractors import *
-from .modular import *
+from .standard.shifters import *
+from .standard.constants import *
+from .standard.adders import *
+from .standard.multipliers import *
+from .standard.comparators import *
+from .standard.multiplexers import *
+from .standard.subtractors import *
+from .standard.modular import *
 from .reference.montgomery_ladder import montgomery_ladder
 from .reference.square_and_multiply import square_and_multiply
-from .manipulators import conditional_zeroing, max_tree_iterative
+from .standard.manipulators import conditional_zeroing, max_tree_iterative
 
 from .beame import lemma_4_1
 from .beame import lemma_5_1
@@ -23,6 +23,7 @@ from .beame import theorem_5_3
 
 def binary_list_to_int(binary_list):
     return sum(bit * (2**i) for i, bit in enumerate(binary_list))
+
 
 def log2_estimate(circuit, x_list):
     n = len(x_list)
@@ -62,10 +63,6 @@ def log2_estimate(circuit, x_list):
 
 
 def reciprocal_newton_raphson(circuit, m_bits, n):
-    # Computes 1 / m using Newton-Raphson method.
-    # x_{i+1} = x_i * (2 - m * x_i)
-    # Converges to 1/m if x_0 is a good initial approximation.
-
     x_0 = initial_approximation(circuit, m_bits, n)
     m_x0 = fixed_point_multiply(circuit, m_bits, x_0, n)
     two_minus_mx0 = fixed_point_subtract_from_two(circuit, m_x0, n)
@@ -114,9 +111,6 @@ def initial_approximation(circuit, m_bits, n):
     one_fixed_point[n // 2] = one
     initial_approx = n_left_shift(circuit, one_fixed_point, shift_amount)
     return initial_approx
-
-
-
 
 
 CIRCUIT_FUNCTIONS = {
@@ -181,10 +175,6 @@ CIRCUIT_FUNCTIONS = {
         cg, bit_len=bit_len
     ),
 }
-
-
-def setup_generate_number(circuit: CircuitGraph, bit_len=4):
-    n = bit_len
 
 
 def setup_theorem_4_2_step_1(circuit: CircuitGraph, bit_len=4):
@@ -389,7 +379,9 @@ def setup_theorem_4_2_not_modified(interface: Interface, bit_len=4):
     elif isinstance(interface, GraphInterface):
         X_LIST_NODES = [interface.add_input_nodes(n) for _ in range(n)]
         PEXPL_NODES = interface.add_input_nodes(n)
-        X_LIST_PORTS = [interface.get_input_nodes_ports(nodes) for nodes in X_LIST_NODES]
+        X_LIST_PORTS = [
+            interface.get_input_nodes_ports(nodes) for nodes in X_LIST_NODES
+        ]
         PEXPL_PORTS = interface.get_input_nodes_ports(PEXPL_NODES)
         RESULT_PORTS = theorem_4_2.theorem_4_2(interface, X_LIST_PORTS, PEXPL_PORTS)
         RESULT_NODES = interface.generate_output_nodes_from_ports(RESULT_PORTS)
@@ -409,7 +401,9 @@ def setup_theorem_4_2(interface: Interface, bit_len=4):
     elif isinstance(interface, GraphInterface):
         X_LIST_NODES = [interface.add_input_nodes(n) for _ in range(n)]
         PEXPL_NODES = interface.add_input_nodes(n)
-        X_LIST_PORTS = [interface.get_input_nodes_ports(nodes) for nodes in X_LIST_NODES]
+        X_LIST_PORTS = [
+            interface.get_input_nodes_ports(nodes) for nodes in X_LIST_NODES
+        ]
         PEXPL_PORTS = interface.get_input_nodes_ports(PEXPL_NODES)
         RESULT_PORTS = theorem_4_2.theorem_4_2(interface, X_LIST_PORTS, PEXPL_PORTS)
         RESULT_NODES = interface.generate_output_nodes_from_ports(RESULT_PORTS)
@@ -424,7 +418,9 @@ def setup_theorem_4_2_precompute_largest_powers(circuit: CircuitGraph, bit_len=4
     input_port = circuit.get_input_node_port(input_node)
     zero_port = constant_zero(circuit, input_port)
     one_port = constant_one(circuit, input_port)
-    MATRIX_PORTS = theorem_4_2.precompute_largest_powers(circuit, zero_port, one_port, n)
+    MATRIX_PORTS = theorem_4_2.precompute_largest_powers(
+        circuit, zero_port, one_port, n
+    )
     MATRIX_NODES = []
     for row in MATRIX_PORTS:
         MATRIX_NODES.append(
@@ -445,29 +441,36 @@ def setup_theorem_4_2_precompute_lookup_tables_B(circuit: CircuitGraph, bit_len=
     TABLE_ZERO_NODES = []
     for row in TABLE_ZERO:
         nodes = [
-            circuit.generate_output_nodes_from_ports(entry, label="OUTPUT") for entry in row
+            circuit.generate_output_nodes_from_ports(entry, label="OUTPUT")
+            for entry in row
         ]
         TABLE_ZERO_NODES.append(nodes)
     TABLE_ONE_NODES = []
     for row in TABLE_ONE:
         nodes = [
-            circuit.generate_output_nodes_from_ports(entry, label="OUTPUT") for entry in row
+            circuit.generate_output_nodes_from_ports(entry, label="OUTPUT")
+            for entry in row
         ]
         TABLE_ONE_NODES.append(nodes)
     return TABLE_ZERO_NODES, TABLE_ONE_NODES
 
 
-def setup_theorem_4_2_precompute_lookup_generator_powers(circuit: CircuitGraph, bit_len=4):
+def setup_theorem_4_2_precompute_lookup_generator_powers(
+    circuit: CircuitGraph, bit_len=4
+):
     n = bit_len
     input_node = circuit.add_input_nodes(1, "INPUT")[0]
     input_port = circuit.get_input_node_port(input_node)
     zero_port = constant_zero(circuit, input_port)
     one_port = constant_one(circuit, input_port)
-    TABLE = theorem_4_2.precompute_lookup_generator_powers(circuit, zero_port, one_port, n)
+    TABLE = theorem_4_2.precompute_lookup_generator_powers(
+        circuit, zero_port, one_port, n
+    )
     TABLE_NODES = []
     for row in TABLE:
         nodes = [
-            circuit.generate_output_nodes_from_ports(entry, label="OUTPUT") for entry in row
+            circuit.generate_output_nodes_from_ports(entry, label="OUTPUT")
+            for entry in row
         ]
         TABLE_NODES.append(nodes)
     return TABLE_NODES
@@ -483,7 +486,8 @@ def setup_theorem_4_2_precompute_lookup_division(circuit: CircuitGraph, bit_len=
     TABLE_NODES = []
     for row in TABLE:
         nodes = [
-            circuit.generate_output_nodes_from_ports(entry, label="OUTPUT") for entry in row
+            circuit.generate_output_nodes_from_ports(entry, label="OUTPUT")
+            for entry in row
         ]
         TABLE_NODES.append(nodes)
     return TABLE_NODES
@@ -500,13 +504,17 @@ def setup_theorem_4_2_precompute_lookup_powers(circuit: CircuitGraph, bit_len=4)
     for o in O:
         powers_of_p_nodes = []
         for power in o:
-            power_nodes = circuit.generate_output_nodes_from_ports(power, label="OUTPUT")
+            power_nodes = circuit.generate_output_nodes_from_ports(
+                power, label="OUTPUT"
+            )
             powers_of_p_nodes.append(power_nodes)
         O_NODES.append(powers_of_p_nodes)
     return O_NODES
 
 
-def setup_theorem_4_2_precompute_lookup_is_prime_power(circuit: CircuitGraph, bit_len=4):
+def setup_theorem_4_2_precompute_lookup_is_prime_power(
+    circuit: CircuitGraph, bit_len=4
+):
     n = bit_len
     input_node = circuit.add_input_nodes(1, "INPUT")[0]
     input_port = circuit.get_input_node_port(input_node)
@@ -523,7 +531,9 @@ def setup_theorem_4_2_precompute_lookup_p_l(circuit: CircuitGraph, bit_len=4):
     input_port = circuit.get_input_node_port(input_node)
     zero_port = constant_zero(circuit, input_port)
     one_port = constant_one(circuit, input_port)
-    P_TABLE, L_TABLE = theorem_4_2.precompute_lookup_p_l(circuit, zero_port, one_port, n)
+    P_TABLE, L_TABLE = theorem_4_2.precompute_lookup_p_l(
+        circuit, zero_port, one_port, n
+    )
     P_TABLE_NODES = []
     L_TABLE_NODES = []
     for p, l in zip(P_TABLE, L_TABLE):
@@ -552,7 +562,9 @@ def setup_theorem_4_2_precompute_lookup_pexpl_minus_pexpl_minus_one(
     return TABLE_NODES
 
 
-def setup_theorem_5_3_precompute_good_modulus_sequence(circuit: CircuitGraph, bit_len=4):
+def setup_theorem_5_3_precompute_good_modulus_sequence(
+    circuit: CircuitGraph, bit_len=4
+):
     n = bit_len
     input_node = circuit.add_input_nodes(1)[0]
     input_port = circuit.get_input_node_port(input_node)
@@ -565,7 +577,9 @@ def setup_theorem_5_3_precompute_good_modulus_sequence(circuit: CircuitGraph, bi
     for ports in PRIMES_PORTS:
         nodes = circuit.generate_output_nodes_from_ports(ports)
         PRIMES_NODES.append(nodes)
-    PRIMES_PRODUCT_NODES = circuit.generate_output_nodes_from_ports(PRIMES_PRODUCT_PORTS)
+    PRIMES_PRODUCT_NODES = circuit.generate_output_nodes_from_ports(
+        PRIMES_PRODUCT_PORTS
+    )
     return PRIMES_NODES, PRIMES_PRODUCT_NODES
 
 
@@ -606,38 +620,54 @@ def setup_lemma_5_1_step_6_and_7(circuit: CircuitGraph, bit_len=4):
     C_NODES = circuit.add_input_nodes(n)
     Y_PORTS = circuit.get_input_nodes_ports(Y_NODES)
     C_PORTS = circuit.get_input_nodes_ports(C_NODES)
-    RESULT_PORTS = lemma_5_1.step_6_and_7(circuit, Y_PORTS, C_PORTS, zero_port, one_port)
+    RESULT_PORTS = lemma_5_1.step_6_and_7(
+        circuit, Y_PORTS, C_PORTS, zero_port, one_port
+    )
     RESULT_NODES = circuit.generate_output_nodes_from_ports(RESULT_PORTS)
     return Y_NODES, C_NODES, RESULT_NODES
 
 
-# should not be n * n but n
-def setup_lemma_5_1(circuit: CircuitGraph, bit_len=4):
+def setup_lemma_5_1(interface: CircuitGraph, bit_len=4):
     n = bit_len
-    X_MOD_C_I_LIST_NODES = [circuit.add_input_nodes(n * n) for _ in range(n)]
-    C_NODES = circuit.add_input_nodes(n * n)
-    X_MOD_C_I_LIST_PORTS = [
-        circuit.get_input_nodes_ports(nodes) for nodes in X_MOD_C_I_LIST_NODES
-    ]
-    C_PORTS = circuit.get_input_nodes_ports(C_NODES)
-    RESULT_PORTS = lemma_5_1.lemma_5_1(circuit, X_MOD_C_I_LIST_PORTS, C_PORTS)
-    RESULT_NODES = circuit.generate_output_nodes_from_ports(RESULT_PORTS)
-    return X_MOD_C_I_LIST_NODES, C_NODES, RESULT_NODES
+    s = n * n  # n * n
+    if isinstance(interface, DepthInterface):
+        X_MOD_C_I_LIST = [[0] * s for _ in range(n)]
+        C = [0] * s
+        RESULT_DEPTHS = lemma_5_1.lemma_5_1(interface, X_MOD_C_I_LIST, C)
+        max_depth = max(RESULT_DEPTHS)
+        return max_depth
+    elif isinstance(interface, GraphInterface):
+        X_MOD_C_I_LIST_NODES = [interface.add_input_nodes(s) for _ in range(n)]
+        C_NODES = interface.add_input_nodes(s)
+        X_MOD_C_I_LIST_PORTS = [
+            interface.get_input_nodes_ports(nodes) for nodes in X_MOD_C_I_LIST_NODES
+        ]
+        C_PORTS = interface.get_input_nodes_ports(C_NODES)
+        RESULT_PORTS = lemma_5_1.lemma_5_1(interface, X_MOD_C_I_LIST_PORTS, C_PORTS)
+        RESULT_NODES = interface.generate_output_nodes_from_ports(RESULT_PORTS)
+        return X_MOD_C_I_LIST_NODES, C_NODES, RESULT_NODES
+    else:
+        raise TypeError(f"Unsupported interface type: {type(interface).__name__}")
 
 
 def setup_theorem_5_2_step_3(interface: Interface, bit_len=4):
     n = bit_len
+    s = n * n
     if isinstance(interface, DepthInterface):
         X_LIST = [[0] * n for _ in range(n)]
-        C_LIST = [[0] * n for _ in range(n)]
+        C_LIST = [[0] * n for _ in range(s)]
         MATRIX_DEPTHS = theorem_5_2.step_3(interface, X_LIST, C_LIST)
         max_depth = max(x for matrix in MATRIX_DEPTHS for row in matrix for x in row)
         return max_depth
     elif isinstance(interface, GraphInterface):
         X_LIST_NODES = [interface.add_input_nodes(n) for _ in range(n)]
-        C_LIST_NODES = [interface.add_input_nodes(n) for _ in range(n)]
-        X_LIST_PORTS = [interface.get_input_nodes_ports(nodes) for nodes in X_LIST_NODES]
-        C_LIST_PORTS = [interface.get_input_nodes_ports(nodes) for nodes in C_LIST_NODES]
+        C_LIST_NODES = [interface.add_input_nodes(n) for _ in range(s)]
+        X_LIST_PORTS = [
+            interface.get_input_nodes_ports(nodes) for nodes in X_LIST_NODES
+        ]
+        C_LIST_PORTS = [
+            interface.get_input_nodes_ports(nodes) for nodes in C_LIST_NODES
+        ]
         MATRIX_PORTS = theorem_5_2.step_3(interface, X_LIST_PORTS, C_LIST_PORTS)
         MATRIX_NODES = []
         for row in MATRIX_PORTS:
@@ -667,10 +697,13 @@ def setup_theorem_5_2_step_4(interface: Interface, bit_len=4):
                 [interface.get_input_nodes_ports(nodes) for nodes in nodes_list]
             )
         C_LIST_NODES = [interface.add_input_nodes(n) for _ in range(s)]
-        C_LIST_PORTS = [interface.get_input_nodes_ports(nodes) for nodes in C_LIST_NODES]
+        C_LIST_PORTS = [
+            interface.get_input_nodes_ports(nodes) for nodes in C_LIST_NODES
+        ]
         B_J_LIST_PORTS = theorem_5_2.step_4(interface, B_J_I_MATRIX_PORTS, C_LIST_PORTS)
         B_J_LIST_NODES = [
-            interface.generate_output_nodes_from_ports(ports) for ports in B_J_LIST_PORTS
+            interface.generate_output_nodes_from_ports(ports)
+            for ports in B_J_LIST_PORTS
         ]
         return B_J_I_MATRIX_NODES, C_LIST_NODES, B_J_LIST_NODES
     else:
@@ -680,8 +713,8 @@ def setup_theorem_5_2_step_4(interface: Interface, bit_len=4):
 def setup_theorem_5_2_step_5(interface: Interface, bit_len=4):
     n = bit_len
     if isinstance(interface, DepthInterface):
-        X_MOD_C_I_LIST = [[0] * (n*n) for _ in range(n)]
-        C = [0] * (n*n)
+        X_MOD_C_I_LIST = [[0] * (n * n) for _ in range(n)]
+        C = [0] * (n * n)
         RESULT_DEPTHS = theorem_5_2.step_5(interface, X_MOD_C_I_LIST, C)
         max_depth = max(RESULT_DEPTHS)
         return max_depth
@@ -698,6 +731,7 @@ def setup_theorem_5_2_step_5(interface: Interface, bit_len=4):
     else:
         raise TypeError(f"Unsupported interface type: {type(interface).__name__}")
 
+
 def setup_theorem_5_2(interface: Interface, bit_len=4):
     n = bit_len
     if isinstance(interface, DepthInterface):
@@ -707,7 +741,9 @@ def setup_theorem_5_2(interface: Interface, bit_len=4):
         return max_depth
     elif isinstance(interface, GraphInterface):
         X_LIST_NODES = [interface.add_input_nodes(n) for _ in range(n)]
-        X_LIST_PORTS = [interface.get_input_nodes_ports(nodes) for nodes in X_LIST_NODES]
+        X_LIST_PORTS = [
+            interface.get_input_nodes_ports(nodes) for nodes in X_LIST_NODES
+        ]
         RESULT_PORTS = theorem_5_2.theorem_5_2(interface, X_LIST_PORTS)
         RESULT_NODES = interface.generate_output_nodes_from_ports(RESULT_PORTS)
         return X_LIST_NODES, RESULT_NODES
@@ -854,10 +890,13 @@ def setup_bus_multiplexer(circuit, num_amount=4, bit_len=4):
             num_ports.append(nde.ports[0])
         BUS_PORTS.append(num_ports)
     selector = [
-        circuit.add_node("input", f"SELECTOR_{i}") for i in range(int(math.log2(num_amount)))
+        circuit.add_node("input", f"SELECTOR_{i}")
+        for i in range(int(math.log2(num_amount)))
     ]
     O = bus_multiplexer(circuit, BUS_PORTS, [s.ports[0] for s in selector])
-    O_NODES = [circuit.add_node("output", f"OUT_{i}", inputs=[o]) for i, o in enumerate(O)]
+    O_NODES = [
+        circuit.add_node("output", f"OUT_{i}", inputs=[o]) for i, o in enumerate(O)
+    ]
     return BUS, selector, O_NODES
 
 
@@ -884,30 +923,60 @@ def setup_tensor_multiplexer(circuit: CircuitGraph, num_amount=4, bit_len=4):
     return TENSOR, selector, BUS_NODES
 
 
-def setup_montgomery_ladder(circuit, bit_len=4):
-    B = [circuit.add_node("input", f"B_{i}") for i in range(bit_len)]
-    E = [circuit.add_node("input", f"E_{i}") for i in range(bit_len)]
-    M = [circuit.add_node("input", f"M_{i}") for i in range(bit_len)]
-    OUT = montgomery_ladder(
-        circuit, [b.ports[0] for b in B], [e.ports[0] for e in E], [m.ports[0] for m in M]
-    )
-    OUT_NODES = [
-        circuit.add_node("output", f"OUT_{i}", inputs=[o]) for i, o in enumerate(OUT)
-    ]
-    return B, E, M, OUT_NODES
+def setup_montgomery_ladder(interface, bit_len=4):
+    n = bit_len
+    if isinstance(interface, DepthInterface):
+        B = [0] * n
+        E = [0] * n
+        M = [0] * n
+        OUT_DEPTHS = montgomery_ladder(interface, B, E, M)
+        max_depth = max(OUT_DEPTHS)
+        return max_depth
+    elif isinstance(interface, GraphInterface):
+        B = [interface.add_node("input", f"B_{i}") for i in range(bit_len)]
+        E = [interface.add_node("input", f"E_{i}") for i in range(bit_len)]
+        M = [interface.add_node("input", f"M_{i}") for i in range(bit_len)]
+        OUT = montgomery_ladder(
+            interface,
+            [b.ports[0] for b in B],
+            [e.ports[0] for e in E],
+            [m.ports[0] for m in M],
+        )
+        OUT_NODES = [
+            interface.add_node("output", f"OUT_{i}", inputs=[o])
+            for i, o in enumerate(OUT)
+        ]
+        return B, E, M, OUT_NODES
+    else:
+        raise TypeError(f"Unsupported interface type: {type(interface).__name__}")
 
 
-def setup_square_and_multiply(circuit, bit_len=4):
-    B = [circuit.add_node("input", f"B_{i}") for i in range(bit_len)]
-    E = [circuit.add_node("input", f"E_{i}") for i in range(bit_len)]
-    M = [circuit.add_node("input", f"M_{i}") for i in range(bit_len)]
-    OUT = square_and_multiply(
-        circuit, [b.ports[0] for b in B], [e.ports[0] for e in E], [m.ports[0] for m in M]
-    )
-    OUT_NODES = [
-        circuit.add_node("output", f"OUT_{i}", inputs=[o]) for i, o in enumerate(OUT)
-    ]
-    return B, E, M, OUT_NODES
+def setup_square_and_multiply(interface: Interface, bit_len=4):
+    n = bit_len
+    if isinstance(interface, DepthInterface):
+        B = [0] * n
+        E = [0] * n
+        M = [0] * n
+        OUT_DEPTHS = square_and_multiply(interface, B, E, M)
+        max_depth = max(OUT_DEPTHS)
+        return max_depth
+    elif isinstance(interface, GraphInterface):
+        B = [interface.add_node("input", f"B_{i}") for i in range(bit_len)]
+        E = [interface.add_node("input", f"E_{i}") for i in range(bit_len)]
+        M = [interface.add_node("input", f"M_{i}") for i in range(bit_len)]
+        OUT = square_and_multiply(
+            interface,
+            [b.ports[0] for b in B],
+            [e.ports[0] for e in E],
+            [m.ports[0] for m in M],
+        )
+        OUT_NODES = [
+            interface.add_node("output", f"OUT_{i}", inputs=[o])
+            for i, o in enumerate(OUT)
+        ]
+        return B, E, M, OUT_NODES
+    else:
+        raise TypeError(f"Unsupported interface type: {type(interface).__name__}")
 
 
 def setup_modulo_circuit(circuit, bit_len=4):
@@ -933,7 +1002,9 @@ def setup_slow_modulo_circuit(circuit, bit_len=4):
 def setup_optimized_modulo_circuit(circuit, bit_len=4):
     X = [circuit.add_node("input", f"X_{i}") for i in range(bit_len)]
     A = [circuit.add_node("input", f"A_{i}") for i in range(bit_len)]
-    OUT = modulo_circuit_optimized(circuit, [x.ports[0] for x in X], [a.ports[0] for a in A])
+    OUT = modulo_circuit_optimized(
+        circuit, [x.ports[0] for x in X], [a.ports[0] for a in A]
+    )
     OUT_NODES = [
         circuit.add_node("output", f"OUT_{i}", inputs=[o]) for i, o in enumerate(OUT)
     ]
@@ -1057,7 +1128,9 @@ def setup_multiplexer(circuit, bit_len=4):
 
 def setup_one_bit_comparator(circuit, bit_len=4):
     less, equals, greater = one_bit_comparator(
-        circuit, circuit.add_node("input", "x").ports[0], circuit.add_node("input", "y").ports[0]
+        circuit,
+        circuit.add_node("input", "x").ports[0],
+        circuit.add_node("input", "y").ports[0],
     )
     less_node = circuit.add_node("output", "LESS", inputs=[less])
     equals_node = circuit.add_node("output", "EQUALS", inputs=[equals])
@@ -1128,18 +1201,19 @@ def setup_half_adder(interface: Interface, bit_len=4):
         raise TypeError(f"Unsupported interface type: {type(interface).__name__}")
 
 
-
 def setup_full_adder(interface: Interface, bit_len=4):
     if isinstance(interface, DepthInterface):
         a, b, cin = 0, 0, 0
         sum_depth, carry_depth = full_adder(interface, a, b, cin)
         max_depth = max(sum_depth, carry_depth)
-        return max_depth 
+        return max_depth
     elif isinstance(interface, GraphInterface):
         A = interface.add_node("input", "A")
         B = interface.add_node("input", "B")
         cin = interface.add_node("input", "Cin")
-        sum_port, carry_port = full_adder(interface, A.ports[0], B.ports[0], cin.ports[0])
+        sum_port, carry_port = full_adder(
+            interface, A.ports[0], B.ports[0], cin.ports[0]
+        )
         sum_node = interface.add_node("output", "sum")
         carry_node = interface.add_node("output", "carry")
         interface.add_edge(sum_port, sum_node.ports[0])
@@ -1198,7 +1272,6 @@ def setup_carry_look_ahead_adder(interface: Interface, bit_len=4):
         return A, B, cin, sum_nodes, carry_node
     else:
         raise TypeError(f"Unsupported interface type: {type(interface).__name__}")
-
 
 
 def setup_wallace_tree_multiplier(interface: Interface, bit_len=4):

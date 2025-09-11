@@ -2,12 +2,12 @@ from typing import List, Optional, Tuple
 from core.graph import *
 from utils import int2binlist
 
-from ..constants import *
-from ..multiplexers import tensor_multiplexer
-from ..manipulators import conditional_zeroing
-from ..trees import adder_tree_iterative, or_tree_iterative
-from ..comparators import n_bit_comparator
-from ..subtractors import subtract
+from ..standard.constants import *
+from ..standard.multiplexers import tensor_multiplexer
+from ..standard.manipulators import conditional_zeroing
+from ..standard.trees import adder_tree_iterative, or_tree_iterative
+from ..standard.comparators import n_bit_comparator
+from ..standard.subtractors import subtract
 
 
 # Lookup Table generation for Lemma 4.1
@@ -44,7 +44,6 @@ def precompute_aim(
     return lis
 
 
-# Selection of appropiate Lookup Table signals
 def provide_aims_given_m(
     circuit: CircuitGraph, m: List[Port], parent_group: Optional[Group] = None
 ):
@@ -55,12 +54,10 @@ def provide_aims_given_m(
     one = constant_one(circuit, m[0], parent_group=this_group)
     n = len(m)
     aims_ports = precompute_aim(circuit, zero, one, n, parent_group=this_group)
-    # figure out if aims_ports needs to be reformated
     ais = tensor_multiplexer(circuit, aims_ports, m, parent_group=this_group)
-    return ais  # List[List[Port]]
+    return ais
 
 
-# computes x_i * a_im terms in the big summation
 def compute_summands(
     circuit: CircuitGraph,
     x: List[Port],
@@ -74,9 +71,6 @@ def compute_summands(
     n = len(x)
     result = []
     for p1, p2 in zip(x, aims):
-        #not_p1 = circuit.add_node(
-        #    "not", "NOT", inputs=[p1], group_id=this_group_id
-        #).ports[1]
         not_p1 = not_gate(circuit, p1, parent_group=this_group)
         product = conditional_zeroing(circuit, p2, not_p1, parent_group=this_group)
         result.append(product)
@@ -124,12 +118,6 @@ def compute_diffs(
         else:
             summands = [m for _ in range(i)]
             acc = adder_tree_iterative(circuit, summands, zero, parent_group=this_group)
-        # previous version was faulty since it used up to n sequential adder steps to accumulate a value
-        # acc = [zero for k in range(n)]
-        # for _ in range(i):
-        #    acc, _ = carry_look_ahead_adder(
-        #        circuit, acc, m, zero, parent_group=cd_group
-        #    )
         diff = subtract(circuit, y, acc, parent_group=this_group)
         diff_list.append(diff)
 
@@ -155,27 +143,14 @@ def reduce_in_parallel(
 
     diff_list = compute_diffs(circuit, y, m, n, parent_group=this_group)
 
-    # is parallel in the circuit
     for i in range(n):
-        # build acc starting at zero
         diff = diff_list[i]
-        # check diff if its in the range of [0, m - 1]
         is_negative = diff[len(diff) - 1]
-        #is_positive = circuit.add_node(
-        #    "not", "NOT", inputs=[is_negative], group_id=this_group_id
-        #).ports[1]
         is_positive = not_gate(circuit, is_negative, parent_group=this_group)
         less, equal, greater = n_bit_comparator(
             circuit, diff, m, parent_group=this_group
         )
-        # has to be less
-        #desired = circuit.add_node(
-        #    "and", "DESIRED_AND", inputs=[is_positive, less], group_id=this_group_id
-        #).ports[2]
         desired = and_gate(circuit, [is_positive, less], parent_group=this_group)
-        #not_desired = circuit.add_node(
-        #    "not", "NOT", inputs=[desired], group_id=this_group_id
-        #).ports[1]
         not_desired = not_gate(circuit, desired, parent_group=this_group)
         inter = conditional_zeroing(circuit, diff, not_desired, parent_group=this_group)
         inter_list.append(inter)

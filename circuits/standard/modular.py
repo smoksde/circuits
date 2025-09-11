@@ -89,7 +89,7 @@ def slow_modulo_circuit(circuit, x_bits, m_bits, parent_group=None):
 
     # Unroll a fixed number of subtractions (enough to handle worst case)
     # For n-bit numbers, we need at most 2^(n-m_len) subtractions
-    max_subtractions = 2 ** n
+    max_subtractions = 2**n
 
     for step in range(max_subtractions):
         less, equal, greater = n_bit_comparator(
@@ -128,7 +128,7 @@ def modulo_circuit_optimized(circuit, x_bits, m_bits, parent_group=None):
 
         shift_bin_list = utils.int2binlist(shift, len(x_bits))
         shift_repr = [one if bit else zero for bit in shift_bin_list]
-        shifted_m = n_left_shift(circuit, m_bits, shift_repr)
+        shifted_m = n_left_shift(circuit, m_bits, shift_repr, parent_group=this_group)
         shifted_moduli.append(shifted_m)
 
     # Process from largest shift to smallest
@@ -136,12 +136,15 @@ def modulo_circuit_optimized(circuit, x_bits, m_bits, parent_group=None):
         shifted_m = shifted_moduli[i]
 
         # Check if we can subtract this shifted modulus
-        less, equal, greater = n_bit_comparator(circuit, current_remainder, shifted_m)
-        can_subtract = circuit.add_node("or", "OR", inputs=[equal, greater]).ports[2]
+        less, equal, greater = n_bit_comparator(
+            circuit, current_remainder, shifted_m, parent_group=this_group
+        )
+        # can_subtract = circuit.add_node("or", "OR", inputs=[equal, greater]).ports[2]
+        can_subtract = or_gate(circuit, [equal, greater], parent_group=this_group)
 
         # Conditionally subtract
         current_remainder = conditional_subtract(
-            circuit, current_remainder, shifted_m, can_subtract
+            circuit, current_remainder, shifted_m, can_subtract, parent_group=this_group
         )
 
     return current_remainder

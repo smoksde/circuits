@@ -2,6 +2,7 @@ from typing import Optional
 from core.interface import DepthInterface
 from core.graph import Group
 
+
 def and_gate(circuit, inputs, label=None, parent_group: Optional[Group] = None):
 
     this_group = circuit.add_group("AND_GATE")
@@ -10,12 +11,15 @@ def and_gate(circuit, inputs, label=None, parent_group: Optional[Group] = None):
 
     this_group_id = this_group.id if this_group is not None else -1
 
-    node = circuit.add_node("and", label or "AND", inputs=inputs, group_id=this_group_id)
+    node = circuit.add_node(
+        "and", label or "AND", inputs=inputs, group_id=this_group_id
+    )
 
     if isinstance(circuit, DepthInterface):
         return node
     else:
         return node.ports[2]
+
 
 def or_gate(circuit, inputs, label=None, parent_group: Optional[Group] = None):
 
@@ -31,6 +35,7 @@ def or_gate(circuit, inputs, label=None, parent_group: Optional[Group] = None):
     else:
         return node.ports[2]
 
+
 def xor_gate(circuit, inputs, label=None, parent_group: Optional[Group] = None):
 
     this_group = circuit.add_group("XOR_GATE")
@@ -39,11 +44,14 @@ def xor_gate(circuit, inputs, label=None, parent_group: Optional[Group] = None):
 
     this_group_id = this_group.id if this_group is not None else -1
 
-    node = circuit.add_node("xor", label or "XOR", inputs=inputs, group_id=this_group_id)
+    node = circuit.add_node(
+        "xor", label or "XOR", inputs=inputs, group_id=this_group_id
+    )
     if isinstance(circuit, DepthInterface):
         return node
     else:
         return node.ports[2]
+
 
 def not_gate(circuit, input_port, label=None, parent_group: Optional[Group] = None):
 
@@ -53,7 +61,9 @@ def not_gate(circuit, input_port, label=None, parent_group: Optional[Group] = No
 
     this_group_id = this_group.id if this_group is not None else -1
 
-    node = circuit.add_node("not", label or "NOT", inputs=[input_port], group_id=this_group_id)
+    node = circuit.add_node(
+        "not", label or "NOT", inputs=[input_port], group_id=this_group_id
+    )
     if isinstance(circuit, DepthInterface):
         return node
     else:

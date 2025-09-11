@@ -4,15 +4,19 @@ import utils
 import math
 
 import sanity.software_beame as sb
-from ..constants import *
-from ..multiplexers import tensor_multiplexer, bus_multiplexer
-from ..comparators import n_bit_comparator, n_bit_equality
-from ..manipulators import max_tree_iterative, min_tree_iterative, conditional_zeroing
-from ..trees import or_tree_iterative, adder_tree_iterative
-from ..adders import carry_look_ahead_adder
-from ..subtractors import subtract
-from ..shifters import n_left_shift
-from ..multipliers import wallace_tree_multiplier
+from ..standard.constants import *
+from ..standard.multiplexers import tensor_multiplexer, bus_multiplexer
+from ..standard.comparators import n_bit_comparator, n_bit_equality
+from ..standard.manipulators import (
+    max_tree_iterative,
+    min_tree_iterative,
+    conditional_zeroing,
+)
+from ..standard.trees import or_tree_iterative, adder_tree_iterative
+from ..standard.adders import carry_look_ahead_adder
+from ..standard.subtractors import subtract
+from ..standard.shifters import n_left_shift
+from ..standard.multipliers import wallace_tree_multiplier
 from .. import circuit_utils
 
 from . import lemma_4_1
@@ -20,7 +24,6 @@ from . import lemma_4_1
 import sanity.theorem_4_2_sanity as theorem_4_2_sanity
 
 
-# produces approx. n signals that can be hardwired into circuits
 def precompute_lookup_is_prime_power(
     circuit: CircuitGraph,
     zero: Port,
@@ -41,7 +44,6 @@ def precompute_lookup_is_prime_power(
     return result
 
 
-# produces approx. n^2 * 2 signals that can be hardwired into circuits
 def precompute_lookup_p_l(
     circuit: CircuitGraph,
     zero: Port,
@@ -85,7 +87,6 @@ def precompute_lookup_p_l(
     return p_result, l_result
 
 
-# approx. n^3 produced signals that can be hardwired into a circuit
 def precompute_lookup_powers(
     circuit: CircuitGraph,
     zero: Port,
@@ -118,40 +119,6 @@ def precompute_lookup_powers(
     return result
 
 
-"""
-def precompute_lookup_powers_decr(
-    circuit: CircuitGraph,
-    zero: Port,
-    one: Port,
-    n: int,
-    parent_group: Optional[Group] = None,
-):
-    this_group = circuit.add_group("THEOREM_4_2_PRECOMPUTE_LOOKUP_POWERS_DECR")
-    if circuit.enable_groups and this_group is not None:
-        this_group.set_parent(parent_group)
-
-    result = []
-    for p in range(1, n + 1):
-        powers_of_p = []
-        for e in range(n):
-            if e > math.log2(n) or p**e > n:
-                power = 0
-            else:
-                power = (p**e) - 1
-            power_bits = utils.int2binlist(power, bit_len=n)
-            power_ports = []
-            for bit in power_bits:
-                if bit:
-                    power_ports.append(one)
-                else:
-                    power_ports.append(zero)
-            powers_of_p.append(power_ports)
-        result.append(powers_of_p)
-
-    return result"""
-
-
-# also producing n^3 ingoing signals into the circuit this is used in
 def precompute_lookup_generator_powers(
     circuit: CircuitGraph,
     zero: Port,
@@ -167,25 +134,18 @@ def precompute_lookup_generator_powers(
     software_primitive_roots = sb.find_primitive_roots(n)
     software_p_l_lookup = sb.theorem_4_2_precompute_lookup_p_l(n)
 
-    # dummy_row = []
-    # for i in range(n):
-    #    dummy_row.append([zero for _ in range(n)])
-    # result.append(dummy_row)
-
     for pexpl in range(0, n + 1):
         row = []
         p, l = software_p_l_lookup[pexpl]
         if p == 0 or l == 0:
             thresh = 0
         else:
-            # thresh = int(math.pow(p, l)) - int(math.pow(p, l - 1))
             thresh = int(math.pow(2, n))
         g = software_primitive_roots[pexpl]
         software_pows_of_g = sb.compute_powers_mod_up_to(g, pexpl, thresh)
         while len(software_pows_of_g) < n:
             software_pows_of_g.append(0)
 
-        # FILL ROW
         for entry in software_pows_of_g:
             bits = utils.int2binlist(entry, bit_len=n)
             num_ports = []
@@ -199,7 +159,6 @@ def precompute_lookup_generator_powers(
     return result
 
 
-# no more relevant since part b not used in the case of iterated products in the context of beames paper
 def precompute_lookup_tables_B(
     circuit: CircuitGraph,
     zero: Port,
@@ -210,7 +169,6 @@ def precompute_lookup_tables_B(
     this_group = circuit.add_group("THEOREM_4_2_PRECOMPUTE_LOOKUP_TABLES_B")
     if circuit.enable_groups and this_group is not None:
         this_group.set_parent(parent_group)
-    # TABLE for a == 0
     TABLE_ZERO = []
     for l in range(0, int(math.log2(n)) + 1):
         row = []
@@ -232,7 +190,6 @@ def precompute_lookup_tables_B(
             row.append(num)
         TABLE_ZERO.append(row)
 
-    # TABLE for a == 1
     TABLE_ONE = []
     for l in range(0, int(math.log2(n)) + 1):
         row = []
@@ -288,10 +245,6 @@ def step_1_with_lemma_4_1(
             less, equal, greater = n_bit_comparator(
                 circuit, p_powers[i], pexpl, parent_group=this_group
             )
-
-            #goreq = circuit.add_node(
-            #    "not", "NOT", inputs=[less], group_id=this_group_id
-            #).ports[1]
             goreq = not_gate(circuit, less, parent_group=this_group)
 
             remainder = lemma_4_1.lemma_4_1(
@@ -305,22 +258,14 @@ def step_1_with_lemma_4_1(
             p_powers_is_not_zero = or_tree_iterative(
                 circuit, p_powers[i], parent_group=this_group
             )
-            #p_powers_is_zero = circuit.add_node(
-            #    "not", "NOT", inputs=[p_powers_is_not_zero], group_id=this_group_id
-            #).ports[1]
-            p_powers_is_zero = not_gate(circuit, p_powers_is_not_zero, parent_group=this_group)
+            p_powers_is_zero = not_gate(
+                circuit, p_powers_is_not_zero, parent_group=this_group
+            )
 
-            #cond = circuit.add_node(
-            #    "or",
-            #    "OR",
-            #    inputs=[is_remainder_not_zero, goreq],
-            #    group_id=this_group_id,
-            #).ports[2]
-            cond = or_gate(circuit, [is_remainder_not_zero, goreq], parent_group=this_group)
+            cond = or_gate(
+                circuit, [is_remainder_not_zero, goreq], parent_group=this_group
+            )
 
-            #cond = circuit.add_node(
-            #    "or", "OR", inputs=[cond, p_powers_is_zero], group_id=this_group_id
-            #).ports[2]
             cond = or_gate(circuit, [cond, p_powers_is_zero], parent_group=this_group)
 
             exponent = circuit_utils.generate_number(i, n, zero, one)
@@ -341,7 +286,6 @@ def step_1(
     parent_group: Optional[Group] = None,
 ) -> List[List[Port]]:
     this_group = circuit.add_group("THEOREM_4_2_STEP_1")
-    # this_group_id = this_group.id if this_group is not None else -1
     if circuit.enable_groups and this_group is not None:
         this_group.set_parent(parent_group)
 
@@ -349,7 +293,6 @@ def step_1(
     # return step_1_with_lemma_4_1(circuit, x_list, p, pexpl, parent_group=this_group)
 
 
-# approximately n^3 hardwired signals. since 2-dim matrix of n bit numbers
 def precompute_largest_powers(
     circuit: CircuitGraph,
     zero: Port,
@@ -357,16 +300,13 @@ def precompute_largest_powers(
     n: int,
     parent_group: Optional[Group] = None,
 ) -> List[List[List[Port]]]:
-    # print("Starting precompute largest powers")
     this_group = circuit.add_group("THEOREM_4_2_PRECOMPUTE_LARGEST_POWERS")
-    # this_group_id = this_group.id if this_group is not None else -1
     if circuit.enable_groups and this_group is not None:
         this_group.set_parent(parent_group)
 
     result = []
 
     for p in range(0, n + 1):
-        # print(f"Precomputing largest powers for p = {p}")
         row = []
         for x in range(0, n):
             largest_exp = 0
@@ -386,7 +326,6 @@ def precompute_largest_powers(
             )
             row.append(largest_exp_ports)
         result.append(row)
-    # print("Finished precompute largest powers")
     return result
 
 
@@ -398,7 +337,6 @@ def step_1_with_precompute(
 ) -> List[List[Port]]:
 
     this_group = circuit.add_group("THEOREM_4_2_STEP_1_WITH_PRECOMPUTE")
-    # this_group_id = this_group.id if this_group is not None else -1
     if circuit.enable_groups and this_group is not None:
         this_group.set_parent(parent_group)
 
@@ -471,7 +409,6 @@ def step_2(
     return y_list
 
 
-# This is used for Theorem 4.2 Step 3, 6
 def compute_sum(
     circuit: CircuitGraph,
     j_list: List[List[Port]],
@@ -502,18 +439,14 @@ def step_4(
     zero = constant_zero(circuit, p[0], parent_group=this_group)
     one = constant_one(circuit, p[0], parent_group=this_group)
 
-    # BUILD NUM TWO
     num_two = [zero for _ in range(n)]
     num_two[1] = one
 
-    # BUILD NUM FOUR
     num_four = [zero for _ in range(n)]
     num_four[2] = one
 
     _, p_equals_two, _ = n_bit_comparator(circuit, p, num_two, parent_group=this_group)
-    #p_not_equals_two = circuit.add_node(
-    #    "not", "NOT", inputs=[p_equals_two], group_id=this_group_id
-    #).ports[1]
+
     p_not_equals_two = not_gate(circuit, p_equals_two, parent_group=this_group)
 
     _, pexpl_equals_two, _ = n_bit_comparator(
@@ -523,14 +456,10 @@ def step_4(
         circuit, pexpl, num_four, parent_group=this_group
     )
 
-    #two_or_four = circuit.add_node(
-    #    "or", "OR", inputs=[pexpl_equals_two, pexpl_equals_four], group_id=this_group_id
-    #).ports[2]
-    two_or_four = or_gate(circuit, [pexpl_equals_two, pexpl_equals_four], parent_group=this_group)
+    two_or_four = or_gate(
+        circuit, [pexpl_equals_two, pexpl_equals_four], parent_group=this_group
+    )
 
-    #flag = circuit.add_node(
-    #    "or", "OR", inputs=[p_not_equals_two, two_or_four], group_id=this_group_id
-    #).ports[2]
     flag = or_gate(circuit, [p_not_equals_two, two_or_four], parent_group=this_group)
 
     return flag
@@ -568,17 +497,8 @@ def A_step_5(
     for y in y_list:
         e_candidates = []
         for idx, num in enumerate(generator_powers_bus):
-            # check for equality with y
-            # generate number from idx
-            # pass only the correct idx number via conditional zeroing, max_tree_iterative
             equals = n_bit_equality(circuit, y, num, parent_group=this_group)
-            # not_equals = circuit.add_node(
-            #    "not", "NOT", inputs=[equals], group_id=this_group.id
-            # ).ports[1]
             e_num = circuit_utils.generate_number(idx, n, zero, one)
-            # e_num = conditional_zeroing(
-            #    circuit, e_num, not_equals, parent_group=this_group
-            # )
             e_num = bus_multiplexer(
                 circuit, [supremum, e_num], [equals], parent_group=this_group
             )
@@ -588,7 +508,6 @@ def A_step_5(
     return a_list
 
 
-# Circuit for a_hat = a mod (p^l - p^(l-1))
 def A_step_7(
     circuit: CircuitGraph,
     a: List[Port],
@@ -650,19 +569,11 @@ def B_step_5(
     parent_group: Optional[Group] = None,
 ) -> Tuple[List[List[Port]], List[List[Port]]]:
 
-    #print("Starting B_step_5")
-
-    #print("len(y_list)")
-    #print(len(y_list))
-    #print("len(y_list[0])")
-    #print(len(y_list[0]))
-    #print(len(l))
-
     this_group = circuit.add_group("THEOREM_4_2_B_STEP_5")
     if circuit.enable_groups and this_group is not None:
         this_group.set_parent(parent_group)
 
-    n = len(y_list[0])  # len(l)
+    n = len(y_list[0])
 
     zero = constant_zero(circuit, l[0], parent_group=this_group)
     one = constant_one(circuit, l[0], parent_group=this_group)
@@ -671,12 +582,8 @@ def B_step_5(
         circuit, zero, one, n, parent_group=this_group
     )
 
-    # Build number one ports
     num_one = [zero for _ in range(n)]
     num_one[0] = one
-
-    # Compute 2^l
-    # twoexpl = n_left_shift(circuit, num_one, l, parent_group=this_group)
 
     table_a_zero_twoexpl_bus = tensor_multiplexer(
         circuit, table_a_zero, l, parent_group=this_group
@@ -723,7 +630,6 @@ def B_step_5(
             circuit, [index_a_zero, index_a_one], [equals], parent_group=this_group
         )
 
-        # Index is the b_i value and a_i can be generated by equals
         b_i = index
         a_i = [zero for _ in range(n)]
         a_i[0] = equals
@@ -734,8 +640,6 @@ def B_step_5(
     return (a_list, b_list)
 
 
-# Searches value in the bus and returns the index of the entry that matches the value
-# If the value was not found in the bus, supremum as the index value is returned, indicating value was not found
 def compute_value_index_from_bus(
     circuit: CircuitGraph,
     value: List[Port],
@@ -800,8 +704,6 @@ def B_step_8(
     l: List[Port],
     parent_group: Optional[Group] = None,
 ) -> List[Port]:
-    # after l
-    # after b_hat
 
     this_group = circuit.add_group("THEOREM_4_2_B_step_8")
     this_group_id = this_group.id if this_group is not None else -1
@@ -838,9 +740,6 @@ def B_step_8(
 
     equals = n_bit_equality(circuit, a_hat, num_one, parent_group=this_group)
 
-    #not_equals = circuit.add_node(
-    #    "not", "NOT", inputs=[equals], group_id=this_group_id
-    #).ports[1]
     not_equals = not_gate(circuit, equals, parent_group=this_group)
 
     r1 = conditional_zeroing(
@@ -884,7 +783,6 @@ def step_9(
         circuit, pexpj, y_product, parent_group=this_group
     )
 
-    # Assume product does not need 2*n bits but still n
     product = product[:n]
 
     result = lemma_4_1.lemma_4_1(circuit, product, pexpl, parent_group=this_group)
@@ -921,28 +819,24 @@ def theorem_4_2_not_modified(
     y_list = step_2(circuit, x_list, p, j_list, parent_group=this_group)
     j = compute_sum(circuit, j_list, parent_group=this_group)
 
-    # PART A
     a_list = A_step_5(circuit, y_list, pexpl, parent_group=this_group)
     a = compute_sum(circuit, a_list)
-    # print("len a, len pexpl", len(a), len(pexpl))
-    # CHECK IF THIS SHOULD BE DONE HERE
+
     while len(a) < len(pexpl):
         a.append(zero)
     a_hat = A_step_7(circuit, a, pexpl, parent_group=this_group)
     y_product_part_a = A_step_8(circuit, a_hat, pexpl, parent_group=this_group)
 
-    # DEFAULT VALUES FOR PART B IF PART A WAS DONE
     new_y_list = []
     for _ in range(len(y_list)):
         new_y_list.append([zero for _ in range(len(y_list[0]))])
     y_list = new_y_list
 
-    # PART B
     a_list, b_list = B_step_5(circuit, y_list, l, parent_group=this_group)
     a = compute_sum(circuit, a_list, parent_group=this_group)
     b = compute_sum(circuit, b_list, parent_group=this_group)
     a_hat, b_hat = B_step_7(circuit, a, b, l, parent_group=this_group)
-    
+
     y_product_part_b = B_step_8(circuit, a_hat, b_hat, l, parent_group=this_group)
 
     y_product = bus_multiplexer(
@@ -1026,7 +920,6 @@ def precompute_lookup_pexpl_minus_pexpl_minus_one(
     return table
 
 
-# WITH INDEX PADDING -> NO NEED FOR VARIABLE_DECR
 def precompute_lookup_division(
     circuit: CircuitGraph,
     zero: Port,

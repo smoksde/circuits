@@ -57,7 +57,9 @@ def n_left_shift(circuit, x_list, amount, parent_group=None):
         next_current = []
         for l in range(n):
             next_current.append(
-                mux2(circuit, amount[i], shifted[l], current[l], parent_group=this_group)
+                mux2(
+                    circuit, amount[i], shifted[l], current[l], parent_group=this_group
+                )
             )
         current = next_current
     return current
@@ -91,7 +93,9 @@ def n_right_shift(circuit, x_list, amount, parent_group=None):
         next_current = []
         for l in range(n):
             next_current.append(
-                mux2(circuit, amount[i], shifted[l], current[l], parent_group=this_group)
+                mux2(
+                    circuit, amount[i], shifted[l], current[l], parent_group=this_group
+                )
             )
         current = next_current
     return current

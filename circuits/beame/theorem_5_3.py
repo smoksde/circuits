@@ -4,8 +4,6 @@ import sanity.theorem_5_3_sanity as theorem_5_3_sanity
 from .. import circuit_utils
 
 
-# keeps bit width for primes but
-# introduces n*n bit width for primes product!
 def precompute_good_modulus_sequence(
     circuit: CircuitGraph,
     zero: Port,

@@ -2,12 +2,14 @@ from circuits.circuit import *
 from core.graph import *
 from tqdm import tqdm
 
+# This script holds code of the first attempts of generating formulas for the circuits
+# Though this is replaced by tseitin.py, which is also way faster and produces smaller instances
+
 type_to_symbol_dict = {"and": "&", "or": "||", "xor": "^", "not": "!"}
 
 
 def map_type_to_symbol(type: str):
     if type not in type_to_symbol_dict:
-        print(f"No symbol for type {type}")
         return "ERROR"
     return type_to_symbol_dict[type]
 
@@ -270,8 +272,9 @@ if __name__ == "__main__":
 
     for n in bit_lengths:
         circuit = CircuitGraph()
+        interface = GraphInterface(circuit)
         # A, B, sum_node, carry_node = setup_half_adder(circuit, bit_len=n)
-        B, E, M, OUT_NODES = setup_modular_exponentiation(circuit, bit_len=n)
+        B, E, M, OUT_NODES = setup_square_and_multiply(interface, bit_len=n)
         # A, B, cin, sum_nodes, carry_node = setup_carry_look_ahead_adder(
         #    circuit, bit_len=n
         # )

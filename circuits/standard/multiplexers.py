@@ -19,8 +19,8 @@ def multiplexer(
     n_bits = len(selector_list)
     not_selector_list = []
     for sel in selector_list:
-        #not_sel = circuit.add_node("not", "NOT", inputs=[sel], group_id=this_group_id)
-        #not_selector_list.append(not_sel.ports[1])
+        # not_sel = circuit.add_node("not", "NOT", inputs=[sel], group_id=this_group_id)
+        # not_selector_list.append(not_sel.ports[1])
         not_sel = not_gate(circuit, sel, parent_group=this_group)
         not_selector_list.append(not_sel)
 
@@ -115,24 +115,26 @@ def mux2(circuit, signal, a, b, parent_group: Optional[Group] = None):
     this_group_id = this_group.id if this_group is not None else -1
     if circuit.enable_groups and this_group is not None:
         this_group.set_parent(parent_group)
-    #not_signal = circuit.add_node(
+    # not_signal = circuit.add_node(
     #    "not", "MUX_NOT", inputs=[signal], group_id=this_group_id
-    #)
+    # )
     not_signal = not_gate(circuit, signal, parent_group=this_group)
     not_signal_port = not_signal
-    #first_and = circuit.add_node(
+    # first_and = circuit.add_node(
     #    "and", "MUX_AND", inputs=[signal, a], group_id=this_group_id
-    #)
-    #second_and = circuit.add_node(
+    # )
+    # second_and = circuit.add_node(
     #    "and", "MUX_AND", inputs=[not_signal_port, b], group_id=this_group_id
-    #)
+    # )
     first_and = and_gate(circuit, [signal, a], parent_group=this_group)
     second_and = and_gate(circuit, [not_signal_port, b], parent_group=this_group)
     first_and_port = first_and
     second_and_port = second_and
-    #out_node = circuit.add_node(
+    # out_node = circuit.add_node(
     #    "or", "MUX_OR", inputs=[first_and_port, second_and_port], group_id=this_group_id
-    #)
-    out_node = or_gate(circuit, [first_and_port, second_and_port], parent_group=this_group)
+    # )
+    out_node = or_gate(
+        circuit, [first_and_port, second_and_port], parent_group=this_group
+    )
     out_port = out_node
     return out_port

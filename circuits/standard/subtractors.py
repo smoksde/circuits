@@ -2,7 +2,7 @@ from typing import List
 
 from .constants import *
 from .adders import *
-from .circuit_utils import *
+from ..circuit_utils import *
 
 
 def subtract(circuit, a_bits, b_bits, parent_group=None) -> List[Port]:
@@ -47,19 +47,23 @@ def conditional_subtract(circuit, x_bits, m_bits, select, parent_group=None):
     difference = subtract(circuit, x_bits, m_bits, parent_group=this_group)
     result = [None] * n
     for i in range(n):
-        not_select = circuit.add_node(
-            "not", f"NOT_SEL_{i}", inputs=[select], group_id=this_group_id
-        ).ports[1]
-        and1 = circuit.add_node(
-            "and",
-            f"AND_DIFF_{i}",
-            inputs=[select, difference[i]],
-            group_id=this_group_id,
-        ).ports[2]
-        and2 = circuit.add_node(
-            "and", f"AND_X_{i}", inputs=[not_select, x_bits[i]], group_id=this_group_id
-        ).ports[2]
-        result[i] = circuit.add_node(
-            "or", f"OR_RES_{i}", inputs=[and1, and2], group_id=this_group_id
-        ).ports[2]
+        # not_select = circuit.add_node(
+        #    "not", f"NOT_SEL_{i}", inputs=[select], group_id=this_group_id
+        # ).ports[1]
+        # and1 = circuit.add_node(
+        #    "and",
+        #    f"AND_DIFF_{i}",
+        #    inputs=[select, difference[i]],
+        #    group_id=this_group_id,
+        # ).ports[2]
+        # and2 = circuit.add_node(
+        #    "and", f"AND_X_{i}", inputs=[not_select, x_bits[i]], group_id=this_group_id
+        # ).ports[2]
+        # result[i] = circuit.add_node(
+        #    "or", f"OR_RES_{i}", inputs=[and1, and2], group_id=this_group_id
+        # ).ports[2]
+        not_select = not_gate(circuit, select, parent_group=this_group)
+        and1 = and_gate(circuit, [select, difference[i]], parent_group=this_group)
+        and2 = and_gate(circuit, [not_select, x_bits[i]], parent_group=this_group)
+        result[i] = or_gate(circuit, [and1, and2], parent_group=this_group)
     return result

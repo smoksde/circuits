@@ -2,13 +2,13 @@ from typing import List, Optional, Tuple
 
 from core.graph import *
 
-from ..gates import *
-from ..multipliers import wallace_tree_multiplier
-from ..trees import adder_tree_iterative
-from ..constants import constant_zero, constant_one
-from ..subtractors import subtract
-from ..manipulators import conditional_zeroing
-from ..comparators import n_bit_comparator
+from ..standard.gates import *
+from ..standard.multipliers import wallace_tree_multiplier
+from ..standard.trees import adder_tree_iterative
+from ..standard.constants import constant_zero, constant_one
+from ..standard.subtractors import subtract
+from ..standard.manipulators import conditional_zeroing
+from ..standard.comparators import n_bit_comparator
 import sanity.theorem_5_3_sanity as theorem_5_3_sanity
 import sanity.lemma_5_1_sanity as lemma_5_1_sanity
 
@@ -16,14 +16,7 @@ from .. import circuit_utils
 
 import math
 
-# Usually Lemma 5.1 also consists of steps 1 - 4.
-# Though assuming only contextual usage of Lemma 5.1
-# in Theorem 5.2 with the predefined good modulus
-# sequences (first n prime numbers) steps 1 - 4
-# can be collapsed to a precomputation of u_i for i = 1, ..., n
 
-
-# Heavy use of software precomputation that is already verified via tests
 def precompute_u_list(
     circuit: CircuitGraph,
     zero: Port,
@@ -50,7 +43,6 @@ def precompute_u_list(
     return U_LIST
 
 
-# Expects inputs having already n = n^2 bits
 def step_5(
     circuit: CircuitGraph,
     x_mod_c_i_list: List[List[Port]],
@@ -77,7 +69,6 @@ def step_5(
     return y
 
 
-# Expects inputs having already n = n^2 bits
 def step_6_and_7(
     circuit: CircuitGraph,
     y: List[Port],
@@ -92,8 +83,6 @@ def step_6_and_7(
         this_group.set_parent(parent_group)
 
     n = len(y)
-
-    # Compute c_n given the strict assumptions
     c_list, _ = theorem_5_3_sanity.compute_good_modulus_sequence(int(math.sqrt(n)))
 
     inter_list = []
@@ -106,23 +95,13 @@ def step_6_and_7(
         prod = prod[:n]
         y_t = subtract(circuit, y, prod, parent_group=this_group)
 
-        # check negativity
         is_negative = y_t[len(y_t) - 1]
 
         less, _, _ = n_bit_comparator(circuit, y_t, c, parent_group=this_group)
 
-        #not_less = circuit.add_node(
-        #    "not", "NOT", inputs=[less], group_id=this_group_id
-        #).ports[1]
-
-        #not_desired = circuit.add_node(
-        #    "or", label="OR", inputs=[not_less, is_negative], group_id=this_group_id
-        #).ports[2]
-
         not_less = not_gate(circuit, less, parent_group=this_group)
         not_desired = or_gate(circuit, [not_less, is_negative], parent_group=this_group)
 
-        # conditional subtract
         inter = conditional_zeroing(circuit, y_t, not_desired, parent_group=this_group)
         inter_list.append(inter)
 
@@ -149,8 +128,6 @@ def lemma_5_1(
 
     u_list = precompute_u_list(circuit, zero, one, n, parent_group=this_group)
 
-    #print(len(x_mod_c_i_list[0]))
-    #print(len(u_list[0]))
     y = step_5(circuit, x_mod_c_i_list, u_list, parent_group=this_group)
 
     result = step_6_and_7(circuit, y, c, zero, one, parent_group=this_group)

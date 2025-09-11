@@ -10,11 +10,12 @@ from utils import binlist2int
 
 # Make x, y node coords and groups optional
 
+
 class CircuitGraph:
     def __init__(self, enable_groups: bool = True):
         self.nodes = {}
         self.edges = []
-        
+
         self.node_count = 0
         self.node_values = {}
         self.port_count = 0
@@ -22,7 +23,6 @@ class CircuitGraph:
         if self.enable_groups:
             self.groups = {}
             self.group_count = 0
-        
 
     def add_node(
         self,
@@ -67,7 +67,7 @@ class CircuitGraph:
         self.nodes[str(node_id)] = node
         self.node_values[str(node_id)] = 0
         return node
-    
+
     def add_edge(self, source_port, target_port):
         edge = Edge(source_port.id, target_port.id)
         self.edges.append(edge)
@@ -198,7 +198,7 @@ class CircuitGraph:
             node_adj[source_node].append(target_node)
             in_degrees[target_node] += 1
         return node_adj, in_degrees
-    
+
     def get_port_value(self, port):
         return self.port_values.get(port.id, None)
 
@@ -208,7 +208,7 @@ class CircuitGraph:
         ), "In function fill_values length of nodes and values must be the same"
         for idx, node in enumerate(nodes):
             self.node_values[str(node.node_id)] = values[idx]
-    
+
     def topological_sort(self):
         adj, in_degrees = self.compute_node_adj_and_in_degrees()
         queue = deque([nid for nid, deg in in_degrees.items() if deg == 0])
@@ -226,7 +226,7 @@ class CircuitGraph:
             raise ValueError("Graph has a cycle or is malformed.")
 
         return topological_order
-    
+
     def topological_sort_generator(self):
         adj, in_degrees = self.compute_node_adj_and_in_degrees()
         queue = deque([nid for nid, deg in in_degrees.items() if deg == 0])
@@ -278,7 +278,7 @@ class CircuitGraph:
             else:
                 output_val = self.eval_gate(inputs, node.type)
                 output_port = [p for p in node.ports if p.type == "output"][0]
-                port_values[output_port.id] = output_val        
+                port_values[output_port.id] = output_val
 
         self.port_values = port_values
 
@@ -292,9 +292,11 @@ class CircuitGraph:
         elif gate_type == "not":
             val = 0 if inputs[0] else 1
         return val
-    
+
     def longest_path_length(self):
-        input_nodes = [node.node_id for node in self.nodes.values() if node.type == "input"]
+        input_nodes = [
+            node.node_id for node in self.nodes.values() if node.type == "input"
+        ]
         output_nodes = set(
             node.node_id for node in self.nodes.values() if node.type == "output"
         )

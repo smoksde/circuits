@@ -1,12 +1,13 @@
 class Node:
-    __slots__ = ('node_id', 'type', 'label', 'group_id', 'x', 'y', 'value', 'ports')
+    __slots__ = ("node_id", "type", "label", "group_id", "x", "y", "value", "ports")
+
     def __init__(self, node_id, node_type, node_label, group_id=-1, x=0, y=0, value=0):
         self.node_id = node_id
         self.type = node_type
-        self.label = node_label # remove
+        self.label = node_label  # remove
         self.group_id = group_id
-        self.x = x # remove
-        self.y = y # remove
+        self.x = x  # remove
+        self.y = y  # remove
         self.value = value
         self.ports = []
 

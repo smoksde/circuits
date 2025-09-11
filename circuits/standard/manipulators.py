@@ -8,20 +8,15 @@ from ..circuit_utils import generate_number
 from .constants import constant_zero, constant_one
 
 
-# if condition is one then zero it
 def conditional_zeroing(circuit, x_list, cond, parent_group=None):
     this_group = circuit.add_group("CONDITIONAL_ZEROING")
     this_group_id = this_group.id if this_group is not None else -1
     if circuit.enable_groups and this_group is not None:
         this_group.set_parent(parent_group)
     ports = []
-    # not_cond_node = circuit.add_node("not", "NOT", inputs=[cond], group_id=this_group_id)
     not_cond_node = not_gate(circuit, cond, parent_group=this_group)
     not_cond_port = not_cond_node
     for x in x_list:
-        # and_node = circuit.add_node(
-        #    "and", "AND", inputs=[x, not_cond_port], group_id=this_group_id
-        # )
         and_out = and_gate(circuit, [x, not_cond_port], parent_group=this_group)
         ports.append(and_out)
     return ports

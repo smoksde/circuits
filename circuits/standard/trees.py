@@ -4,30 +4,7 @@ from core.graph import *
 from .adders import ripple_carry_adder, carry_look_ahead_adder
 from circuits.standard.gates import *
 
-"""
-def and_tree_recursive(circuit, input_list, parent_group=None):
-    atr_group = circuit.add_group("AND_TREE_RECURSIVE")
-    atr_group.set_parent(parent_group)
-    if len(input_list) == 1:
-        return input_list[0]
 
-    if len(input_list) == 2:
-        and_node = circuit.add_node(
-            "and", "AND", inputs=input_list, group_id=atr_group.id
-        )
-        return and_node.ports[2]
-
-    mid = len(input_list) // 2
-    left = and_tree_recursive(circuit, input_list[:mid], parent_group=atr_group)
-    right = and_tree_recursive(circuit, input_list[mid:], parent_group=atr_group)
-    and_node = circuit.add_node(
-        "and", "AND", inputs=[left, right], group_id=atr_group.id
-    )
-    return and_node.ports[2]
-"""
-
-
-# Not used in larger circuits of this thesis
 def or_tree_recursive(
     circuit: CircuitGraph, input_list: List[Port], parent_group: Optional[Group] = None
 ) -> Port:
@@ -38,15 +15,11 @@ def or_tree_recursive(
     if len(input_list) == 1:
         return input_list[0]
     if len(input_list) == 2:
-        # or_node = circuit.add_node("or", "OR", inputs=input_list, group_id=this_group_id)
-        # return or_node.ports[2]
         sec_or_out = or_gate(circuit, input_list, parent_group=this_group)
         return sec_or_out
     mid = len(input_list) // 2
     left = or_tree_recursive(circuit, input_list[:mid], parent_group=this_group)
     right = or_tree_recursive(circuit, input_list[mid:], parent_group=this_group)
-    # or_node = circuit.add_node("or", "OR", inputs=[left, right], group_id=this_group_id)
-    # return or_node.ports[2]
     or_out = or_gate(circuit, [left, right], parent_group=this_group)
     return or_out
 
@@ -63,13 +36,6 @@ def and_tree_iterative(
         next = []
         for i in range(0, len(current), 2):
             if i + 1 < len(current):
-                # m = circuit.add_node(
-                #    "and",
-                #    "AND",
-                #    inputs=[current[i], current[i + 1]],
-                #    group_id=this_group_id,
-                # )
-                # next.append(m.ports[2])
                 m = and_gate(
                     circuit, [current[i], current[i + 1]], parent_group=this_group
                 )
@@ -93,13 +59,6 @@ def or_tree_iterative(
         for i in range(0, len(current), 2):
 
             if i + 1 < len(current):
-                # m = circuit.add_node(
-                #    "or",
-                #    "OR",
-                #    inputs=[current[i], current[i + 1]],
-                #    group_id=this_group_id,
-                # )
-                # next.append(m.ports[2])
                 m = or_gate(
                     circuit, [current[i], current[i + 1]], parent_group=this_group
                 )
@@ -140,7 +99,6 @@ def adder_tree_recursive(
     this_group = circuit.add_group("ADDER_TREE_RECURSIVE")
     if circuit.enable_groups and this_group is not None:
         this_group.set_parent(parent_group)
-    # carry does not work, pseudo non deterministic behaviour
     if len(summand_lists) == 1:
         return summand_lists[0], zero
 

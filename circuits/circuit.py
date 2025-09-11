@@ -138,12 +138,9 @@ CIRCUIT_FUNCTIONS = {
     "wallace_tree_multiplier": lambda cg, bit_len: setup_wallace_tree_multiplier(
         cg, bit_len=bit_len
     ),
-    # "multiplexer": lambda cg, bit_len: setup_multiplexer(cg, bit_len=bit_len),
     "adder_tree_recursive": lambda cg, bit_len: setup_adder_tree_recursive(
         cg, bit_len=bit_len
     ),
-    # "small_mod_lemma_4_1": lambda cg, bit_len: setup_small_mod_lemma_4_1(cg, bit_len=bit_len),
-    # "precompute_a_i": lambda cg, bit_len: setup_precompute_a_i(cg, bit_len=bit_len),
     "conditional_zeroing": lambda cg, bit_len: setup_conditional_zeroing(
         cg, bit_len=bit_len
     ),
@@ -1088,23 +1085,6 @@ def setup_one_right_shift(circuit, bit_len=4):
     return X, OUT_NODES
 
 
-"""def setup_small_mod_lemma_4_1(cg, bit_len=4):
-    X = [cg.add_node("input", f"X{i}") for i in range(4)]
-    M = [cg.add_node("input", f"M{i}") for i in range(4)]
-    # in_node = cg.add_node("input", f"IN")
-    # build M from int
-    # int_m = 3
-    # bin_list_m = utils.int2binlist(int_m, 4)
-    # print("bin_list_m shape: ", len(bin_list_m))
-    # M = [constant_one(cg, in_node.ports[0]) if bit else constant_zero(cg, in_node.ports[0]) for bit in bin_list_m]
-    outputs = small_mod_lemma_4_1(cg, [x.ports[0] for x in X], M, 2)
-    out_nodes = []
-    for out in outputs:
-        out_node = cg.add_node("output", "REMAINDER", inputs=[out])
-        out_nodes.append(out_node)
-    return X, out_nodes"""
-
-
 def setup_adder_tree_recursive(circuit, bit_len=4):
     ports = []
     for k in range(4):
@@ -1389,13 +1369,3 @@ def setup_next_power_of_two(cg, bit_len=4):
         output_node = cg.add_node("output", f"OUT_{i}", inputs=[out])
         O.append(output_node)
     return X, O
-
-
-# def setup_four_bit_wallace_tree_multiplier(cg):
-#    A = [cg.add_input(f"A{i}") for i in range(4)]
-#    B = [cg.add_input(f"B{i}") for i in range(4)]
-#    Cin = cg.add_input("cin")
-#    sum_outputs, carry_out = four_bit_wallace_tree_multiplier(cg, A, B, Cin)
-#    for i, sum in enumerate(sum_outputs):
-#        cg.add_output(sum, f"p_{i}")
-#    cg.add_output(carry_out, f"p_{len(sum_outputs)}")

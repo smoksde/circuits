@@ -2,6 +2,7 @@ from flask import Flask, render_template, jsonify, request
 import json
 
 import circuits.circuit as circuit
+from core.interface import *
 import core.graph as graph
 from test import run_tests
 
@@ -31,10 +32,11 @@ def get_circuit():
     if circuit_name not in circuit.CIRCUIT_FUNCTIONS:
         return jsonify({"error": "Invalid circuit name"}), 400
     cg = graph.CircuitGraph()
+    interface = GraphInterface(cg)
     bit_len = 4
     circuit_func = circuit.CIRCUIT_FUNCTIONS.get(circuit_name)
     if circuit_func:
-        circuit_func(cg, bit_len)
+        circuit_func(interface, bit_len)
         try:
             data = cg.to_json()
             return jsonify(data)

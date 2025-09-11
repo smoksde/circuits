@@ -6,8 +6,14 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 from collections import defaultdict, deque
+import plotly.express as px
+import plotly.graph_objects as go
+import pandas as pd
+import json
+from map import *
 
 from core.graph import CircuitGraph
+from core.interface import *
 import measurement
 import approximation
 import circuits.circuit as circuit
@@ -39,6 +45,37 @@ def get_plot_types():
 @app.get("/interfaces")
 def get_interfaces():
     return JSONResponse(measurement.interfaces)
+
+
+@app.post("/treemap")
+async def generate_treemap(req: Request):
+    try:
+        j = await req.json()
+        fn_name = j.get("fn")
+        bit_width = j.get("bit_width", 8)
+
+        if not fn_name:
+            raise HTTPException(400, "Function name is required")
+
+        setup_fn = getattr(circuit, fn_name, None)
+        if not callable(setup_fn):
+            raise HTTPException(400, f"No such function: {fn_name}")
+
+        circuit_graph = CircuitGraph()
+        interface = GraphInterface(circuit_graph)
+
+        try:
+            setup_fn(interface, bit_len=bit_width)
+        except TypeError:
+            setup_fn(circuit_graph, bit_len=bit_width)
+
+        fig = build_area_treemap(circuit_graph.groups, circuit_graph.nodes)
+        fig_json = fig.to_json()
+
+        return JSONResponse(json.loads(fig_json))
+
+    except Exception as e:
+        raise HTTPException(500, f"Error generating treemap: {str(e)}")
 
 
 def render_plot(specs, metric="depth", interface="graph", title="Circuit Metrics"):

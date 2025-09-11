@@ -6,7 +6,7 @@ from . import theorem_4_2
 from . import lemma_5_1
 from . import theorem_5_3
 
-from ..constants import constant_zero, constant_one
+from ..standard.constants import constant_zero, constant_one
 
 
 def step_3(
@@ -27,7 +27,8 @@ def step_3(
         row = []
         for i in range(n):
             b_j_i = lemma_4_1.lemma_4_1(
-            circuit, x_list[i], c_list[j], parent_group=this_group)
+                circuit, x_list[i], c_list[j], parent_group=this_group
+            )
             row.append(b_j_i)
         matrix.append(row)
     return matrix
@@ -46,7 +47,7 @@ def step_4(
     b_j_list = []
     for idx, x_list in enumerate(b_j_i_matrix):
         b_j = theorem_4_2.theorem_4_2(
-        circuit, x_list, c_list[idx], parent_group=this_group
+            circuit, x_list, c_list[idx], parent_group=this_group
         )
         b_j_list.append(b_j)
     return b_j_list
@@ -80,7 +81,6 @@ def theorem_5_2(
     zero = constant_zero(circuit, x_list[0][0], parent_group=this_group)
     one = constant_one(circuit, x_list[0][0], parent_group=this_group)
 
-    # For step 3 x_list has to be extended to big_n
     for x in x_list:
         while len(x) < big_n:
             x.append(zero)

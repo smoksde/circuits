@@ -1,6 +1,6 @@
 from core.graph import *
 from typing import Optional
-from circuits.gates import *
+from circuits.standard.gates import *
 
 
 def constant_zero(

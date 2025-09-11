@@ -1,5 +1,5 @@
 from core.interface import DepthInterface
-from circuits.gates import *
+from circuits.standard.gates import *
 
 
 def half_adder(circuit, x, y, parent_group=None):

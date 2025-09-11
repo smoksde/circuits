@@ -2,17 +2,17 @@ import math
 
 from core.interface import Interface, GraphInterface, DepthInterface
 
-from .shifters import *
-from .constants import *
-from .adders import *
-from .multipliers import *
-from .comparators import *
-from .multiplexers import *
-from .subtractors import *
-from .modular import *
+from .standard.shifters import *
+from .standard.constants import *
+from .standard.adders import *
+from .standard.multipliers import *
+from .standard.comparators import *
+from .standard.multiplexers import *
+from .standard.subtractors import *
+from .standard.modular import *
 from .reference.montgomery_ladder import montgomery_ladder
 from .reference.square_and_multiply import square_and_multiply
-from .manipulators import conditional_zeroing, max_tree_iterative
+from .standard.manipulators import conditional_zeroing, max_tree_iterative
 
 from .beame import lemma_4_1
 from .beame import lemma_5_1

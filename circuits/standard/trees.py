@@ -2,7 +2,7 @@ from typing import List, Optional
 
 from core.graph import *
 from .adders import ripple_carry_adder, carry_look_ahead_adder
-from circuits.gates import *
+from circuits.standard.gates import *
 
 """
 def and_tree_recursive(circuit, input_list, parent_group=None):
